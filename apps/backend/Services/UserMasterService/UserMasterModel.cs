@@ -10,7 +10,6 @@ public class UserMasterCreateModel
     public string? EmployeeCode { get; set; }
     public int? RoleId { get; set; }
     public bool? IsActive { get; set; } = true;
-    public int? CreatedById { get; set; }
 }
 
 public class UserMasterUpdateModel
@@ -23,7 +22,6 @@ public class UserMasterUpdateModel
     public string? EmployeeCode { get; set; }
     public int? RoleId { get; set; }
     public bool? IsActive { get; set; }
-    public int? UpdatedById { get; set; }
 }
 
 public class UserMasterListModel

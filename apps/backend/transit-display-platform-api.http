@@ -1,6 +1,3 @@
 @transit_display_platform_api_HostAddress = http://localhost:5133
 
-GET {{transit_display_platform_api_HostAddress}}/weatherforecast/
-Accept: application/json
-
 ###

@@ -1,3 +1,4 @@
+using transit_display_platform_api.Common;
 using transit_display_platform_api.Services.AuthService;
 using transit_display_platform_api.Services.UserMasterService;
 
@@ -7,6 +8,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddHttpContextAccessor();
+        services.AddScoped<IJwtTokenUtility, JwtTokenUtility>();
         services.AddScoped<IUserMasterService, UserMasterService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
