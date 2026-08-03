@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using transit_display_platform_api.Data;
@@ -16,7 +17,33 @@ try
         .ReadFrom.Services(services)
         .Enrich.FromLogContext());
 
-    builder.Services.AddControllers();
+    builder.Services.AddControllers(options =>
+        {
+            options.Filters.Add<ApiResponseWrapperFilter>();
+        })
+        .AddJsonOptions(options =>
+        {
+            // PascalCase keys to match the uniform response envelope contract.
+            options.JsonSerializerOptions.PropertyNamingPolicy = null;
+        });
+
+    // Surface model-binding/validation failures through the same envelope.
+    builder.Services.Configure<ApiBehaviorOptions>(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errorMessage = string.Join(" ", context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .Where(m => !string.IsNullOrWhiteSpace(m)));
+
+            return new BadRequestObjectResult(
+                string.IsNullOrWhiteSpace(errorMessage)
+                    ? "One or more validation errors occurred."
+                    : errorMessage);
+        };
+    });
+
     builder.Services.AddApplicationServices();
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -24,6 +51,9 @@ try
     builder.Services.AddSwaggerGen();
 
     var app = builder.Build();
+
+    // Envelope for unhandled exceptions and un-routed (404) requests.
+    app.UseMiddleware<ApiResponseMiddleware>();
 
     app.UseSwagger();
     app.UseSwaggerUI();
