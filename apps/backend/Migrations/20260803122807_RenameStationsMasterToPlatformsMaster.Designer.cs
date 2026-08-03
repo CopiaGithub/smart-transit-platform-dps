@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using transit_display_platform_api.Data;
 
@@ -11,9 +12,11 @@ using transit_display_platform_api.Data;
 namespace transit_display_platform_api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260803122807_RenameStationsMasterToPlatformsMaster")]
+    partial class RenameStationsMasterToPlatformsMaster
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -198,96 +201,6 @@ namespace transit_display_platform_api.Migrations
                     b.ToTable("buses_master");
                 });
 
-            modelBuilder.Entity("transit_display_platform_api.Schema.CityMaster", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CityCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("CityName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("CreatedById")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("RegionId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("StateId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UpdatedById")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RegionId");
-
-                    b.HasIndex("StateId");
-
-                    b.ToTable("city_master");
-                });
-
-            modelBuilder.Entity("transit_display_platform_api.Schema.CountryMaster", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("CountryCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("CountryName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("CreatedById")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UpdatedById")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("country_master");
-                });
-
             modelBuilder.Entity("transit_display_platform_api.Schema.MenuAssignment", b =>
                 {
                     b.Property<int>("Id")
@@ -381,47 +294,6 @@ namespace transit_display_platform_api.Migrations
                     b.ToTable("menu_master");
                 });
 
-            modelBuilder.Entity("transit_display_platform_api.Schema.PinCodeMaster", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("CityId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("CreatedById")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("PinCode")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UpdatedById")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CityId");
-
-                    b.ToTable("pincode_master");
-                });
-
             modelBuilder.Entity("transit_display_platform_api.Schema.PlatformsMaster", b =>
                 {
                     b.Property<int>("Id")
@@ -461,51 +333,6 @@ namespace transit_display_platform_api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("platforms_master");
-                });
-
-            modelBuilder.Entity("transit_display_platform_api.Schema.RegionMaster", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("CountryId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("CreatedById")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("RegionCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("RegionName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UpdatedById")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CountryId");
-
-                    b.ToTable("region_master");
                 });
 
             modelBuilder.Entity("transit_display_platform_api.Schema.RoleMaster", b =>
@@ -644,56 +471,6 @@ namespace transit_display_platform_api.Migrations
                     b.ToTable("sessions");
                 });
 
-            modelBuilder.Entity("transit_display_platform_api.Schema.StateMaster", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("CountryId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("CreatedById")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("RegionId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("StateCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("StateName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UpdatedById")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CountryId");
-
-                    b.HasIndex("RegionId");
-
-                    b.ToTable("state_master");
-                });
-
             modelBuilder.Entity("transit_display_platform_api.Schema.UserMaster", b =>
                 {
                     b.Property<int>("Id")
@@ -829,23 +606,6 @@ namespace transit_display_platform_api.Migrations
                     b.Navigation("Route");
                 });
 
-            modelBuilder.Entity("transit_display_platform_api.Schema.CityMaster", b =>
-                {
-                    b.HasOne("transit_display_platform_api.Schema.RegionMaster", "Region")
-                        .WithMany("Cities")
-                        .HasForeignKey("RegionId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("transit_display_platform_api.Schema.StateMaster", "State")
-                        .WithMany("Cities")
-                        .HasForeignKey("StateId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("Region");
-
-                    b.Navigation("State");
-                });
-
             modelBuilder.Entity("transit_display_platform_api.Schema.MenuAssignment", b =>
                 {
                     b.HasOne("transit_display_platform_api.Schema.MenuMaster", "Menu")
@@ -875,43 +635,6 @@ namespace transit_display_platform_api.Migrations
                     b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("transit_display_platform_api.Schema.PinCodeMaster", b =>
-                {
-                    b.HasOne("transit_display_platform_api.Schema.CityMaster", "City")
-                        .WithMany("PinCodes")
-                        .HasForeignKey("CityId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("City");
-                });
-
-            modelBuilder.Entity("transit_display_platform_api.Schema.RegionMaster", b =>
-                {
-                    b.HasOne("transit_display_platform_api.Schema.CountryMaster", "Country")
-                        .WithMany("Regions")
-                        .HasForeignKey("CountryId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("Country");
-                });
-
-            modelBuilder.Entity("transit_display_platform_api.Schema.StateMaster", b =>
-                {
-                    b.HasOne("transit_display_platform_api.Schema.CountryMaster", "Country")
-                        .WithMany("States")
-                        .HasForeignKey("CountryId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("transit_display_platform_api.Schema.RegionMaster", "Region")
-                        .WithMany("States")
-                        .HasForeignKey("RegionId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("Country");
-
-                    b.Navigation("Region");
-                });
-
             modelBuilder.Entity("transit_display_platform_api.Schema.UserMaster", b =>
                 {
                     b.HasOne("transit_display_platform_api.Schema.RoleMaster", "Role")
@@ -927,18 +650,6 @@ namespace transit_display_platform_api.Migrations
                     b.Navigation("BoardingEvents");
                 });
 
-            modelBuilder.Entity("transit_display_platform_api.Schema.CityMaster", b =>
-                {
-                    b.Navigation("PinCodes");
-                });
-
-            modelBuilder.Entity("transit_display_platform_api.Schema.CountryMaster", b =>
-                {
-                    b.Navigation("Regions");
-
-                    b.Navigation("States");
-                });
-
             modelBuilder.Entity("transit_display_platform_api.Schema.MenuMaster", b =>
                 {
                     b.Navigation("Children");
@@ -949,13 +660,6 @@ namespace transit_display_platform_api.Migrations
             modelBuilder.Entity("transit_display_platform_api.Schema.PlatformsMaster", b =>
                 {
                     b.Navigation("BoardingEvents");
-                });
-
-            modelBuilder.Entity("transit_display_platform_api.Schema.RegionMaster", b =>
-                {
-                    b.Navigation("Cities");
-
-                    b.Navigation("States");
                 });
 
             modelBuilder.Entity("transit_display_platform_api.Schema.RoleMaster", b =>
@@ -977,11 +681,6 @@ namespace transit_display_platform_api.Migrations
                     b.Navigation("AuditLogs");
 
                     b.Navigation("BoardingEvents");
-                });
-
-            modelBuilder.Entity("transit_display_platform_api.Schema.StateMaster", b =>
-                {
-                    b.Navigation("Cities");
                 });
 #pragma warning restore 612, 618
         }

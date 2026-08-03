@@ -13,7 +13,7 @@ public partial class BoardingEvents : BaseEntity
 
     public int BusId { get; set; }
 
-    public int? StationId { get; set; }
+    public int? PlatformId { get; set; }
 
     /// <summary>Entered → Assigned → Boarding → Departed / Replaced / Cleared.</summary>
     [MaxLength(20)]
@@ -47,8 +47,8 @@ public partial class BoardingEvents : BaseEntity
     [ForeignKey(nameof(BusId))]
     public virtual BusesMaster? Bus { get; set; }
 
-    [ForeignKey(nameof(StationId))]
-    public virtual StationsMaster? Station { get; set; }
+    [ForeignKey(nameof(PlatformId))]
+    public virtual PlatformsMaster? Platform { get; set; }
 
     [ForeignKey(nameof(ReplacedByBusId))]
     public virtual BusesMaster? ReplacedByBus { get; set; }

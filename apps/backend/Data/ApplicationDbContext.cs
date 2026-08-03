@@ -16,7 +16,7 @@ public partial class ApplicationDbContext : DbContext
 
     public virtual DbSet<RoutesMaster> RoutesMasters { get; set; }
     public virtual DbSet<BusesMaster> BusesMasters { get; set; }
-    public virtual DbSet<StationsMaster> StationsMasters { get; set; }
+    public virtual DbSet<PlatformsMaster> PlatformsMasters { get; set; }
     public virtual DbSet<Sessions> Sessions { get; set; }
     public virtual DbSet<BoardingEvents> BoardingEvents { get; set; }
     public virtual DbSet<RoleMaster> RoleMasters { get; set; }
@@ -24,6 +24,11 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<MenuMaster> MenuMasters { get; set; }
     public virtual DbSet<MenuAssignment> MenuAssignments { get; set; }
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
+    public virtual DbSet<CountryMaster> CountryMasters { get; set; }
+    public virtual DbSet<RegionMaster> RegionMasters { get; set; }
+    public virtual DbSet<StateMaster> StateMasters { get; set; }
+    public virtual DbSet<CityMaster> CityMasters { get; set; }
+    public virtual DbSet<PinCodeMaster> PinCodeMasters { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,9 +52,9 @@ public partial class ApplicationDbContext : DbContext
                 .HasForeignKey(e => e.BusId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            entity.HasOne(e => e.Station)
+            entity.HasOne(e => e.Platform)
                 .WithMany(s => s.BoardingEvents)
-                .HasForeignKey(e => e.StationId)
+                .HasForeignKey(e => e.PlatformId)
                 .OnDelete(DeleteBehavior.NoAction);
 
             entity.HasOne(e => e.ReplacedByBus)
@@ -107,6 +112,48 @@ public partial class ApplicationDbContext : DbContext
             entity.HasOne(e => e.Role)
                 .WithMany(r => r.AuditLogs)
                 .HasForeignKey(e => e.RoleId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<RegionMaster>(entity =>
+        {
+            entity.HasOne(e => e.Country)
+                .WithMany(c => c.Regions)
+                .HasForeignKey(e => e.CountryId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<StateMaster>(entity =>
+        {
+            entity.HasOne(e => e.Country)
+                .WithMany(c => c.States)
+                .HasForeignKey(e => e.CountryId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Region)
+                .WithMany(r => r.States)
+                .HasForeignKey(e => e.RegionId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<CityMaster>(entity =>
+        {
+            entity.HasOne(e => e.State)
+                .WithMany(s => s.Cities)
+                .HasForeignKey(e => e.StateId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Region)
+                .WithMany(r => r.Cities)
+                .HasForeignKey(e => e.RegionId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<PinCodeMaster>(entity =>
+        {
+            entity.HasOne(e => e.City)
+                .WithMany(c => c.PinCodes)
+                .HasForeignKey(e => e.CityId)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 

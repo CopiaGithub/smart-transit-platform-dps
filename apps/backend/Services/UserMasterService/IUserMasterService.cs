@@ -8,6 +8,5 @@ public interface IUserMasterService
     Task<ServiceResponseDto<UserMasterListModel>> GetByIdAsync(int id);
     Task<ServiceResponseDto<UserMasterListModel>> CreateAsync(UserMasterCreateModel model);
     Task<ServiceResponseDto<bool>> UpdateAsync(int id, UserMasterUpdateModel model);
-    Task<ServiceResponseDto<bool>> BulkUpdateStatusAsync(ChangeStatusModel model);
     Task<ServiceResponseDto<bool>> DeleteAsync(int id);
 }

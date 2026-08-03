@@ -173,30 +173,6 @@ public class UserMasterService : IUserMasterService
         return new ServiceResponseDto<bool> { Data = true, Message = "User updated successfully." };
     }
 
-    public async Task<ServiceResponseDto<bool>> BulkUpdateStatusAsync(ChangeStatusModel model)
-    {
-        if (model.Ids == null || model.Ids.Count == 0)
-            return new ServiceResponseDto<bool> { Success = false, Message = "No user ids provided." };
-
-        var users = await _context.UserMasters
-            .Where(u => model.Ids.Contains(u.Id) && !u.IsDeleted)
-            .ToListAsync();
-
-        if (users.Count == 0)
-            return new ServiceResponseDto<bool> { Success = false, Message = "No matching users found." };
-
-        foreach (var user in users)
-        {
-            user.IsActive = model.IsActive;
-            user.UpdatedById = _jwtTokenUtility.GetUserId();
-            user.UpdatedAt = DateTime.UtcNow;
-        }
-
-        await _context.SaveChangesAsync();
-
-        return new ServiceResponseDto<bool> { Data = true, Message = $"{users.Count} user(s) updated successfully." };
-    }
-
     public async Task<ServiceResponseDto<bool>> DeleteAsync(int id)
     {
         var user = await _context.UserMasters.FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
