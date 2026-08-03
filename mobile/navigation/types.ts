@@ -3,18 +3,20 @@ import type { NavigatorScreenParams } from "@react-navigation/native";
 // Drawer = the hamburger menu sections.
 export type DrawerParamList = {
   Dashboard: undefined;
-  Displays: undefined;
-  Assets: undefined;
-  Alerts: undefined;
+  GateIn: undefined;
+  GateOut: undefined;
+  LiveBoard: undefined;
+  Replace: undefined;
+  Reports: undefined;
+  Masters: undefined;
   Settings: undefined;
 };
 
-// Root stack = auth flow + the drawer + every pushed detail screen.
+// Root stack = auth flow + the drawer.
 export type RootStackParamList = {
   Splash: undefined;
   Login: undefined;
   Main: NavigatorScreenParams<DrawerParamList>;
-  DisplayDetail: { displayId: string; name: string };
 };
 
 declare global {

@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { createDrawerNavigator } from "@react-navigation/drawer";
-import { COLORS, RADIUS } from "../constants/theme";
+import { BOARD, COLORS, RADIUS } from "../constants/theme";
 import { useAppSelector } from "../src/store";
 import DrawerContent from "./DrawerContent";
 import { visibleMenu } from "./menu";
@@ -35,6 +35,11 @@ export default function AppDrawer() {
           component={item.component}
           options={{
             title: item.title,
+            // The board mirrors an LED wall, so its chrome stays dark too.
+            ...(item.name === "LiveBoard" && {
+              headerStyle: { backgroundColor: BOARD.header },
+              headerTitleStyle: { color: BOARD.amber, fontWeight: "700" as const },
+            }),
             drawerIcon: ({ color, size }) => (
               <Feather name={item.icon} size={size} color={color} />
             ),

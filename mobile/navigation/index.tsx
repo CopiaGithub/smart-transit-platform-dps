@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OfflineBanner from "../components/OfflineBanner";
 import { COLORS } from "../constants/theme";
 import LoginScreen from "../features/auth/LoginScreen";
-import DisplayDetailScreen from "../features/displays/DisplayDetailScreen";
 import SplashScreen from "../features/splash/SplashScreen";
 import { navigationRef } from "../src/services/navigationRef";
 import AppDrawer from "./AppDrawer";
@@ -74,11 +73,6 @@ function RootNavigator() {
       <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
       {/* Drawer brings its own header (with the hamburger). */}
       <Stack.Screen name="Main" component={AppDrawer} options={{ headerShown: false }} />
-      <Stack.Screen
-        name="DisplayDetail"
-        component={DisplayDetailScreen}
-        options={({ route }) => ({ title: route.params.name })}
-      />
     </Stack.Navigator>
   );
 }

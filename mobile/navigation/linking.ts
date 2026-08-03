@@ -9,14 +9,17 @@ const linking: LinkingOptions<RootStackParamList> = {
       Login: "login",
       Main: {
         screens: {
-          Dashboard: "dashboard",
-          Displays: "displays",
-          Assets: "assets",
-          Alerts: "alerts",
+          Dashboard: "operations",
+          GateIn: "gate-in",
+          GateOut: "gate-out",
+          // Kiosk-friendly: the LED controllers can deep-link straight here.
+          LiveBoard: "board",
+          Replace: "replace",
+          Reports: "reports",
+          Masters: "masters",
           Settings: "settings",
         },
       },
-      DisplayDetail: "displays/:displayId",
     },
   },
 };

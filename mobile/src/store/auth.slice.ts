@@ -25,12 +25,12 @@ export const restoreSession = createAsyncThunk("auth/restore", async () => {
 
 export const login = createAsyncThunk(
   "auth/login",
-  async (creds: { username: string; password: string }) => {
+  async (creds: { username: string; password: string; role: string }) => {
     // ponytail: stubbed until the backend contract exists. Swap for
     // `apiClient.post("auth/login", creds)` and return response.data.
     const token = `demo-${creds.username}`;
     await AsyncStorage.setItem(TOKEN_KEY, token);
-    return { token, user: { id: "1", name: creds.username, role: "operator" } };
+    return { token, user: { id: "1", name: creds.username, role: creds.role } };
   },
 );
 

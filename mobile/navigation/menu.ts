@@ -1,9 +1,13 @@
 import type { ComponentProps } from "react";
 import { Feather } from "@expo/vector-icons";
-import AlertsScreen from "../features/alerts/AlertsScreen";
-import AssetsScreen from "../features/assets/AssetsScreen";
+import { LABELS } from "../constants/domain";
+import LiveBoardScreen from "../features/board/LiveBoardScreen";
 import DashboardScreen from "../features/dashboard/DashboardScreen";
-import DisplaysScreen from "../features/displays/DisplaysScreen";
+import GateInScreen from "../features/gatein/GateInScreen";
+import GateOutScreen from "../features/gateout/GateOutScreen";
+import MastersScreen from "../features/masters/MastersScreen";
+import ReplaceScreen from "../features/replace/ReplaceScreen";
+import ReportsScreen from "../features/reports/ReportsScreen";
 import SettingsScreen from "../features/settings/SettingsScreen";
 import type { DrawerParamList } from "./types";
 
@@ -16,14 +20,28 @@ export type MenuItem = {
   roles?: string[];
 };
 
-// Single place to add/remove a hamburger section — the drawer and any
-// dashboard menu grid both read this.
+// Single place to add/remove a hamburger section — the drawer and the
+// dashboard shortcuts both read this.
 export const MENU: MenuItem[] = [
-  { name: "Dashboard", title: "Dashboard", icon: "home", component: DashboardScreen },
-  { name: "Displays", title: "Displays", icon: "monitor", component: DisplaysScreen },
-  { name: "Assets", title: "Assets", icon: "truck", component: AssetsScreen },
-  { name: "Alerts", title: "Alerts", icon: "bell", component: AlertsScreen },
-  { name: "Settings", title: "Settings", icon: "settings", component: SettingsScreen, roles: ["admin", "operator"] },
+  { name: "Dashboard", title: "Operations", icon: "grid", component: DashboardScreen },
+  { name: "GateIn", title: LABELS.gateIn, icon: "log-in", component: GateInScreen },
+  { name: "GateOut", title: LABELS.gateOut, icon: "log-out", component: GateOutScreen },
+  { name: "LiveBoard", title: "Live Board", icon: "monitor", component: LiveBoardScreen },
+  {
+    name: "Replace",
+    title: "Reserve / Replace",
+    icon: "repeat",
+    component: ReplaceScreen,
+  },
+  { name: "Reports", title: "Reports", icon: "bar-chart-2", component: ReportsScreen },
+  {
+    name: "Masters",
+    title: "Masters",
+    icon: "database",
+    component: MastersScreen,
+    roles: ["admin", "operator"],
+  },
+  { name: "Settings", title: "Settings", icon: "settings", component: SettingsScreen },
 ];
 
 export const visibleMenu = (role?: string | null) =>
