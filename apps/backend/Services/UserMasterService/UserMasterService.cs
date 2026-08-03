@@ -119,7 +119,7 @@ public class UserMasterService : IUserMasterService
             Name = model.Name.Trim(),
             Contact = model.Contact,
             EmailId = model.EmailId,
-            Password = model.Password,
+            Password = string.IsNullOrWhiteSpace(model.Password) ? null : PasswordHasher.HashMd5(model.Password),
             Address = model.Address,
             EmployeeCode = model.EmployeeCode,
             RoleId = model.RoleId,
@@ -160,7 +160,7 @@ public class UserMasterService : IUserMasterService
         if (model.Name != null) user.Name = model.Name.Trim();
         if (model.Contact != null) user.Contact = model.Contact;
         if (model.EmailId != null) user.EmailId = model.EmailId;
-        if (model.Password != null) user.Password = model.Password;
+        if (model.Password != null) user.Password = PasswordHasher.HashMd5(model.Password);
         if (model.Address != null) user.Address = model.Address;
         if (model.EmployeeCode != null) user.EmployeeCode = model.EmployeeCode;
         if (model.RoleId.HasValue) user.RoleId = model.RoleId;

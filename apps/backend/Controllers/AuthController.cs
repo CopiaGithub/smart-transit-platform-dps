@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using transit_display_platform_api.Services.AuthService;
 
@@ -14,6 +15,7 @@ public class AuthController : ControllerBase
         _service = service;
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequestModel request)
     {

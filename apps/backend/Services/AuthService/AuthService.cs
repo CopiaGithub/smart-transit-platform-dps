@@ -33,7 +33,7 @@ public class AuthService : IAuthService
                 (u.EmailId == username || u.EmployeeCode == username || u.Contact == username));
 
         // Same message for missing user and wrong password to avoid user enumeration.
-        if (user == null || user.Password != request.Password)
+        if (user == null || !PasswordHasher.VerifyMd5(request.Password, user.Password))
             return new ServiceResponseDto<LoginResponseModel>
             {
                 Success = false,
@@ -47,8 +47,7 @@ public class AuthService : IAuthService
                 Message = "Account is inactive. Please contact your administrator."
             };
 
-        // Refresh token is generated but deliberately not returned to the client.
-        var tokens = _tokenService.GenerateTokens(user);
+        var tokens = _tokenService.GenerateToken(user);
 
         var data = new LoginResponseModel
         {

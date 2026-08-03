@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -18,11 +17,10 @@ public class JwtTokenService : IJwtTokenService
         _settings = settings.Value;
     }
 
-    public TokenResult GenerateTokens(UserMaster user)
+    public TokenResult GenerateToken(UserMaster user)
     {
         var now = DateTime.UtcNow;
         var accessTokenExpiresAt = now.AddMinutes(_settings.AccessTokenExpiryMinutes);
-        var refreshTokenExpiresAt = now.AddDays(_settings.RefreshTokenExpiryDays);
 
         var claims = new List<Claim>
         {
@@ -56,12 +54,6 @@ public class JwtTokenService : IJwtTokenService
 
         var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
 
-        return new TokenResult(accessToken, accessTokenExpiresAt, GenerateRefreshToken(), refreshTokenExpiresAt);
-    }
-
-    private static string GenerateRefreshToken()
-    {
-        var bytes = RandomNumberGenerator.GetBytes(64);
-        return Convert.ToBase64String(bytes);
+        return new TokenResult(accessToken, accessTokenExpiresAt);
     }
 }

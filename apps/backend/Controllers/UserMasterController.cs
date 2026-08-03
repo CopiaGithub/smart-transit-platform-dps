@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using transit_display_platform_api.Common;
 using transit_display_platform_api.Services.UserMasterService;
@@ -6,6 +7,7 @@ namespace transit_display_platform_api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class UserMasterController : ControllerBase
 {
     private readonly IUserMasterService _service;
