@@ -1,29 +1,29 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using transit_display_platform_api.Common;
-using transit_display_platform_api.Services.UserMasterService;
+using transit_display_platform_api.Services.BusesMasterService;
 
 namespace transit_display_platform_api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public class UserMasterController : ControllerBase
+public class BusesMasterController : ControllerBase
 {
-    private readonly IUserMasterService _service;
+    private readonly IBusesMasterService _service;
 
-    public UserMasterController(IUserMasterService service)
+    public BusesMasterController(IBusesMasterService service)
     {
         _service = service;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetUserMaster(
+    public async Task<IActionResult> GetBusesMaster(
         [FromQuery] PaginationFilterDto filter,
-        [FromQuery] int? roleId,
+        [FromQuery] int? routeId,
         [FromQuery] bool? status)
     {
-        var response = await _service.GetAllAsync(filter, roleId, status);
+        var response = await _service.GetAllAsync(filter, routeId, status);
         if (!response.Success)
             return BadRequest(response.Message);
 
@@ -31,7 +31,7 @@ public class UserMasterController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetUserMasterById(int id)
+    public async Task<IActionResult> GetBusesMasterById(int id)
     {
         var response = await _service.GetByIdAsync(id);
         if (!response.Success)
@@ -41,7 +41,7 @@ public class UserMasterController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> PostUserMaster([FromBody] UserMasterCreateModel model)
+    public async Task<IActionResult> PostBusesMaster([FromBody] BusesMasterCreateModel model)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -50,11 +50,11 @@ public class UserMasterController : ControllerBase
         if (!response.Success)
             return BadRequest(response.Message);
 
-        return CreatedAtAction(nameof(GetUserMasterById), new { id = response.Data?.Id }, response);
+        return CreatedAtAction(nameof(GetBusesMasterById), new { id = response.Data?.Id }, response);
     }
 
     [HttpPatch("{id}")]
-    public async Task<IActionResult> PatchUserMaster(int id, [FromBody] UserMasterUpdateModel model)
+    public async Task<IActionResult> PatchBusesMaster(int id, [FromBody] BusesMasterUpdateModel model)
     {
         var response = await _service.UpdateAsync(id, model);
         if (!response.Success)
@@ -64,7 +64,7 @@ public class UserMasterController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUserMaster(int id)
+    public async Task<IActionResult> DeleteBusesMaster(int id)
     {
         var response = await _service.DeleteAsync(id);
         if (!response.Success)
