@@ -8,10 +8,12 @@ namespace transit_display_platform_api.Services.UserMasterService;
 public class UserMasterService : IUserMasterService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IJwtTokenUtility _jwtTokenUtility;
 
-    public UserMasterService(ApplicationDbContext context)
+    public UserMasterService(ApplicationDbContext context, IJwtTokenUtility jwtTokenUtility)
     {
         _context = context;
+        _jwtTokenUtility = jwtTokenUtility;
     }
 
     public async Task<ServiceResponseDto<PagedResult<UserMasterListModel>>> GetAllAsync(
@@ -110,6 +112,8 @@ public class UserMasterService : IUserMasterService
                 return new ServiceResponseDto<UserMasterListModel> { Success = false, Message = "A user with this email already exists." };
         }
 
+        var currentUserId = _jwtTokenUtility.GetUserId();
+
         var user = new UserMaster
         {
             Name = model.Name.Trim(),
@@ -121,7 +125,8 @@ public class UserMasterService : IUserMasterService
             RoleId = model.RoleId,
             IsActive = model.IsActive ?? true,
             IsDeleted = false,
-            CreatedById = model.CreatedById,
+            CreatedById = currentUserId,
+            UpdatedById = currentUserId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -160,7 +165,7 @@ public class UserMasterService : IUserMasterService
         if (model.EmployeeCode != null) user.EmployeeCode = model.EmployeeCode;
         if (model.RoleId.HasValue) user.RoleId = model.RoleId;
         if (model.IsActive.HasValue) user.IsActive = model.IsActive.Value;
-        user.UpdatedById = model.UpdatedById;
+        user.UpdatedById = _jwtTokenUtility.GetUserId();
         user.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -183,6 +188,7 @@ public class UserMasterService : IUserMasterService
         foreach (var user in users)
         {
             user.IsActive = model.IsActive;
+            user.UpdatedById = _jwtTokenUtility.GetUserId();
             user.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -200,6 +206,7 @@ public class UserMasterService : IUserMasterService
         // Soft delete to preserve referential history.
         user.IsDeleted = true;
         user.IsActive = false;
+        user.UpdatedById = _jwtTokenUtility.GetUserId();
         user.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
