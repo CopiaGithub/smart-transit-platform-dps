@@ -17,12 +17,14 @@ import * as Yup from "yup";
 import AppButton from "../../components/AppButton";
 import { COLORS, RADIUS, SHADOW, SPACING } from "../../constants/theme";
 import type { RootStackParamList } from "../../navigation/types";
-import { login } from "../../src/store/auth.slice";
 import { useAppDispatch, useAppSelector } from "../../src/store";
+import { login } from "../../src/store/auth.slice";
 
 const schema = Yup.object({
   username: Yup.string().trim().required("Username is required"),
-  password: Yup.string().min(4, "At least 4 characters").required("Password is required"),
+  password: Yup.string()
+    .min(4, "At least 4 characters")
+    .required("Password is required"),
 });
 
 // Which post the operator is signing in for — drives what the drawer shows.
@@ -49,6 +51,8 @@ export default function LoginScreen({ navigation }: Props) {
   });
 
   return (
+    //login
+
     <View style={styles.root}>
       <LinearGradient
         colors={[COLORS.primary, COLORS.primaryDark]}
@@ -60,7 +64,9 @@ export default function LoginScreen({ navigation }: Props) {
           <Feather name="navigation" size={26} color={COLORS.white} />
         </View>
         <Text style={styles.brand}>Transit Display</Text>
-        <Text style={styles.tagline}>Station allocation & boarding control</Text>
+        <Text style={styles.tagline}>
+          Station allocation & boarding control
+        </Text>
       </LinearGradient>
 
       <KeyboardAvoidingView
@@ -148,7 +154,9 @@ function Field({
   return (
     <View style={{ gap: SPACING.xs }}>
       <Text style={styles.label}>{label}</Text>
-      <View style={[styles.inputRow, !!error && { borderColor: COLORS.danger }]}>
+      <View
+        style={[styles.inputRow, !!error && { borderColor: COLORS.danger }]}
+      >
         <Feather name={icon} size={17} color={COLORS.textMuted} />
         <TextInput
           style={styles.input}
