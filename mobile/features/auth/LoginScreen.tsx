@@ -12,7 +12,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-//login
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Yup from "yup";
 import AppButton from "../../components/AppButton";
@@ -52,6 +51,8 @@ export default function LoginScreen({ navigation }: Props) {
   });
 
   return (
+    //login
+
     <View style={styles.root}>
       <LinearGradient
         colors={[COLORS.primary, COLORS.primaryDark]}
