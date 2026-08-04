@@ -107,6 +107,7 @@ try
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         await DatabaseSeeder.ResetLegacyPasswordsAsync(db, app.Configuration, logger);
+        await DemoDataSeeder.SeedAsync(db, app.Configuration, logger);
     }
 
     // Envelope for unhandled exceptions and un-routed (404) requests.
