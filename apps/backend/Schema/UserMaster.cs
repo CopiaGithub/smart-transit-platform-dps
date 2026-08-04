@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace transit_display_platform_api.Schema;
 
-[Table("usermaster")]
+[Table("user_master")]
 public partial class UserMaster : BaseEntity
 {
     [Key]
@@ -18,8 +18,19 @@ public partial class UserMaster : BaseEntity
     [MaxLength(100)]
     public string? EmailId { get; set; }
 
+    /// <summary>BCrypt hash (salt is embedded in the hash). Never a plaintext or MD5 value.</summary>
     [MaxLength(255)]
-    public string? Password { get; set; }
+    public string? PasswordHash { get; set; }
+
+    public DateTime? PasswordUpdatedAt { get; set; }
+
+    public bool MustChangePassword { get; set; }
+
+    public DateTime? LastLoginAt { get; set; }
+
+    public int FailedLoginAttempts { get; set; }
+
+    public DateTime? LockoutEndsAt { get; set; }
 
     [MaxLength(250)]
     public string? Address { get; set; }
@@ -30,12 +41,6 @@ public partial class UserMaster : BaseEntity
     public int? RoleId { get; set; }
 
     public bool IsActive { get; set; } = true;
-
-    public bool IsDeleted { get; set; }
-
-    public int? CreatedById { get; set; }
-
-    public int? UpdatedById { get; set; }
 
     [ForeignKey(nameof(RoleId))]
     public virtual RoleMaster? Role { get; set; }

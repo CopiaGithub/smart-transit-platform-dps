@@ -20,11 +20,5 @@ public partial class RoutesMaster : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
-    public bool IsDeleted { get; set; }
-
-    public int? CreatedById { get; set; }
-
-    public int? UpdatedById { get; set; }
-
     public virtual ICollection<BusesMaster> Buses { get; set; } = new List<BusesMaster>();
 }

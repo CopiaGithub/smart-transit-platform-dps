@@ -19,6 +19,9 @@ public partial class AuditLog : BaseEntity
     [MaxLength(50)]
     public string ActionType { get; set; } = string.Empty;
 
+    public int? ActorUserId { get; set; }
+
+    /// <summary>Actor name captured at write time, so the log stays readable if the user is later renamed or removed.</summary>
     [MaxLength(100)]
     public string? ActorName { get; set; }
 
@@ -29,8 +32,6 @@ public partial class AuditLog : BaseEntity
     [MaxLength(500)]
     public string? Details { get; set; }
 
-    public int? CreatedById { get; set; }
-
     [ForeignKey(nameof(SessionId))]
     public virtual Sessions? Session { get; set; }
 
@@ -39,4 +40,7 @@ public partial class AuditLog : BaseEntity
 
     [ForeignKey(nameof(RoleId))]
     public virtual RoleMaster? Role { get; set; }
+
+    [ForeignKey(nameof(ActorUserId))]
+    public virtual UserMaster? ActorUser { get; set; }
 }

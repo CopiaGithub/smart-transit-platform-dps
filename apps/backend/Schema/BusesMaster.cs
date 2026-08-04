@@ -20,12 +20,6 @@ public partial class BusesMaster : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
-    public bool IsDeleted { get; set; }
-
-    public int? CreatedById { get; set; }
-
-    public int? UpdatedById { get; set; }
-
     [ForeignKey(nameof(RouteId))]
     public virtual RoutesMaster? Route { get; set; }
 

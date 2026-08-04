@@ -16,12 +16,6 @@ public partial class PinCodeMaster : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
-    public bool IsDeleted { get; set; }
-
-    public int? CreatedById { get; set; }
-
-    public int? UpdatedById { get; set; }
-
     [ForeignKey(nameof(CityId))]
     public virtual CityMaster? City { get; set; }
 }

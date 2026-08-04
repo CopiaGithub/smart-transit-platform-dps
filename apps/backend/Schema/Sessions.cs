@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace transit_display_platform_api.Schema;
 
-[Table("sessions")]
+[Table("dispersal_sessions")]
 public partial class Sessions : BaseEntity
 {
     [Key]
@@ -26,12 +26,6 @@ public partial class Sessions : BaseEntity
     public DateTime? ResetAt { get; set; }
 
     public bool IsActive { get; set; } = true;
-
-    public bool IsDeleted { get; set; }
-
-    public int? CreatedById { get; set; }
-
-    public int? UpdatedById { get; set; }
 
     public virtual ICollection<BoardingEvents> BoardingEvents { get; set; } = new List<BoardingEvents>();
 

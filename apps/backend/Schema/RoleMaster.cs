@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace transit_display_platform_api.Schema;
 
-[Table("rolemaster")]
+[Table("role_master")]
 public partial class RoleMaster : BaseEntity
 {
     [Key]
@@ -17,12 +17,6 @@ public partial class RoleMaster : BaseEntity
     public string? Description { get; set; }
 
     public bool IsActive { get; set; } = true;
-
-    public bool IsDeleted { get; set; }
-
-    public int? CreatedById { get; set; }
-
-    public int? UpdatedById { get; set; }
 
     public virtual ICollection<UserMaster> Users { get; set; } = new List<UserMaster>();
 

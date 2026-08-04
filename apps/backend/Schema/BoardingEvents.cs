@@ -35,11 +35,13 @@ public partial class BoardingEvents : BaseEntity
     [MaxLength(500)]
     public string? Notes { get; set; }
 
-    public bool IsDeleted { get; set; }
-
-    public int? CreatedById { get; set; }
-
-    public int? UpdatedById { get; set; }
+    /// <summary>
+    /// Optimistic concurrency token. Two gate operators assigning platforms at the
+    /// same moment must not both win — the loser gets a DbUpdateConcurrencyException
+    /// and retries against a fresh queue instead of duplicating a platform number.
+    /// </summary>
+    [Timestamp]
+    public byte[]? RowVersion { get; set; }
 
     [ForeignKey(nameof(SessionId))]
     public virtual Sessions? Session { get; set; }

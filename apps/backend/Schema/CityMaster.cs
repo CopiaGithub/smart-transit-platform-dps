@@ -21,12 +21,6 @@ public partial class CityMaster : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
-    public bool IsDeleted { get; set; }
-
-    public int? CreatedById { get; set; }
-
-    public int? UpdatedById { get; set; }
-
     [ForeignKey(nameof(StateId))]
     public virtual StateMaster? State { get; set; }
 

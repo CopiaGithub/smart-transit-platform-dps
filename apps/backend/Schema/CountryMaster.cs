@@ -17,12 +17,6 @@ public partial class CountryMaster : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
-    public bool IsDeleted { get; set; }
-
-    public int? CreatedById { get; set; }
-
-    public int? UpdatedById { get; set; }
-
     public virtual ICollection<RegionMaster> Regions { get; set; } = new List<RegionMaster>();
 
     public virtual ICollection<StateMaster> States { get; set; } = new List<StateMaster>();

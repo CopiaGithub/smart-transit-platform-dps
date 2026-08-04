@@ -29,6 +29,12 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<StateMaster> StateMasters { get; set; }
     public virtual DbSet<CityMaster> CityMasters { get; set; }
     public virtual DbSet<PinCodeMaster> PinCodeMasters { get; set; }
+    public virtual DbSet<GateMaster> GateMasters { get; set; }
+    public virtual DbSet<DisplayMaster> DisplayMasters { get; set; }
+    public virtual DbSet<AcademicYearMaster> AcademicYearMasters { get; set; }
+    public virtual DbSet<StudentMaster> StudentMasters { get; set; }
+    public virtual DbSet<ParentMaster> ParentMasters { get; set; }
+    public virtual DbSet<StudentParentMapping> StudentParentMappings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -157,6 +163,327 @@ public partial class ApplicationDbContext : DbContext
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
+        ConfigureNewMasters(modelBuilder);
+        SeedReferenceData(modelBuilder);
+        ConfigureAuditForeignKeys(modelBuilder);
+        ConfigureUniqueConstraints(modelBuilder);
+        ConfigurePerformanceIndexes(modelBuilder);
+
         base.OnModelCreating(modelBuilder);
+    }
+
+    private static void ConfigureNewMasters(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<PlatformsMaster>(entity =>
+        {
+            entity.HasOne(e => e.NearestGate)
+                .WithMany(g => g.Platforms)
+                .HasForeignKey(e => e.NearestGateId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<DisplayMaster>(entity =>
+        {
+            entity.HasOne(e => e.Gate)
+                .WithMany(g => g.Displays)
+                .HasForeignKey(e => e.GateId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.FilterByGate)
+                .WithMany()
+                .HasForeignKey(e => e.FilterByGateId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_display_master_DisplayType",
+                "[DisplayType] IN ('Outdoor','Indoor')"));
+        });
+
+        modelBuilder.Entity<GateMaster>(entity =>
+        {
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_gate_master_GateType",
+                "[GateType] IN ('BusEntry','BusExit','StudentExit')"));
+        });
+
+        modelBuilder.Entity<StudentMaster>(entity =>
+        {
+            entity.HasOne(e => e.AcademicYear)
+                .WithMany(a => a.Students)
+                .HasForeignKey(e => e.AcademicYearId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.ClassTeacher)
+                .WithMany()
+                .HasForeignKey(e => e.ClassTeacherId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Bus)
+                .WithMany()
+                .HasForeignKey(e => e.BusId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Route)
+                .WithMany()
+                .HasForeignKey(e => e.RouteId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.ExitGate)
+                .WithMany()
+                .HasForeignKey(e => e.ExitGateId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ParentMaster>(entity =>
+        {
+            entity.HasOne(e => e.City).WithMany()
+                .HasForeignKey(e => e.CityId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.State).WithMany()
+                .HasForeignKey(e => e.StateId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.PinCode).WithMany()
+                .HasForeignKey(e => e.PinCodeId).OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.User).WithMany()
+                .HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<StudentParentMapping>(entity =>
+        {
+            entity.HasOne(e => e.Student)
+                .WithMany(s => s.ParentMappings)
+                .HasForeignKey(e => e.StudentId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Parent)
+                .WithMany(p => p.StudentMappings)
+                .HasForeignKey(e => e.ParentId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_student_parent_mapping_Relation",
+                "[Relation] IN ('Father','Mother','Guardian','Grandfather','Grandmother'," +
+                "'Uncle','Aunt','Sibling','Driver','Other')"));
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasOne(e => e.ActorUser)
+                .WithMany()
+                .HasForeignKey(e => e.ActorUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+    }
+
+    /// <summary>
+    /// The gates and LED panels described in the DPS brief. Seeded rather than left to
+    /// manual entry because display and platform records reference them by id.
+    /// Timestamps are fixed so migrations stay deterministic across rebuilds.
+    /// </summary>
+    private static void SeedReferenceData(ModelBuilder modelBuilder)
+    {
+        var seededAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        modelBuilder.Entity<GateMaster>().HasData(
+            new GateMaster { Id = 1, GateCode = "G6", GateName = "Gate No. 6 (Bus Entry)", GateType = "BusEntry", SortOrder = 1, CreatedAt = seededAt, UpdatedAt = seededAt },
+            new GateMaster { Id = 2, GateCode = "G1", GateName = "Gate No. 1 (Bus Exit)", GateType = "BusExit", SortOrder = 2, CreatedAt = seededAt, UpdatedAt = seededAt },
+            new GateMaster { Id = 3, GateCode = "EXIT1", GateName = "School Building Exit 1", GateType = "StudentExit", SortOrder = 3, CreatedAt = seededAt, UpdatedAt = seededAt },
+            new GateMaster { Id = 4, GateCode = "EXIT2", GateName = "School Building Exit 2", GateType = "StudentExit", SortOrder = 4, CreatedAt = seededAt, UpdatedAt = seededAt });
+
+        modelBuilder.Entity<DisplayMaster>().HasData(
+            new DisplayMaster
+            {
+                Id = 1, DisplayCode = "OUT-G6", DisplayName = "Outdoor Video Wall - Gate No. 6",
+                DisplayType = "Outdoor", GateId = 1, Location = "Gate No. 6 entrance",
+                ScreenSize = "8x8", VisibleRowCount = 25,
+                CreatedAt = seededAt, UpdatedAt = seededAt
+            },
+            new DisplayMaster
+            {
+                Id = 2, DisplayCode = "IND-E1", DisplayName = "Indoor Video Wall - Exit 1",
+                DisplayType = "Indoor", GateId = 3, FilterByGateId = 3, Location = "School building exit 1",
+                ScreenSize = "4x6", VisibleRowCount = 12,
+                CreatedAt = seededAt, UpdatedAt = seededAt
+            },
+            new DisplayMaster
+            {
+                Id = 3, DisplayCode = "IND-E2", DisplayName = "Indoor Video Wall - Exit 2",
+                DisplayType = "Indoor", GateId = 4, FilterByGateId = 4, Location = "School building exit 2",
+                ScreenSize = "4x6", VisibleRowCount = 12,
+                CreatedAt = seededAt, UpdatedAt = seededAt
+            });
+
+        modelBuilder.Entity<AcademicYearMaster>().HasData(
+            new AcademicYearMaster
+            {
+                Id = 1, YearName = "2026-2027",
+                StartDate = new DateOnly(2026, 6, 1), EndDate = new DateOnly(2027, 4, 30),
+                IsCurrent = true, CreatedAt = seededAt, UpdatedAt = seededAt
+            });
+    }
+
+    /// <summary>
+    /// Points every entity's CreatedById / UpdatedById at user_master. These were plain
+    /// ints before, so an audit trail could reference a user id that never existed.
+    /// </summary>
+    private static void ConfigureAuditForeignKeys(ModelBuilder modelBuilder)
+    {
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (!typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
+                continue;
+
+            var builder = modelBuilder.Entity(entityType.ClrType);
+
+            foreach (var column in new[] { nameof(BaseEntity.CreatedById), nameof(BaseEntity.UpdatedById) })
+            {
+                builder.HasOne(typeof(UserMaster))
+                    .WithMany()
+                    .HasForeignKey(column)
+                    .HasConstraintName($"FK_{entityType.GetTableName()}_user_master_{column}")
+                    .OnDelete(DeleteBehavior.NoAction);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Filtered unique indexes — the WHERE clause excludes soft-deleted rows so a
+    /// retired record never blocks reuse of its code.
+    /// </summary>
+    private static void ConfigureUniqueConstraints(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<BusesMaster>()
+            .HasIndex(e => e.BusNumber)
+            .HasDatabaseName("UX_buses_master_BusNumber")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        modelBuilder.Entity<PlatformsMaster>()
+            .HasIndex(e => e.PlatformNumber)
+            .HasDatabaseName("UX_platforms_master_PlatformNumber")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        modelBuilder.Entity<RoutesMaster>()
+            .HasIndex(e => e.RouteCode)
+            .HasDatabaseName("UX_routes_master_RouteCode")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0 AND [RouteCode] IS NOT NULL");
+
+        modelBuilder.Entity<Sessions>()
+            .HasIndex(e => new { e.SessionDate, e.ShiftName })
+            .HasDatabaseName("UX_dispersal_sessions_Date_Shift")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        // A bus cannot be live twice in one dispersal.
+        modelBuilder.Entity<BoardingEvents>()
+            .HasIndex(e => new { e.SessionId, e.BusId })
+            .HasDatabaseName("UX_boarding_events_Session_Bus")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0 AND [Status] <> 'Cleared'");
+
+        // Two buses cannot occupy the same platform at the same time — the failure
+        // mode that has no physical recovery in a queue with no overtaking.
+        modelBuilder.Entity<BoardingEvents>()
+            .HasIndex(e => new { e.SessionId, e.PlatformId })
+            .HasDatabaseName("UX_boarding_events_Session_Platform")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0 AND [PlatformId] IS NOT NULL AND [Status] IN ('Assigned','Boarding')");
+
+        modelBuilder.Entity<UserMaster>()
+            .HasIndex(e => e.EmailId)
+            .HasDatabaseName("UX_user_master_EmailId")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0 AND [EmailId] IS NOT NULL");
+
+        modelBuilder.Entity<UserMaster>()
+            .HasIndex(e => e.EmployeeCode)
+            .HasDatabaseName("UX_user_master_EmployeeCode")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0 AND [EmployeeCode] IS NOT NULL");
+
+        modelBuilder.Entity<GateMaster>()
+            .HasIndex(e => e.GateCode)
+            .HasDatabaseName("UX_gate_master_GateCode")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        modelBuilder.Entity<DisplayMaster>()
+            .HasIndex(e => e.DisplayCode)
+            .HasDatabaseName("UX_display_master_DisplayCode")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        modelBuilder.Entity<AcademicYearMaster>()
+            .HasIndex(e => e.YearName)
+            .HasDatabaseName("UX_academic_year_master_YearName")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        // At most one current academic year.
+        modelBuilder.Entity<AcademicYearMaster>()
+            .HasIndex(e => e.IsCurrent)
+            .HasDatabaseName("UX_academic_year_master_IsCurrent")
+            .IsUnique()
+            .HasFilter("[IsCurrent] = 1 AND [IsDeleted] = 0");
+
+        modelBuilder.Entity<StudentMaster>()
+            .HasIndex(e => new { e.AdmissionNumber, e.AcademicYearId })
+            .HasDatabaseName("UX_student_master_Admission_Year")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        modelBuilder.Entity<StudentMaster>()
+            .HasIndex(e => e.RfidTag)
+            .HasDatabaseName("UX_student_master_RfidTag")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0 AND [RfidTag] IS NOT NULL");
+
+        modelBuilder.Entity<ParentMaster>()
+            .HasIndex(e => e.MobileNumber)
+            .HasDatabaseName("UX_parent_master_MobileNumber")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        modelBuilder.Entity<StudentParentMapping>()
+            .HasIndex(e => new { e.StudentId, e.ParentId })
+            .HasDatabaseName("UX_student_parent_mapping_Student_Parent")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
+
+        // Exactly one primary contact per student, guaranteed by the database
+        // rather than by every code path remembering to check.
+        modelBuilder.Entity<StudentParentMapping>()
+            .HasIndex(e => e.StudentId)
+            .HasDatabaseName("UX_student_parent_mapping_OnePrimary")
+            .IsUnique()
+            .HasFilter("[IsPrimaryContact] = 1 AND [IsDeleted] = 0");
+    }
+
+    private static void ConfigurePerformanceIndexes(ModelBuilder modelBuilder)
+    {
+        // Hottest path in the system: the live board re-reads the open session.
+        modelBuilder.Entity<BoardingEvents>()
+            .HasIndex(e => new { e.SessionId, e.Status, e.QueueOrder })
+            .HasDatabaseName("IX_boarding_events_Session_Status_Queue");
+
+        modelBuilder.Entity<Sessions>()
+            .HasIndex(e => new { e.SessionDate, e.Status })
+            .HasDatabaseName("IX_dispersal_sessions_Date_Status");
+
+        modelBuilder.Entity<AuditLog>()
+            .HasIndex(e => new { e.SessionId, e.CreatedAt })
+            .HasDatabaseName("IX_audit_log_Session_CreatedAt");
+
+        modelBuilder.Entity<StudentMaster>()
+            .HasIndex(e => new { e.AcademicYearId, e.Grade, e.Division })
+            .HasDatabaseName("IX_student_master_Class");
+
+        modelBuilder.Entity<StudentMaster>()
+            .HasIndex(e => e.BusId)
+            .HasDatabaseName("IX_student_master_BusId");
+
+        modelBuilder.Entity<StudentParentMapping>()
+            .HasIndex(e => e.ParentId)
+            .HasDatabaseName("IX_student_parent_mapping_ParentId");
     }
 }

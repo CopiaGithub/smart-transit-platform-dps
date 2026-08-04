@@ -19,12 +19,6 @@ public partial class RegionMaster : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
-    public bool IsDeleted { get; set; }
-
-    public int? CreatedById { get; set; }
-
-    public int? UpdatedById { get; set; }
-
     [ForeignKey(nameof(CountryId))]
     public virtual CountryMaster? Country { get; set; }
 

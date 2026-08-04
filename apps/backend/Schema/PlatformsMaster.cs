@@ -17,13 +17,16 @@ public partial class PlatformsMaster : BaseEntity
 
     public int SortOrder { get; set; }
 
+    /// <summary>
+    /// Building exit this platform is nearest to. The compound is U-shaped with two
+    /// student exits, so "which door do I walk out of" is not derivable from the number.
+    /// </summary>
+    public int? NearestGateId { get; set; }
+
     public bool IsActive { get; set; } = true;
 
-    public bool IsDeleted { get; set; }
-
-    public int? CreatedById { get; set; }
-
-    public int? UpdatedById { get; set; }
+    [ForeignKey(nameof(NearestGateId))]
+    public virtual GateMaster? NearestGate { get; set; }
 
     public virtual ICollection<BoardingEvents> BoardingEvents { get; set; } = new List<BoardingEvents>();
 }
