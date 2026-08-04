@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>transit_display_platform_api</RootNamespace>
     <OutputType>WinExe</OutputType>
+    <UserSecretsId>768241d2-0c18-455b-a41f-85db1065edc1</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

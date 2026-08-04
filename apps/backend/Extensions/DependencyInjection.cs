@@ -1,16 +1,22 @@
 using transit_display_platform_api.Common;
+using transit_display_platform_api.Services.AcademicYearMasterService;
 using transit_display_platform_api.Services.AuthService;
 using transit_display_platform_api.Services.BusesMasterService;
 using transit_display_platform_api.Services.CityMasterService;
 using transit_display_platform_api.Services.CountryMasterService;
+using transit_display_platform_api.Services.DisplayMasterService;
+using transit_display_platform_api.Services.GateMasterService;
 using transit_display_platform_api.Services.MenuAssignmentService;
 using transit_display_platform_api.Services.MenuMasterService;
+using transit_display_platform_api.Services.ParentMasterService;
 using transit_display_platform_api.Services.PinCodeMasterService;
 using transit_display_platform_api.Services.PlatformsMasterService;
 using transit_display_platform_api.Services.RegionMasterService;
 using transit_display_platform_api.Services.RoleMasterService;
 using transit_display_platform_api.Services.RoutesMasterService;
 using transit_display_platform_api.Services.StateMasterService;
+using transit_display_platform_api.Services.StudentMasterService;
+using transit_display_platform_api.Services.StudentParentMappingService;
 using transit_display_platform_api.Services.UserMasterService;
 
 namespace transit_display_platform_api.Extensions;
@@ -33,6 +39,12 @@ public static class DependencyInjection
         services.AddScoped<IPinCodeMasterService, PinCodeMasterService>();
         services.AddScoped<IMenuMasterService, MenuMasterService>();
         services.AddScoped<IMenuAssignmentService, MenuAssignmentService>();
+        services.AddScoped<IGateMasterService, GateMasterService>();
+        services.AddScoped<IDisplayMasterService, DisplayMasterService>();
+        services.AddScoped<IAcademicYearMasterService, AcademicYearMasterService>();
+        services.AddScoped<IStudentMasterService, StudentMasterService>();
+        services.AddScoped<IParentMasterService, ParentMasterService>();
+        services.AddScoped<IStudentParentMappingService, StudentParentMappingService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
