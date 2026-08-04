@@ -1,5 +1,5 @@
 import { API } from '../../config/env';
-import { expect, skipIfWritesBlocked, test } from '../../fixtures/api.fixture';
+import { expect, test } from '../../fixtures/api.fixture';
 import { runCrudSuite } from '../../helpers/crud';
 import { field, items, type PagedResult } from '../../helpers/envelope';
 import { uniqCode, uniqMobile, uniqName } from '../../helpers/factory';
@@ -30,8 +30,8 @@ runCrudSuite({
 });
 
 test.describe('UserMaster password handling', () => {
-  skipIfWritesBlocked();
-
+  // Read-only on purpose — this is the assertion most worth running everywhere,
+  // including against an environment where writes are blocked.
   test('the password is never echoed back on any read', async ({ api }) => {
     // Passwords are BCrypt-hashed server-side. UserMasterListModel has no password
     // field at all, and this is the assertion that keeps it that way — a hash leaking

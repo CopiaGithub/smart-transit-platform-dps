@@ -15,7 +15,10 @@ runCrudSuite({
     // and flipping it here would silently demote the real academic year for everyone.
     return { yearName, startDate, endDate, isCurrent: false, isActive: true };
   },
-  patch: () => ({ endDate: '2049-05-15' }),
+  // Extend the year by a fortnight. Derived from the row that was actually created,
+  // not a literal: uniqYearName() picks a year anywhere in 2040-2089, and the service
+  // rejects an EndDate that is not after the StartDate.
+  patch: (created) => ({ endDate: `${String(created['EndDate']).slice(0, 4)}-05-15` }),
   patchedField: 'endDate',
   listFilters: ['isActive=true'],
 });
