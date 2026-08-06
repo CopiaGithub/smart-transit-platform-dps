@@ -1,48 +1,85 @@
 import type { ComponentProps } from "react";
 import { Feather } from "@expo/vector-icons";
-import { LABELS } from "../constants/domain";
+import { findGate, LABELS, ROLES, STATUS, type Role } from "../constants/domain";
 import LiveBoardScreen from "../features/board/LiveBoardScreen";
+import BoardingScreen from "../features/boarding/BoardingScreen";
 import DashboardScreen from "../features/dashboard/DashboardScreen";
-import GateInScreen from "../features/gatein/GateInScreen";
-import GateOutScreen from "../features/gateout/GateOutScreen";
+import GateInScreen from "../features/gate/GateInScreen";
+import GateOutScreen from "../features/gate/GateOutScreen";
 import MastersScreen from "../features/masters/MastersScreen";
+import ProfileScreen from "../features/profile/ProfileScreen";
 import ReplaceScreen from "../features/replace/ReplaceScreen";
 import ReportsScreen from "../features/reports/ReportsScreen";
 import SettingsScreen from "../features/settings/SettingsScreen";
 import type { DrawerParamList } from "./types";
+
+/** Just enough of the session to decide what a person may see. */
+export type Viewer = { role: Role; gateKind: "in" | "out" | null };
 
 export type MenuItem = {
   name: keyof DrawerParamList;
   title: string;
   icon: ComponentProps<typeof Feather>["name"];
   component: React.ComponentType<any>;
-  /** undefined = visible to everyone. Otherwise the roles allowed to see it. */
-  roles?: string[];
+  /** undefined = everyone signed in sees it. */
+  show?: (v: Viewer) => boolean;
 };
 
-// Single place to add/remove a hamburger section — the drawer and the
-// dashboard shortcuts both read this.
+const isAdmin = (v: Viewer) => v.role === ROLES.admin;
+/** A guard only ever sees the one direction their gate is for. */
+const guardsGate = (kind: "in" | "out") => (v: Viewer) =>
+  isAdmin(v) || (v.role === ROLES.security && v.gateKind === kind);
+
+// Single place to add/remove a section. Order matters: the first item a
+// person can see becomes their home screen.
 export const MENU: MenuItem[] = [
-  { name: "Dashboard", title: "Operations", icon: "grid", component: DashboardScreen },
-  { name: "GateIn", title: LABELS.gateIn, icon: "log-in", component: GateInScreen },
-  { name: "GateOut", title: LABELS.gateOut, icon: "log-out", component: GateOutScreen },
+  // ponytail: admin only for now — a teacher's job is the boarding list, so
+  // that is what their app opens on.
+  { name: "Dashboard", title: "Home", icon: "home", component: DashboardScreen, show: isAdmin },
+  {
+    name: "GateIn",
+    title: LABELS.gateIn,
+    icon: "log-in",
+    component: GateInScreen,
+    show: guardsGate("in"),
+  },
+  {
+    name: "GateOut",
+    title: LABELS.gateOut,
+    icon: "log-out",
+    component: GateOutScreen,
+    show: guardsGate("out"),
+  },
+  {
+    name: "Boarding",
+    title: STATUS.boarding,
+    icon: "users",
+    component: BoardingScreen,
+    show: (v) => v.role === ROLES.teacher || isAdmin(v),
+  },
   { name: "LiveBoard", title: "Live Board", icon: "monitor", component: LiveBoardScreen },
   {
     name: "Replace",
     title: "Reserve / Replace",
     icon: "repeat",
     component: ReplaceScreen,
+    show: isAdmin,
   },
-  { name: "Reports", title: "Reports", icon: "bar-chart-2", component: ReportsScreen },
   {
-    name: "Masters",
-    title: "Masters",
-    icon: "database",
-    component: MastersScreen,
-    roles: ["admin", "operator"],
+    name: "Reports",
+    title: "Reports",
+    icon: "bar-chart-2",
+    component: ReportsScreen,
+    show: (v) => v.role !== ROLES.security,
   },
-  { name: "Settings", title: "Settings", icon: "settings", component: SettingsScreen },
+  { name: "Masters", title: "Masters", icon: "database", component: MastersScreen, show: isAdmin },
+  { name: "Profile", title: "Profile", icon: "user", component: ProfileScreen },
+  { name: "Settings", title: "Settings", icon: "settings", component: SettingsScreen, show: isAdmin },
 ];
 
-export const visibleMenu = (role?: string | null) =>
-  MENU.filter((m) => !m.roles || (role != null && m.roles.includes(role)));
+export const toViewer = (user: { role: Role; gateId: string | null } | null): Viewer => ({
+  role: user?.role ?? ROLES.security,
+  gateKind: findGate(user?.gateId)?.kind ?? null,
+});
+
+export const visibleMenu = (viewer: Viewer) => MENU.filter((m) => !m.show || m.show(viewer));

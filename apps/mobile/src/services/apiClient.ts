@@ -1,9 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import Constants from "expo-constants";
-import { resetTo } from "./navigationRef";
-
-export const TOKEN_KEY = "auth.token";
+import { store } from "../store";
+import { logout, TOKEN_KEY } from "../store/auth.slice";
 
 const apiClient = axios.create({
   baseURL: Constants.expoConfig?.extra?.apiUrl as string,
@@ -20,11 +19,9 @@ apiClient.interceptors.request.use(async (config) => {
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
-    // 401 anywhere => the session is gone; drop the token and bounce to Login.
-    if (error?.response?.status === 401) {
-      await AsyncStorage.removeItem(TOKEN_KEY);
-      resetTo("Login");
-    }
+    // 401 anywhere => the session is gone. Same exit as tapping Sign out, so
+    // there is only one way out of the app and it always ends at Login.
+    if (error?.response?.status === 401) store.dispatch(logout());
     return Promise.reject(error);
   },
 );

@@ -1,19 +1,21 @@
-import type { Status } from "../../constants/domain";
+import { ROLES, type BusStatus, type Role } from "../../constants/domain";
 
 export type Bus = {
   id: string;
   no: string;
   route: string;
   reserve: boolean;
-  /** Slot assigned on arrival. Kept after departure so reports can show it. */
+  /** Station assigned on arrival. Kept after departure so reports can show it. */
   slot: number | null;
-  status: Status;
+  /** null until the bus reaches the entry gate. */
+  status: BusStatus;
   arrivedAt: number | null;
   departedAt: number | null;
   /** Set on the bus that was pulled out of service. */
   replacedByNo?: string;
 };
 
+// 45 running buses, as per the DPS fleet list.
 const ROUTES = [
   "Nerul East – Sector 12",
   "Nerul West – Palm Beach",
@@ -39,10 +41,29 @@ const ROUTES = [
   "Kamothe – Sector 34",
   "Dronagiri – Sector 4",
   "Nerul – Sector 6 Market",
+  "Nerul – Sector 48 Seawoods",
+  "Belapur – Sector 11",
+  "Kharghar – Owe Camp",
+  "Kharghar – Sector 35",
+  "Vashi – Sector 9 Hospital",
+  "Koperkhairane – Sector 20",
+  "Airoli – Sector 8A",
+  "Ghansoli – Talavali",
+  "Sanpada – Sector 5",
+  "Nerul – Sector 21 Jewel",
+  "Seawoods – Sector 54",
+  "Panvel – New Panvel East",
+  "Kamothe – Sector 20",
+  "Ulwe – Sector 23",
+  "Taloja – Padghe",
+  "Turbhe – Sector 26",
+  "Juinagar – Sector 16",
+  "Vashi – Sector 28",
+  "Belapur – Parsik Hill",
+  "Nerul – Sector 3 Karave Gaon",
+  "Kharghar – Hiranandani",
 ];
 
-// 24 running buses against 23 marked slots — the yard genuinely overflows,
-// which is the case the operator console has to handle gracefully.
 export const SEED_FLEET: Bus[] = [
   ...ROUTES.map((route, i) => ({
     id: `b${i + 1}`,
@@ -50,26 +71,41 @@ export const SEED_FLEET: Bus[] = [
     route,
     reserve: false,
     slot: null,
-    status: "Waiting" as Status,
+    status: null as BusStatus,
     arrivedAt: null,
     departedAt: null,
   })),
-  ...["R1", "R2"].map((no, i) => ({
+  // Spares keep plain numbers so a guard can type them on the keypad too.
+  ...["46", "47"].map((no, i) => ({
     id: `r${i + 1}`,
     no,
     route: "Reserve – unassigned",
     reserve: true,
     slot: null,
-    status: "Waiting" as Status,
+    status: null as BusStatus,
     arrivedAt: null,
     departedAt: null,
   })),
 ];
 
-export type Operator = { id: string; name: string; role: string; post: string };
+/**
+ * The user master doubles as the login directory: role and gate are properties
+ * of the person, not something they pick at sign-in. A guard transferred from
+ * Gate 6 to Gate 1 is an admin edit here, nothing the guard can get wrong.
+ */
+export type Operator = {
+  id: string;
+  name: string;
+  username: string;
+  mobile: string;
+  role: Role;
+  /** Which gate a guard is posted at. null for everyone else. */
+  gateId: string | null;
+};
 
 export const SEED_USERS: Operator[] = [
-  { id: "u1", name: "R. Kamble", role: "Gate In Security", post: "Gate No. 6" },
-  { id: "u2", name: "S. Pawar", role: "Gate Out Security", post: "Gate No. 1" },
-  { id: "u3", name: "A. Deshmukh", role: "Transport Admin", post: "Office" },
+  { id: "u1", name: "R. Kamble", username: "kamble", mobile: "1111111111", role: ROLES.security, gateId: "g6" },
+  { id: "u2", name: "M. Iyer", username: "iyer", mobile: "2222222222", role: ROLES.teacher, gateId: null },
+  { id: "u3", name: "S. Pawar", username: "pawar", mobile: "3333333333", role: ROLES.security, gateId: "g1" },
+  { id: "u4", name: "A. Deshmukh", username: "admin", mobile: "4444444444", role: ROLES.admin, gateId: null },
 ];

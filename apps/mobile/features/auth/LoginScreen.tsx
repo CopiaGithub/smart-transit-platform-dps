@@ -1,11 +1,10 @@
-import { Feather } from "@expo/vector-icons";
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFormik } from "formik";
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,106 +14,81 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Yup from "yup";
 import AppButton from "../../components/AppButton";
+import { LABELS } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING } from "../../constants/theme";
-import type { RootStackParamList } from "../../navigation/types";
 import { useAppDispatch, useAppSelector } from "../../src/store";
 import { login } from "../../src/store/auth.slice";
 
 const schema = Yup.object({
-  username: Yup.string().trim().required("Username is required"),
-  password: Yup.string()
-    .min(4, "At least 4 characters")
-    .required("Password is required"),
+  identifier: Yup.string().trim().required("Enter your username or mobile number"),
+  password: Yup.string().min(4, "At least 4 characters").required("Password is required"),
 });
 
-// Which post the operator is signing in for — drives what the drawer shows.
-const POSTS = [
-  { role: "operator", label: "Gate In", icon: "log-in" },
-  { role: "exit", label: "Gate Out", icon: "log-out" },
-  { role: "admin", label: "Admin", icon: "shield" },
-] as const;
-
-type Props = NativeStackScreenProps<RootStackParamList, "Login">;
-
-export default function LoginScreen({ navigation }: Props) {
+/**
+ * Three fields, no choices. Role and gate belong to the user record, so a
+ * guard cannot sign in as the wrong post or at the wrong gate.
+ */
+export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const { status, error } = useAppSelector((s) => s.auth);
 
   const form = useFormik({
-    initialValues: { username: "", password: "", role: "operator" as string },
+    initialValues: { identifier: "", password: "" },
     validationSchema: schema,
-    onSubmit: async (values) => {
-      await dispatch(login(values)).unwrap();
-      navigation.reset({ index: 0, routes: [{ name: "Main" }] });
-    },
+    // No navigation here: the token landing in the store swaps Login for the
+    // drawer on its own, and a failure is read back from auth.error.
+    onSubmit: (values) => void dispatch(login(values)),
   });
 
   return (
-    //login
-
-    <View style={styles.root}>
-      <LinearGradient
-        colors={[COLORS.primary, COLORS.primaryDark]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.hero, { paddingTop: insets.top + SPACING.xl }]}
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      {/* Hero lives inside the scroll view so the card can genuinely overlap
+          it — a negative margin on the content container gets clipped. */}
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <View style={styles.logo}>
-          <Feather name="navigation" size={26} color={COLORS.white} />
-        </View>
-        <Text style={styles.brand}>Transit Display</Text>
-        <Text style={styles.tagline}>
-          Station allocation & boarding control
-        </Text>
-      </LinearGradient>
-
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.formWrap}
-          keyboardShouldPersistTaps="handled"
+        <LinearGradient
+          colors={[COLORS.primary, COLORS.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.hero, { paddingTop: insets.top + SPACING.xl }]}
         >
-          <View style={styles.card}>
-            <Text style={styles.heading}>Sign in</Text>
+          <View style={styles.logo}>
+            <MaterialCommunityIcons name="bus" size={30} color={COLORS.white} />
+          </View>
+          <Text style={styles.brand}>{LABELS.app}</Text>
+          <Text style={styles.tagline}>{LABELS.school}</Text>
+        </LinearGradient>
 
-            <Text style={styles.label}>Post</Text>
-            <View style={styles.posts}>
-              {POSTS.map((p) => {
-                const on = form.values.role === p.role;
-                return (
-                  <Pressable
-                    key={p.role}
-                    style={[styles.post, on && styles.postOn]}
-                    onPress={() => form.setFieldValue("role", p.role)}
-                  >
-                    <Feather
-                      name={p.icon}
-                      size={16}
-                      color={on ? COLORS.white : COLORS.textMuted}
-                    />
-                    <Text style={[styles.postText, on && styles.postTextOn]}>
-                      {p.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+        <View style={styles.body}>
+          <View style={styles.card}>
+            <View>
+              <Text style={styles.heading}>Sign in</Text>
+              <Text style={styles.headingSub}>
+                Your screen opens on whatever your post is
+              </Text>
             </View>
 
             <Field
-              label="Username"
+              label="USERNAME OR MOBILE NUMBER"
               icon="user"
-              value={form.values.username}
-              onChangeText={form.handleChange("username")}
-              onBlur={form.handleBlur("username")}
-              error={form.touched.username ? form.errors.username : undefined}
+              value={form.values.identifier}
+              onChangeText={form.handleChange("identifier")}
+              onBlur={form.handleBlur("identifier")}
+              error={form.touched.identifier ? form.errors.identifier : undefined}
               autoCapitalize="none"
-              placeholder="e.g. gate6.security"
+              autoCorrect={false}
+              placeholder="1111111111"
             />
             <Field
-              label="Password"
+              label="PASSWORD"
               icon="lock"
               value={form.values.password}
               onChangeText={form.handleChange("password")}
@@ -124,20 +98,44 @@ export default function LoginScreen({ navigation }: Props) {
               placeholder="••••••"
             />
 
-            {!!error && <Text style={styles.formError}>{error}</Text>}
+            {!!error && (
+              <View style={styles.alert}>
+                <Feather name="alert-circle" size={15} color={COLORS.danger} />
+                <Text style={styles.alertText}>{error}</Text>
+              </View>
+            )}
 
-            <AppButton
-              title="Sign in"
-              onPress={form.handleSubmit}
-              loading={status === "loading"}
-            />
-            <Text style={styles.hint}>
-              Prototype build — any username with a 4+ character password works.
-            </Text>
+            <View style={{ marginTop: SPACING.xs }}>
+              <AppButton
+                title="Sign in"
+                onPress={form.handleSubmit}
+                loading={status === "loading"}
+              />
+            </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+
+          {/* ponytail: demo directory — drop this block when real accounts exist. */}
+          <View style={styles.demo}>
+            <Text style={styles.demoCap}>DEMO LOGINS · ANY 4+ CHARACTER PASSWORD</Text>
+            {[
+              ["1111111111", "Gate 6 · Entry"],
+              ["2222222222", "Teacher"],
+              ["3333333333", "Gate 1 · Exit"],
+              ["4444444444", "Admin"],
+            ].map(([m, who]) => (
+              <View key={m} style={styles.demoRow}>
+                <Text style={styles.demoMobile}>{m}</Text>
+                <Text style={styles.demoWho}>{who}</Text>
+              </View>
+            ))}
+          </View>
+
+          <Text style={styles.footer}>
+            Prototype build · v{Constants.expoConfig?.version}
+          </Text>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -152,17 +150,11 @@ function Field({
   error?: string;
 }) {
   return (
-    <View style={{ gap: SPACING.xs }}>
-      <Text style={styles.label}>{label}</Text>
-      <View
-        style={[styles.inputRow, !!error && { borderColor: COLORS.danger }]}
-      >
+    <View style={styles.field}>
+      <Text style={styles.cap}>{label}</Text>
+      <View style={[styles.inputRow, !!error && styles.inputBad]}>
         <Feather name={icon} size={17} color={COLORS.textMuted} />
-        <TextInput
-          style={styles.input}
-          placeholderTextColor={COLORS.textMuted}
-          {...input}
-        />
+        <TextInput style={styles.input} placeholderTextColor={COLORS.textMuted} {...input} />
       </View>
       {!!error && <Text style={styles.error}>{error}</Text>}
     </View>
@@ -171,64 +163,97 @@ function Field({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.screenBg },
+  scroll: { flexGrow: 1, paddingBottom: SPACING.xl },
+
   hero: {
+    alignItems: "center",
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.xl * 2,
-    alignItems: "flex-start",
   },
   logo: {
-    width: 52,
-    height: 52,
+    width: 64,
+    height: 64,
     borderRadius: RADIUS.lg,
     backgroundColor: "#FFFFFF26",
+    borderWidth: 1,
+    borderColor: "#FFFFFF33",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.md,
   },
-  brand: { color: COLORS.white, fontSize: 26, fontWeight: "900" },
-  tagline: { color: COLORS.white, opacity: 0.8, fontSize: 13, marginTop: 2 },
+  brand: {
+    color: COLORS.white,
+    fontSize: 23,
+    fontWeight: "900",
+    letterSpacing: -0.3,
+    textAlign: "center",
+  },
+  tagline: { color: COLORS.white, opacity: 0.75, fontSize: 13, marginTop: 4 },
 
-  formWrap: { padding: SPACING.md, marginTop: -SPACING.xl * 1.5 },
+  body: { paddingHorizontal: SPACING.md },
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
     padding: SPACING.lg,
     gap: SPACING.md,
+    // Safe here: a normal child of the scroll content, not the container.
+    marginTop: -SPACING.xl * 1.25,
     ...SHADOW.lifted,
   },
-  heading: { fontSize: 20, fontWeight: "900", color: COLORS.text },
+  heading: { fontSize: 22, fontWeight: "900", color: COLORS.text, letterSpacing: -0.2 },
+  headingSub: { fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
 
-  posts: { flexDirection: "row", gap: SPACING.sm },
-  post: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-    height: 42,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surfaceAlt,
-  },
-  postOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  postText: { fontSize: 12, fontWeight: "700", color: COLORS.textMuted },
-  postTextOn: { color: COLORS.white },
-
-  label: { fontSize: 12, fontWeight: "700", color: COLORS.textMuted },
+  field: { gap: SPACING.xs },
+  cap: { fontSize: 10, fontWeight: "900", letterSpacing: 1.2, color: COLORS.textMuted },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.sm,
-    height: 50,
+    height: 52,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
     backgroundColor: COLORS.surface,
   },
+  inputBad: { borderColor: COLORS.danger, backgroundColor: COLORS.danger + "08" },
   input: { flex: 1, color: COLORS.text, fontSize: 15 },
-  error: { color: COLORS.danger, fontSize: 12 },
-  formError: { color: COLORS.danger, fontSize: 13, textAlign: "center" },
-  hint: { fontSize: 11, color: COLORS.textMuted, textAlign: "center" },
+  error: { color: COLORS.danger, fontSize: 12, fontWeight: "600" },
+
+  alert: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    backgroundColor: COLORS.danger + "0F",
+    borderWidth: 1,
+    borderColor: COLORS.danger + "44",
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+  },
+  alertText: { flex: 1, color: COLORS.danger, fontSize: 13, fontWeight: "600" },
+
+  demo: {
+    marginTop: SPACING.md,
+    backgroundColor: COLORS.surfaceAlt,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    gap: 6,
+  },
+  demoCap: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 1,
+    color: COLORS.textMuted,
+    marginBottom: 2,
+  },
+  demoRow: { flexDirection: "row", alignItems: "center" },
+  demoMobile: { flex: 1, fontSize: 13, fontWeight: "800", color: COLORS.text, letterSpacing: 0.5 },
+  demoWho: { fontSize: 11, fontWeight: "700", color: COLORS.primary },
+
+  footer: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    textAlign: "center",
+    marginTop: SPACING.md,
+  },
 });

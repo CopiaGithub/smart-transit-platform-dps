@@ -4,15 +4,14 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import StatusPill from "../../components/StatusPill";
 import { LABELS, STATUS } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING } from "../../constants/theme";
-import type { Bus } from "../../src/data/seed";
 import { useAppSelector } from "../../src/store";
 
-type Filter = "all" | "departed" | "inYard" | "replaced";
+type Filter = "all" | "departed" | "onCampus" | "replaced";
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "departed", label: "Departed" },
-  { key: "inYard", label: "In yard" },
+  { key: "onCampus", label: "On campus" },
   { key: "replaced", label: "Replaced" },
 ];
 
@@ -22,14 +21,15 @@ export default function ReportsScreen() {
   const [filter, setFilter] = useState<Filter>("all");
 
   const rows = useMemo(() => {
-    const logged = fleet.filter((b) => b.arrivedAt || b.status === STATUS.replaced);
+    // Anything that has a status has been through a gate today.
+    const logged = fleet.filter((b) => b.status !== null);
     const byFilter = {
       all: logged,
       departed: logged.filter((b) => b.status === STATUS.departed),
-      inYard: logged.filter(
+      onCampus: logged.filter(
         (b) => b.status === STATUS.arrived || b.status === STATUS.boarding,
       ),
-      replaced: logged.filter((b) => b.status === STATUS.replaced),
+      replaced: logged.filter((b) => !!b.replacedByNo),
     }[filter];
     return [...byFilter].sort((a, z) => (a.arrivedAt ?? 0) - (z.arrivedAt ?? 0));
   }, [fleet, filter]);
@@ -102,7 +102,7 @@ export default function ReportsScreen() {
                 {bus.route}
               </Text>
               <View style={{ marginTop: 5 }}>
-                <StatusPill status={bus.status} />
+                <StatusPill status={bus.status!} />
               </View>
               {!!bus.replacedByNo && (
                 <Text style={styles.replaced}>→ replaced by {bus.replacedByNo}</Text>
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   busNo: { fontSize: 15, fontWeight: "900", color: COLORS.text },
   route: { fontSize: 11, color: COLORS.textMuted, marginTop: 1 },
   slot: { fontWeight: "900", color: COLORS.primary, fontSize: 16 },
-  replaced: { fontSize: 10, color: "#A855F7", marginTop: 3, fontWeight: "700" },
+  replaced: { fontSize: 10, color: COLORS.accent, marginTop: 3, fontWeight: "700" },
   empty: { textAlign: "center", color: COLORS.textMuted, padding: SPACING.lg, fontSize: 13 },
   footnote: { fontSize: 11, color: COLORS.textMuted, lineHeight: 16 },
 });

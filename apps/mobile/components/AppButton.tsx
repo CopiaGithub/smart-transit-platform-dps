@@ -39,7 +39,8 @@ export default function AppButton({
 
 const styles = StyleSheet.create({
   base: {
-    height: 48,
+    // Matches the 52px input height so a form reads as one stack.
+    height: 52,
     borderRadius: RADIUS.md,
     alignItems: "center",
     justifyContent: "center",
@@ -47,5 +48,5 @@ const styles = StyleSheet.create({
   },
   primary: { backgroundColor: COLORS.primary },
   outline: { borderWidth: 1, borderColor: COLORS.primary },
-  text: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
+  text: { color: COLORS.white, fontWeight: "800", fontSize: 16 },
 });

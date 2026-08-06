@@ -6,9 +6,9 @@ import { LABELS } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING } from "../../constants/theme";
 import {
   replaceBus,
+  selectAwaited,
+  selectOnCampus,
   selectReserves,
-  selectWaiting,
-  selectYard,
 } from "../../src/store/operations.slice";
 import { useAppDispatch, useAppSelector } from "../../src/store";
 
@@ -19,14 +19,14 @@ import { useAppDispatch, useAppSelector } from "../../src/store";
  */
 export default function ReplaceScreen() {
   const dispatch = useAppDispatch();
-  const yard = useAppSelector(selectYard);
-  const waiting = useAppSelector(selectWaiting);
+  const onCampus = useAppSelector(selectOnCampus);
+  const awaited = useAppSelector(selectAwaited);
   const reserves = useAppSelector(selectReserves);
 
   const [outId, setOutId] = useState<string | null>(null);
   const [inId, setInId] = useState<string | null>(null);
 
-  const candidates = [...yard, ...waiting];
+  const candidates = [...onCampus, ...awaited];
   const out = candidates.find((b) => b.id === outId);
   const ready = outId && inId;
 

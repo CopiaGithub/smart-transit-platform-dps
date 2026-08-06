@@ -30,9 +30,9 @@ export default function LiveBoardScreen() {
     <View style={styles.root}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.brand}>BUS BOARDING — GATE 6</Text>
+          <Text style={styles.brand}>{LABELS.school.toUpperCase()} — BUS BOARDING</Text>
           <Text style={styles.sub}>
-            {stats.inYard} in yard · {stats.departed} departed · {stats.waiting} awaited
+            {stats.arrived} arrived · {stats.boarding} boarding · {stats.departed} departed
           </Text>
         </View>
         <View style={{ alignItems: "flex-end" }}>
@@ -53,14 +53,14 @@ export default function LiveBoardScreen() {
         keyExtractor={(b) => b.id}
         renderItem={({ item, index }) => <Row bus={item} index={index} />}
         ListEmptyComponent={
-          <Text style={styles.empty}>NO BUSES IN YARD — AWAITING FIRST ARRIVAL</Text>
+          <Text style={styles.empty}>NO BUSES ON CAMPUS — AWAITING FIRST ARRIVAL</Text>
         }
       />
 
       <View style={styles.ticker}>
         <Text style={styles.tickerText} numberOfLines={1}>
-          ▸ Board only from your station number ▸ Keep the lane clear ▸ Reserve buses
-          show the same station as the bus they replace
+          ▸ Board only from your station number ▸ ARRIVED = wait at the station ▸ BOARDING =
+          get in now ▸ Reserve buses keep the station of the bus they replace
         </Text>
       </View>
     </View>
@@ -70,8 +70,8 @@ export default function LiveBoardScreen() {
 function Row({ bus, index }: { bus: Bus; index: number }) {
   const boarding = bus.status === STATUS.boarding;
   const pulse = usePulse(boarding);
-  const color = STATUS_COLOR[bus.status];
-  const gone = bus.status === STATUS.departed || bus.status === STATUS.replaced;
+  const color = STATUS_COLOR[bus.status!];
+  const gone = bus.status === STATUS.departed;
 
   return (
     <Animated.View
@@ -90,7 +90,7 @@ function Row({ bus, index }: { bus: Bus; index: number }) {
         {bus.slot ?? "—"}
       </Text>
       <View style={[styles.colStatus, { alignItems: "flex-end" }]}>
-        <Text style={[styles.status, { color }]}>{bus.status.toUpperCase()}</Text>
+        <Text style={[styles.status, { color }]}>{bus.status?.toUpperCase()}</Text>
       </View>
     </Animated.View>
   );

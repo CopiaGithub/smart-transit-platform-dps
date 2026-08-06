@@ -30,6 +30,19 @@ export const BOARD = {
   text: "#E8EEF9",
 };
 
+/**
+ * Opaque status tints. Android paints an elevation shadow as a solid grey
+ * block behind a translucent background, so anything carrying SHADOW must
+ * tint itself from here instead of appending an alpha suffix to a colour.
+ * Same rule for `opacity` on an elevated view — dim the text, not the card.
+ */
+export const TINT = {
+  primary: "#EEF4FC",
+  success: "#EFF8F2",
+  warning: "#FFF8E7",
+  danger: "#FDF2F2",
+};
+
 export const SPACING = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
 
 export const RADIUS = { sm: 6, md: 10, lg: 16, xl: 22 };
