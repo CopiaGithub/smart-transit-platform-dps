@@ -1,7 +1,13 @@
 import { createSelector, createSlice, nanoid, type PayloadAction } from "@reduxjs/toolkit";
 import { LABELS, ROLES, SLOT_COUNT, STATUS, STATUS_RANK } from "../../constants/domain";
 import { isNoTaken, nextFreeSlot } from "../domain/allocation";
-import { SEED_FLEET, SEED_USERS, type Bus, type Operator } from "../data/seed";
+import {
+  SEED_FLEET,
+  SEED_STUDENTS,
+  SEED_USERS,
+  type Bus,
+  type Operator,
+} from "../data/seed";
 import type { RootState } from ".";
 
 /** The four fields any gate/boarding tap touches — enough to put one back. */
@@ -10,6 +16,7 @@ type Snapshot = Pick<Bus, "status" | "slot" | "arrivedAt" | "departedAt">;
 type OpsState = {
   fleet: Bus[];
   users: typeof SEED_USERS;
+  students: typeof SEED_STUDENTS;
   /**
    * Single-step undo. Taps are one-touch and deliberately unconfirmed so 45
    * buses clear in fifteen minutes; the snapshot is what makes that safe.
@@ -20,6 +27,7 @@ type OpsState = {
 const initialState: OpsState = {
   fleet: SEED_FLEET,
   users: SEED_USERS,
+  students: SEED_STUDENTS,
   lastAction: null,
 };
 
@@ -114,9 +122,15 @@ const opsSlice = createSlice({
     /** Add when there is no id, otherwise edit. Never touches live status. */
     saveBus(
       state,
-      action: PayloadAction<{ id?: string; no: string; route: string; reserve: boolean }>,
+      action: PayloadAction<{
+        id?: string;
+        no: string;
+        route: string;
+        reserve: boolean;
+        driver?: Bus["driver"];
+      }>,
     ) {
-      const { id, no, route, reserve } = action.payload;
+      const { id, no, route, reserve, driver } = action.payload;
       // The keypad cannot tell 5 from 05, so a collision must never land.
       if (isNoTaken(state.fleet, no, id)) return;
 
@@ -126,6 +140,7 @@ const opsSlice = createSlice({
           no,
           route,
           reserve,
+          driver,
           slot: null,
           status: null,
           arrivedAt: null,
@@ -141,6 +156,7 @@ const opsSlice = createSlice({
       if (!onCampus(bus)) bus.no = no;
       bus.route = route;
       bus.reserve = reserve;
+      bus.driver = driver;
     },
 
     /** A bus standing on a station cannot be deleted — it is on the board. */

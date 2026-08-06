@@ -50,6 +50,8 @@ export function BusForm({ editing, onClose }: { editing: Editing<Bus>; onClose: 
       no: bus?.no ?? "",
       route: bus?.route ?? "",
       reserve: bus?.reserve ?? false,
+      driverName: bus?.driver?.name ?? "",
+      driverMobile: bus?.driver?.mobile ?? "",
     },
     validationSchema: Yup.object({
       no: Yup.string()
@@ -60,9 +62,27 @@ export function BusForm({ editing, onClose }: { editing: Editing<Bus>; onClose: 
           value ? !isNoTaken(fleet, value, bus?.id) : true,
         ),
       route: Yup.string().trim().required("Route is required"),
+      // Optional, but a half-filled driver is worse than none: parents see it.
+      driverMobile: Yup.string()
+        .trim()
+        .matches(/^\d{10}$/, "Enter the 10-digit mobile number")
+        .when("driverName", {
+          is: (n: string) => !!n?.trim(),
+          then: (s) => s.required("Add the driver's mobile number"),
+          otherwise: (s) => s.notRequired(),
+        }),
     }),
     onSubmit: (v) => {
-      dispatch(saveBus({ id: bus?.id, no: v.no.trim(), route: v.route.trim(), reserve: v.reserve }));
+      const name = v.driverName.trim();
+      dispatch(
+        saveBus({
+          id: bus?.id,
+          no: v.no.trim(),
+          route: v.route.trim(),
+          reserve: v.reserve,
+          driver: name ? { name, mobile: v.driverMobile.trim() } : undefined,
+        }),
+      );
       onClose();
     },
   });
@@ -121,6 +141,25 @@ export function BusForm({ editing, onClose }: { editing: Editing<Bus>; onClose: 
         onBlur={form.handleBlur("route")}
         error={form.touched.route ? form.errors.route : undefined}
         placeholder="Nerul East – Sector 12"
+      />
+
+      <Field
+        label="DRIVER NAME"
+        value={form.values.driverName}
+        onChangeText={form.handleChange("driverName")}
+        onBlur={form.handleBlur("driverName")}
+        placeholder="R. Shinde"
+      />
+
+      <Field
+        label="DRIVER MOBILE"
+        value={form.values.driverMobile}
+        onChangeText={form.handleChange("driverMobile")}
+        onBlur={form.handleBlur("driverMobile")}
+        error={form.touched.driverMobile ? form.errors.driverMobile : undefined}
+        placeholder="9820011000"
+        keyboardType="number-pad"
+        maxLength={10}
       />
 
       <View style={styles.switchRow}>

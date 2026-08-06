@@ -1,10 +1,14 @@
 import { ROLES, type BusStatus, type Role } from "../../constants/domain";
 
+export type Driver = { name: string; mobile: string };
+
 export type Bus = {
   id: string;
   no: string;
   route: string;
   reserve: boolean;
+  /** Shown to parents. Optional: a bus added in Masters may not have one yet. */
+  driver?: Driver;
   /** Station assigned on arrival. Kept after departure so reports can show it. */
   slot: number | null;
   /** null until the bus reaches the entry gate. */
@@ -64,12 +68,21 @@ const ROUTES = [
   "Kharghar – Hiranandani",
 ];
 
+const DRIVERS = [
+  "R. Shinde", "V. More", "S. Jadhav", "P. Gaikwad", "A. Chavan", "M. Bhosale",
+  "D. Kadam", "N. Salunkhe", "K. Waghmare", "T. Patil", "G. Sawant", "B. Thorat",
+];
+
 export const SEED_FLEET: Bus[] = [
   ...ROUTES.map((route, i) => ({
     id: `b${i + 1}`,
     no: String(i + 1).padStart(2, "0"),
     route,
     reserve: false,
+    driver: {
+      name: DRIVERS[i % DRIVERS.length],
+      mobile: `98200${11000 + i}`,
+    },
     slot: null,
     status: null as BusStatus,
     arrivedAt: null,
@@ -108,4 +121,24 @@ export const SEED_USERS: Operator[] = [
   { id: "u2", name: "M. Iyer", username: "iyer", mobile: "2222222222", role: ROLES.teacher, gateId: null },
   { id: "u3", name: "S. Pawar", username: "pawar", mobile: "3333333333", role: ROLES.security, gateId: "g1" },
   { id: "u4", name: "A. Deshmukh", username: "admin", mobile: "4444444444", role: ROLES.admin, gateId: null },
+  { id: "u5", name: "S. Joshi", username: "parent", mobile: "5555555555", role: ROLES.parent, gateId: null },
+];
+
+/**
+ * A parent only ever sees the buses their own children ride, so the link goes
+ * on the student. Several parents can watch the same child (mother, father,
+ * guardian) — hence a list.
+ */
+export type Student = {
+  id: string;
+  name: string;
+  grade: string;
+  division: string;
+  busId: string;
+  parentIds: string[];
+};
+
+export const SEED_STUDENTS: Student[] = [
+  { id: "s1", name: "Aarav Joshi", grade: "4", division: "B", busId: "b24", parentIds: ["u5"] },
+  { id: "s2", name: "Anaya Joshi", grade: "1", division: "A", busId: "b11", parentIds: ["u5"] },
 ];

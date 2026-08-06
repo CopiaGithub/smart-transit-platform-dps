@@ -48,6 +48,7 @@ export const STATUS_RANK: Record<Status, number> = {
 export const ROLES = {
   security: "security",
   teacher: "teacher",
+  parent: "parent",
   admin: "admin",
 } as const;
 
@@ -56,6 +57,7 @@ export type Role = (typeof ROLES)[keyof typeof ROLES];
 export const ROLE_LABEL: Record<Role, string> = {
   security: "Security",
   teacher: "Teacher",
+  parent: "Parent",
   admin: "Admin",
 };
 

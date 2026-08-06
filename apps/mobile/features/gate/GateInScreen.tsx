@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FlashBar, { useFlash } from "../../components/FlashBar";
 import Keypad from "../../components/Keypad";
 import { findGate, LABELS, SLOT_COUNT, STATUS } from "../../constants/domain";
@@ -20,6 +21,7 @@ import { useAppDispatch, useAppSelector } from "../../src/store";
  * allocated by the platform, not chosen by the guard.
  */
 export default function GateInScreen() {
+  const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const fleet = useAppSelector((s) => s.ops.fleet);
   const nextSlot = useAppSelector(selectNextSlot);
@@ -37,12 +39,13 @@ export default function GateInScreen() {
   const submit = () => {
     if (!bus || problem || nextSlot === null) return;
     dispatch(gateIn(bus.id));
-    show(`${LABELS.vehicle} ${bus.no} → ${LABELS.slot} ${pad(nextSlot)}`);
+    show(`${LABELS.vehicle} ${bus.no} in · ${LABELS.slot} ${pad(nextSlot)} allocated`);
     setTyped("");
   };
 
   return (
-    <View style={styles.root}>
+    // The CTA sits at the very bottom, so it has to clear the gesture bar.
+    <View style={[styles.root, { paddingBottom: SPACING.md + insets.bottom }]}>
       <View style={styles.post}>
         <Feather name="log-in" size={16} color={COLORS.white} />
         <Text style={styles.postText}>{gate?.label ?? "Entry gate"} · Entry</Text>
@@ -71,14 +74,9 @@ export default function GateInScreen() {
         </Text>
       </View>
 
-      <View style={styles.slotStrip}>
-        <Text style={styles.slotCap}>{LABELS.slot.toUpperCase()} ALLOCATED</Text>
-        <Text style={styles.slotNo}>{nextSlot === null ? "FULL" : pad(nextSlot)}</Text>
-        <Text style={styles.slotCap}>
-          {stats.onCampus}/{SLOT_COUNT} IN USE
-        </Text>
-      </View>
-
+      {/* The allocated station is announced in the success bar instead of
+          being previewed here — the guard has no decision to make about it,
+          and the Live Board is where anyone can look it up afterwards. */}
       <View style={{ flex: 1, justifyContent: "flex-end", gap: SPACING.md }}>
         <Keypad value={typed} onChange={setTyped} />
 
@@ -114,7 +112,13 @@ function check(
 const pad = (n: number | null) => (n === null ? "––" : String(n).padStart(2, "0"));
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.screenBg, padding: SPACING.md, gap: SPACING.sm },
+  root: {
+    flex: 1,
+    backgroundColor: COLORS.screenBg,
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.md,
+    gap: SPACING.sm,
+  },
 
   post: {
     flexDirection: "row",

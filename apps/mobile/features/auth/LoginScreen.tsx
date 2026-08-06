@@ -122,6 +122,7 @@ export default function LoginScreen() {
               ["2222222222", "Teacher"],
               ["3333333333", "Gate 1 · Exit"],
               ["4444444444", "Admin"],
+              ["5555555555", "Parent"],
             ].map(([m, who]) => (
               <View key={m} style={styles.demoRow}>
                 <Text style={styles.demoMobile}>{m}</Text>

@@ -7,6 +7,7 @@ export type DrawerParamList = {
   GateIn: undefined;
   GateOut: undefined;
   Boarding: undefined;
+  MyChild: undefined;
   LiveBoard: undefined;
   Replace: undefined;
   Reports: undefined;

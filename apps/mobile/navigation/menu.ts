@@ -7,6 +7,7 @@ import DashboardScreen from "../features/dashboard/DashboardScreen";
 import GateInScreen from "../features/gate/GateInScreen";
 import GateOutScreen from "../features/gate/GateOutScreen";
 import MastersScreen from "../features/masters/MastersScreen";
+import ParentScreen from "../features/parent/ParentScreen";
 import ProfileScreen from "../features/profile/ProfileScreen";
 import ReplaceScreen from "../features/replace/ReplaceScreen";
 import ReportsScreen from "../features/reports/ReportsScreen";
@@ -57,7 +58,21 @@ export const MENU: MenuItem[] = [
     component: BoardingScreen,
     show: (v) => v.role === ROLES.teacher || isAdmin(v),
   },
-  { name: "LiveBoard", title: "Live Board", icon: "monitor", component: LiveBoardScreen },
+  {
+    name: "MyChild",
+    title: "My Children",
+    icon: "heart",
+    component: ParentScreen,
+    show: (v) => v.role === ROLES.parent,
+  },
+  // The operations board lists every bus in the school — not a parent's view.
+  {
+    name: "LiveBoard",
+    title: "Live Board",
+    icon: "monitor",
+    component: LiveBoardScreen,
+    show: (v) => v.role !== ROLES.parent,
+  },
   {
     name: "Replace",
     title: "Reserve / Replace",
@@ -70,7 +85,7 @@ export const MENU: MenuItem[] = [
     title: "Reports",
     icon: "bar-chart-2",
     component: ReportsScreen,
-    show: (v) => v.role !== ROLES.security,
+    show: (v) => v.role === ROLES.teacher || isAdmin(v),
   },
   { name: "Masters", title: "Masters", icon: "database", component: MastersScreen, show: isAdmin },
   { name: "Profile", title: "Profile", icon: "user", component: ProfileScreen },

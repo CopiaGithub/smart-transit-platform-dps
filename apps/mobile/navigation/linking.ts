@@ -13,6 +13,7 @@ const linking: LinkingOptions<RootStackParamList> = {
           GateIn: "gate-in",
           GateOut: "gate-out",
           Boarding: "boarding",
+          MyChild: "my-children",
           // Kiosk-friendly: the LED controllers can deep-link straight here.
           LiveBoard: "board",
           Replace: "replace",

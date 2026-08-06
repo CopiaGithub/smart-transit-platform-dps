@@ -50,7 +50,9 @@ export default function ProfileScreen() {
                 : "Arrived"
               : user?.role === ROLES.teacher
                 ? "Boarding"
-                : "Arrived · Boarding · Departed"
+                : user?.role === ROLES.parent
+                  ? "Nothing — view only"
+                  : "Arrived · Boarding · Departed"
           }
         />
       </View>
