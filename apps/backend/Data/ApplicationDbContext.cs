@@ -35,6 +35,7 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<StudentMaster> StudentMasters { get; set; }
     public virtual DbSet<ParentMaster> ParentMasters { get; set; }
     public virtual DbSet<StudentParentMapping> StudentParentMappings { get; set; }
+    public virtual DbSet<BusRouteAllocation> BusRouteAllocations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,6 +45,21 @@ public partial class ApplicationDbContext : DbContext
                 .WithMany(r => r.Buses)
                 .HasForeignKey(e => e.RouteId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_buses_master_BusType",
+                    $"[BusType] IN ({Quoted(BusKind.All)})");
+
+                t.HasCheckConstraint(
+                    "CK_buses_master_ServiceStatus",
+                    $"[ServiceStatus] IN ({Quoted(BusServiceState.All)})");
+
+                t.HasCheckConstraint(
+                    "CK_buses_master_Capacity",
+                    "[Capacity] IS NULL OR [Capacity] > 0");
+            });
         });
 
         modelBuilder.Entity<BoardingEvents>(entity =>
@@ -72,6 +88,15 @@ public partial class ApplicationDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.ReplacesEventId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Route)
+                .WithMany()
+                .HasForeignKey(e => e.RouteId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_boarding_events_Status",
+                $"[Status] IN ({Quoted(BoardingStatus.All)})"));
         });
 
         modelBuilder.Entity<UserMaster>(entity =>
@@ -180,6 +205,10 @@ public partial class ApplicationDbContext : DbContext
                 .WithMany(g => g.Platforms)
                 .HasForeignKey(e => e.NearestGateId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_platforms_master_Side",
+                "[Side] IS NULL OR [Side] IN ('Left','Right')"));
         });
 
         modelBuilder.Entity<DisplayMaster>(entity =>
@@ -262,6 +291,30 @@ public partial class ApplicationDbContext : DbContext
                 "CK_student_parent_mapping_Relation",
                 "[Relation] IN ('Father','Mother','Guardian','Grandfather','Grandmother'," +
                 "'Uncle','Aunt','Sibling','Driver','Other')"));
+        });
+
+        modelBuilder.Entity<BusRouteAllocation>(entity =>
+        {
+            entity.HasOne(e => e.Route)
+                .WithMany()
+                .HasForeignKey(e => e.RouteId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Bus)
+                .WithMany()
+                .HasForeignKey(e => e.BusId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_bus_route_allocation_Type",
+                    $"[AllocationType] IN ({Quoted(AllocationKind.All)})");
+
+                t.HasCheckConstraint(
+                    "CK_bus_route_allocation_Dates",
+                    "[EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]");
+            });
         });
 
         modelBuilder.Entity<AuditLog>(entity =>
@@ -379,7 +432,8 @@ public partial class ApplicationDbContext : DbContext
             .HasIndex(e => new { e.SessionId, e.BusId })
             .HasDatabaseName("UX_boarding_events_Session_Bus")
             .IsUnique()
-            .HasFilter("[IsDeleted] = 0 AND [Status] <> 'Cleared'");
+            .HasFilter($"[IsDeleted] = 0 AND [Status] <> '{BoardingStatus.Departed}' " +
+                       $"AND [Status] <> '{BoardingStatus.Replaced}'");
 
         // Two buses cannot occupy the same platform at the same time — the failure
         // mode that has no physical recovery in a queue with no overtaking.
@@ -387,7 +441,8 @@ public partial class ApplicationDbContext : DbContext
             .HasIndex(e => new { e.SessionId, e.PlatformId })
             .HasDatabaseName("UX_boarding_events_Session_Platform")
             .IsUnique()
-            .HasFilter("[IsDeleted] = 0 AND [PlatformId] IS NOT NULL AND [Status] IN ('Assigned','Boarding')");
+            .HasFilter("[IsDeleted] = 0 AND [PlatformId] IS NOT NULL AND [Status] IN " +
+                       $"('{BoardingStatus.Arrived}','{BoardingStatus.Boarding}')");
 
         modelBuilder.Entity<UserMaster>()
             .HasIndex(e => e.EmailId)
@@ -457,7 +512,45 @@ public partial class ApplicationDbContext : DbContext
             .HasDatabaseName("UX_student_parent_mapping_OnePrimary")
             .IsUnique()
             .HasFilter("[IsPrimaryContact] = 1 AND [IsDeleted] = 0");
+
+        // One bus per route and one route per bus, for the open-ended standing
+        // arrangement. Closed date ranges cannot be covered by an index — SQL Server
+        // has no exclusion constraints — so BusRouteAllocationService also checks
+        // for overlaps before inserting.
+        var standing = $"[AllocationType] = '{AllocationKind.Standing}' " +
+                       "AND [EffectiveTo] IS NULL AND [IsDeleted] = 0";
+
+        modelBuilder.Entity<BusRouteAllocation>()
+            .HasIndex(e => e.RouteId)
+            .HasDatabaseName("UX_bus_route_allocation_Standing_Route")
+            .IsUnique()
+            .HasFilter(standing);
+
+        modelBuilder.Entity<BusRouteAllocation>()
+            .HasIndex(e => e.BusId)
+            .HasDatabaseName("UX_bus_route_allocation_Standing_Bus")
+            .IsUnique()
+            .HasFilter(standing);
+
+        // A route, and a bus, can carry at most one override on any given date.
+        var over = $"[AllocationType] = '{AllocationKind.Override}' AND [IsDeleted] = 0";
+
+        modelBuilder.Entity<BusRouteAllocation>()
+            .HasIndex(e => new { e.RouteId, e.EffectiveFrom })
+            .HasDatabaseName("UX_bus_route_allocation_Override_Route")
+            .IsUnique()
+            .HasFilter(over);
+
+        modelBuilder.Entity<BusRouteAllocation>()
+            .HasIndex(e => new { e.BusId, e.EffectiveFrom })
+            .HasDatabaseName("UX_bus_route_allocation_Override_Bus")
+            .IsUnique()
+            .HasFilter(over);
     }
+
+    /// <summary>Renders a string array as a SQL IN-list: 'A','B','C'.</summary>
+    private static string Quoted(IEnumerable<string> values) =>
+        string.Join(",", values.Select(v => $"'{v}'"));
 
     private static void ConfigurePerformanceIndexes(ModelBuilder modelBuilder)
     {
@@ -485,5 +578,18 @@ public partial class ApplicationDbContext : DbContext
         modelBuilder.Entity<StudentParentMapping>()
             .HasIndex(e => e.ParentId)
             .HasDatabaseName("IX_student_parent_mapping_ParentId");
+
+        modelBuilder.Entity<BoardingEvents>()
+            .HasIndex(e => e.RouteId)
+            .HasDatabaseName("IX_boarding_events_RouteId");
+
+        // Resolving "which bus runs this route today" on every gate-in.
+        modelBuilder.Entity<BusRouteAllocation>()
+            .HasIndex(e => new { e.RouteId, e.EffectiveFrom, e.EffectiveTo })
+            .HasDatabaseName("IX_bus_route_allocation_Route_Dates");
+
+        modelBuilder.Entity<BusRouteAllocation>()
+            .HasIndex(e => new { e.BusId, e.EffectiveFrom, e.EffectiveTo })
+            .HasDatabaseName("IX_bus_route_allocation_Bus_Dates");
     }
 }

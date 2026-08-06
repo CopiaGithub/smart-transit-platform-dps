@@ -60,6 +60,12 @@ public class BusesMasterService : IBusesMasterService
                 RouteId = b.RouteId,
                 RouteName = b.Route != null ? b.Route.RouteName : null,
                 BusType = b.BusType,
+                ServiceStatus = b.ServiceStatus,
+                OutOfServiceReason = b.OutOfServiceReason,
+                Capacity = b.Capacity,
+                DriverName = b.DriverName,
+                DriverPhone = b.DriverPhone,
+                DriverLicenceNumber = b.DriverLicenceNumber,
                 IsActive = b.IsActive,
                 CreatedAt = b.CreatedAt,
                 UpdatedAt = b.UpdatedAt
@@ -110,12 +116,35 @@ public class BusesMasterService : IBusesMasterService
                 return new ServiceResponseDto<BusesMasterListModel> { Success = false, Message = "Selected route was not found." };
         }
 
+        var busType = string.IsNullOrWhiteSpace(model.BusType) ? BusKind.Active : model.BusType.Trim();
+        if (!BusKind.All.Contains(busType))
+            return Fail($"Bus type must be one of: {string.Join(", ", BusKind.All)}.");
+
+        var serviceStatus = string.IsNullOrWhiteSpace(model.ServiceStatus)
+            ? BusServiceState.InService
+            : model.ServiceStatus.Trim();
+        if (!BusServiceState.All.Contains(serviceStatus))
+            return Fail($"Service status must be one of: {string.Join(", ", BusServiceState.All)}.");
+
+        if (model.Capacity is <= 0)
+            return Fail("Capacity must be greater than zero.");
+
         var currentUserId = _jwtTokenUtility.GetUserId();
         var bus = new BusesMaster
         {
             BusNumber = model.BusNumber.Trim(),
             RouteId = model.RouteId,
-            BusType = string.IsNullOrWhiteSpace(model.BusType) ? "Active" : model.BusType.Trim(),
+            BusType = busType,
+            ServiceStatus = serviceStatus,
+            // A reason only makes sense while the bus is out; keeping a stale one
+            // would show "Gearbox failure" against a bus that is back on the road.
+            OutOfServiceReason = serviceStatus == BusServiceState.InService
+                ? null
+                : model.OutOfServiceReason?.Trim(),
+            Capacity = model.Capacity,
+            DriverName = model.DriverName?.Trim(),
+            DriverPhone = model.DriverPhone?.Trim(),
+            DriverLicenceNumber = model.DriverLicenceNumber?.Trim(),
             IsActive = model.IsActive ?? true,
             IsDeleted = false,
             CreatedById = currentUserId,
@@ -157,10 +186,30 @@ public class BusesMasterService : IBusesMasterService
                 return new ServiceResponseDto<bool> { Success = false, Message = "Selected route was not found." };
         }
 
+        if (model.BusType != null && !BusKind.All.Contains(model.BusType.Trim()))
+            return FailBool($"Bus type must be one of: {string.Join(", ", BusKind.All)}.");
+
+        if (model.ServiceStatus != null && !BusServiceState.All.Contains(model.ServiceStatus.Trim()))
+            return FailBool($"Service status must be one of: {string.Join(", ", BusServiceState.All)}.");
+
+        if (model.Capacity is <= 0)
+            return FailBool("Capacity must be greater than zero.");
+
         if (model.BusNumber != null) bus.BusNumber = model.BusNumber.Trim();
         if (model.RouteId.HasValue) bus.RouteId = model.RouteId;
         if (model.BusType != null) bus.BusType = model.BusType.Trim();
+        if (model.ServiceStatus != null) bus.ServiceStatus = model.ServiceStatus.Trim();
+        if (model.OutOfServiceReason != null) bus.OutOfServiceReason = model.OutOfServiceReason.Trim();
+        if (model.Capacity.HasValue) bus.Capacity = model.Capacity;
+        if (model.DriverName != null) bus.DriverName = model.DriverName.Trim();
+        if (model.DriverPhone != null) bus.DriverPhone = model.DriverPhone.Trim();
+        if (model.DriverLicenceNumber != null) bus.DriverLicenceNumber = model.DriverLicenceNumber.Trim();
         if (model.IsActive.HasValue) bus.IsActive = model.IsActive.Value;
+
+        // Returning to service clears the reason, whether or not the caller sent one.
+        if (bus.ServiceStatus == BusServiceState.InService)
+            bus.OutOfServiceReason = null;
+
         bus.UpdatedById = _jwtTokenUtility.GetUserId();
         bus.UpdatedAt = DateTime.UtcNow;
 
@@ -190,8 +239,20 @@ public class BusesMasterService : IBusesMasterService
         RouteId = b.RouteId,
         RouteName = b.Route?.RouteName,
         BusType = b.BusType,
+        ServiceStatus = b.ServiceStatus,
+        OutOfServiceReason = b.OutOfServiceReason,
+        Capacity = b.Capacity,
+        DriverName = b.DriverName,
+        DriverPhone = b.DriverPhone,
+        DriverLicenceNumber = b.DriverLicenceNumber,
         IsActive = b.IsActive,
         CreatedAt = b.CreatedAt,
         UpdatedAt = b.UpdatedAt
     };
+
+    private static ServiceResponseDto<BusesMasterListModel> Fail(string message) =>
+        new() { Success = false, Message = message };
+
+    private static ServiceResponseDto<bool> FailBool(string message) =>
+        new() { Success = false, Message = message };
 }

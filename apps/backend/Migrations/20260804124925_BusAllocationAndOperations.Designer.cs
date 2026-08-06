@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using transit_display_platform_api.Data;
 
@@ -11,9 +12,11 @@ using transit_display_platform_api.Data;
 namespace transit_display_platform_api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260804124925_BusAllocationAndOperations")]
+    partial class BusAllocationAndOperations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -375,26 +378,11 @@ namespace transit_display_platform_api.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<int?>("Capacity")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int?>("CreatedById")
                         .HasColumnType("int");
-
-                    b.Property<string>("DriverLicenceNumber")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("DriverName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("DriverPhone")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -402,17 +390,8 @@ namespace transit_display_platform_api.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<string>("OutOfServiceReason")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
                     b.Property<int?>("RouteId")
                         .HasColumnType("int");
-
-                    b.Property<string>("ServiceStatus")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -433,14 +412,7 @@ namespace transit_display_platform_api.Migrations
 
                     b.HasIndex("UpdatedById");
 
-                    b.ToTable("buses_master", t =>
-                        {
-                            t.HasCheckConstraint("CK_buses_master_BusType", "[BusType] IN ('Active','Reserve')");
-
-                            t.HasCheckConstraint("CK_buses_master_Capacity", "[Capacity] IS NULL OR [Capacity] > 0");
-
-                            t.HasCheckConstraint("CK_buses_master_ServiceStatus", "[ServiceStatus] IN ('InService','Maintenance','Breakdown')");
-                        });
+                    b.ToTable("buses_master");
                 });
 
             modelBuilder.Entity("transit_display_platform_api.Schema.CityMaster", b =>
@@ -1097,10 +1069,6 @@ namespace transit_display_platform_api.Migrations
                     b.Property<int>("PlatformNumber")
                         .HasColumnType("int");
 
-                    b.Property<string>("Side")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
@@ -1123,10 +1091,7 @@ namespace transit_display_platform_api.Migrations
 
                     b.HasIndex("UpdatedById");
 
-                    b.ToTable("platforms_master", t =>
-                        {
-                            t.HasCheckConstraint("CK_platforms_master_Side", "[Side] IS NULL OR [Side] IN ('Left','Right')");
-                        });
+                    b.ToTable("platforms_master");
                 });
 
             modelBuilder.Entity("transit_display_platform_api.Schema.RegionMaster", b =>

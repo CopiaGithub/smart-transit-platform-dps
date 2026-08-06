@@ -34,7 +34,8 @@ public static class DemoDataSeeder
         var buses = await SeedBusesAsync(db, routes);
         await SeedPlatformsAsync(db);
         var students = await SeedStudentsAndParentsAsync(db, geography, users, routes, buses);
-        await SeedDispersalDemoAsync(db, buses, users, roles);
+        await SeedAllocationsAsync(db, routes, buses);
+        await SeedDispersalDemoAsync(db, buses, routes, users, roles);
 
         logger.LogInformation("Demo data seeding complete ({StudentCount} students present).", students);
     }
@@ -440,10 +441,44 @@ public static class DemoDataSeeder
         string FirstName, string LastName, string Mobile, string Email, string Relation,
         (string AdmissionNumber, bool IsPrimary)[] Children);
 
+    // --------------------------------------------------- bus route allocations
+
+    /// <summary>
+    /// Standing allocations for the five service buses. The two reserves get none —
+    /// a reserve earns a route only through a one-day override when it substitutes.
+    /// </summary>
+    private static async Task SeedAllocationsAsync(
+        ApplicationDbContext db, Dictionary<string, int> routes, Dictionary<string, int> buses)
+    {
+        var from = new DateOnly(2026, 6, 1);
+
+        var pairs = new (string Bus, string Route)[]
+        {
+            ("18", "VS17"), ("22", "SW"), ("31", "BLP"), ("12", "NRE"), ("45", "KHG"),
+        };
+
+        foreach (var (bus, route) in pairs)
+        {
+            int routeId = routes[route], busId = buses[bus];
+            await GetOrAddAsync(db, db.BusRouteAllocations,
+                a => a.RouteId == routeId && a.BusId == busId
+                     && a.AllocationType == AllocationKind.Standing,
+                () => new BusRouteAllocation
+                {
+                    RouteId = routeId,
+                    BusId = busId,
+                    AllocationType = AllocationKind.Standing,
+                    EffectiveFrom = from,
+                    EffectiveTo = null,
+                    Reason = "Standing allocation for the 2026-2027 school year."
+                });
+        }
+    }
+
     // ------------------------------------------------- one worked dispersal day
 
     private static async Task SeedDispersalDemoAsync(
-        ApplicationDbContext db, Dictionary<string, int> buses,
+        ApplicationDbContext db, Dictionary<string, int> buses, Dictionary<string, int> routes,
         Dictionary<string, int> users, Dictionary<string, int> roles)
     {
         var sessionDate = DateOnly.FromDateTime(DateTime.UtcNow.Date);
@@ -469,29 +504,36 @@ public static class DemoDataSeeder
             .Where(p => !p.IsDeleted).OrderBy(p => p.SortOrder).Take(5).ToListAsync();
 
         // Mirrors the sample board in the proposal, including one already departed.
+        var routeOf = new Dictionary<string, string>
+        {
+            ["18"] = "VS17", ["22"] = "SW", ["31"] = "BLP", ["12"] = "NRE", ["45"] = "KHG",
+        };
+
         var rows = new (string Bus, string Status, int Queue, int Offset)[]
         {
-            ("18", "Boarding", 1, 0),
-            ("22", "Boarding", 2, 2),
-            ("31", "Assigned", 3, 4),
-            ("12", "Entered",  4, 6),
-            ("45", "Departed", 5, 8),
+            ("18", BoardingStatus.Boarding, 1, 0),
+            ("22", BoardingStatus.Boarding, 2, 2),
+            ("31", BoardingStatus.Arrived,  3, 4),
+            ("12", BoardingStatus.Waiting,  4, 6),
+            ("45", BoardingStatus.Departed, 5, 8),
         };
 
         var events = new List<BoardingEvents>();
         foreach (var (bus, status, queue, offset) in rows)
         {
             var enteredAt = start.AddMinutes(offset);
+            bool holdsPlatform = status != BoardingStatus.Waiting;
             events.Add(new BoardingEvents
             {
                 SessionId = session.Id,
                 BusId = buses[bus],
-                PlatformId = status == "Entered" ? null : platforms[queue - 1].Id,
+                RouteId = routes[routeOf[bus]],
+                PlatformId = holdsPlatform ? platforms[queue - 1].Id : null,
                 Status = status,
                 QueueOrder = queue,
                 EnteredAt = enteredAt,
-                AssignedAt = status == "Entered" ? null : enteredAt.AddSeconds(20),
-                DepartedAt = status == "Departed" ? enteredAt.AddMinutes(12) : null
+                AssignedAt = holdsPlatform ? enteredAt.AddSeconds(20) : null,
+                DepartedAt = status == BoardingStatus.Departed ? enteredAt.AddMinutes(12) : null
             });
         }
 

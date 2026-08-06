@@ -1,9 +1,12 @@
 using transit_display_platform_api.Common;
 using transit_display_platform_api.Services.AcademicYearMasterService;
 using transit_display_platform_api.Services.AuthService;
+using transit_display_platform_api.Services.BusOperationsService;
+using transit_display_platform_api.Services.BusRouteAllocationService;
 using transit_display_platform_api.Services.BusesMasterService;
 using transit_display_platform_api.Services.CityMasterService;
 using transit_display_platform_api.Services.CountryMasterService;
+using transit_display_platform_api.Services.DispersalSessionService;
 using transit_display_platform_api.Services.DisplayMasterService;
 using transit_display_platform_api.Services.GateMasterService;
 using transit_display_platform_api.Services.MenuAssignmentService;
@@ -45,6 +48,9 @@ public static class DependencyInjection
         services.AddScoped<IStudentMasterService, StudentMasterService>();
         services.AddScoped<IParentMasterService, ParentMasterService>();
         services.AddScoped<IStudentParentMappingService, StudentParentMappingService>();
+        services.AddScoped<IBusRouteAllocationService, BusRouteAllocationService>();
+        services.AddScoped<IDispersalSessionService, DispersalSessionService>();
+        services.AddScoped<IBusOperationsService, BusOperationsService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
 

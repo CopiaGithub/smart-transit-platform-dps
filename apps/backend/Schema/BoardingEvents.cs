@@ -13,11 +13,19 @@ public partial class BoardingEvents : BaseEntity
 
     public int BusId { get; set; }
 
+    /// <summary>
+    /// Route this bus actually served today. Recorded per event rather than read from
+    /// the bus, because a reserve bus has no fixed route of its own and a bus may be
+    /// reallocated later — the live board and past reports must both stay correct.
+    /// Resolved from bus_route_allocation at gate-in; falls back to the bus's own route.
+    /// </summary>
+    public int? RouteId { get; set; }
+
     public int? PlatformId { get; set; }
 
-    /// <summary>Entered → Assigned → Boarding → Departed / Replaced / Cleared.</summary>
+    /// <summary>Waiting → Arrived → Boarding → Departed, or Replaced.</summary>
     [MaxLength(20)]
-    public string Status { get; set; } = "Entered";
+    public string Status { get; set; } = BoardingStatus.Waiting;
 
     public int QueueOrder { get; set; }
 
@@ -48,6 +56,9 @@ public partial class BoardingEvents : BaseEntity
 
     [ForeignKey(nameof(BusId))]
     public virtual BusesMaster? Bus { get; set; }
+
+    [ForeignKey(nameof(RouteId))]
+    public virtual RoutesMaster? Route { get; set; }
 
     [ForeignKey(nameof(PlatformId))]
     public virtual PlatformsMaster? Platform { get; set; }
