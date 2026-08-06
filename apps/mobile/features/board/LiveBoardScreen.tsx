@@ -68,17 +68,16 @@ export default function LiveBoardScreen() {
 }
 
 function Row({ bus, index }: { bus: Bus; index: number }) {
-  const boarding = bus.status === STATUS.boarding;
-  const pulse = usePulse(boarding);
   const color = STATUS_COLOR[bus.status!];
   const gone = bus.status === STATUS.departed;
 
+  // Boarding rows are deliberately static — the spec asks for no blinking, so
+  // the amber STATUS text alone carries the "get in now" signal.
   return (
-    <Animated.View
+    <View
       style={[
         styles.row,
         { backgroundColor: index % 2 ? BOARD.rowAlt : BOARD.row },
-        boarding && { opacity: pulse },
         gone && { opacity: 0.45 },
       ]}
     >
@@ -92,7 +91,7 @@ function Row({ bus, index }: { bus: Bus; index: number }) {
       <View style={[styles.colStatus, { alignItems: "flex-end" }]}>
         <Text style={[styles.status, { color }]}>{bus.status?.toUpperCase()}</Text>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 

@@ -16,6 +16,15 @@ export const COLORS = {
   white: "#FFFFFF",
 };
 
+/**
+ * Brand gradient, deep navy -> mid blue -> bright blue. Used by the sign-in
+ * hero and the primary CTA so the two read as one surface.
+ */
+export const GRADIENT = {
+  brand: ["#0F4C81", "#2A6FD6"] as const,
+  brandWide: ["#0F4C81", "#2A6FD6", "#4F8EF7"] as const,
+};
+
 // Separate palette for the LED board mirror — it mimics a real departure
 // board, so it stays dark regardless of the rest of the app.
 export const BOARD = {
