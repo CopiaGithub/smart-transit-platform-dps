@@ -114,4 +114,26 @@ public class BusOperationsController : ControllerBase
 
         return Ok(response);
     }
+
+    /// <summary>Fleet status for the current session: available, in the yard, out of service.</summary>
+    [HttpGet("buses/status")]
+    public async Task<IActionResult> GetBusStatus()
+    {
+        var response = await _service.GetBusStatusAsync();
+        if (!response.Success)
+            return NotFound(response.Message);
+
+        return Ok(response);
+    }
+
+    /// <summary>Every marked platform and whether it is free or held right now.</summary>
+    [HttpGet("platforms/status")]
+    public async Task<IActionResult> GetPlatformStatus()
+    {
+        var response = await _service.GetPlatformStatusAsync();
+        if (!response.Success)
+            return NotFound(response.Message);
+
+        return Ok(response);
+    }
 }

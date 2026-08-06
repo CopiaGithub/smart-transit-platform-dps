@@ -58,6 +58,10 @@ public class BusOperationsService : IBusOperationsService
         if (!bus.IsActive)
             return Fail($"Bus {bus.BusNumber} is marked inactive and cannot enter.");
 
+        if (BusServiceState.OutOfService.Contains(bus.ServiceStatus))
+            return Fail($"Bus {bus.BusNumber} is out of service ({bus.ServiceStatus})" +
+                        $"{(bus.OutOfServiceReason is null ? "" : $": {bus.OutOfServiceReason}")}.");
+
         var alreadyLive = await _context.BoardingEvents.AnyAsync(e =>
             e.SessionId == session.Id && e.BusId == bus.Id && !e.IsDeleted
             && BoardingStatus.Live.Contains(e.Status));
@@ -273,6 +277,9 @@ public class BusOperationsService : IBusOperationsService
         if (reserve.Id == original.BusId)
             return Fail("A bus cannot replace itself.");
 
+        if (!reserve.IsActive || BusServiceState.OutOfService.Contains(reserve.ServiceStatus))
+            return Fail($"Bus {reserve.BusNumber} is not available to take over.");
+
         var reserveBusy = await _context.BoardingEvents.AnyAsync(e =>
             e.SessionId == original.SessionId && e.BusId == reserve.Id && !e.IsDeleted
             && BoardingStatus.Live.Contains(e.Status));
@@ -476,9 +483,12 @@ public class BusOperationsService : IBusOperationsService
             .Select(e => e.BusId)
             .ToHashSet();
 
+        // A bus under maintenance or broken down must not be offered at the gate, even
+        // though it is still on the fleet roster.
         var buses = await _context.BusesMasters
             .Include(b => b.Route)
-            .Where(b => !b.IsDeleted && b.IsActive)
+            .Where(b => !b.IsDeleted && b.IsActive
+                     && !BusServiceState.OutOfService.Contains(b.ServiceStatus))
             .OrderBy(b => b.BusNumber)
             .ToListAsync();
 
@@ -489,6 +499,9 @@ public class BusOperationsService : IBusOperationsService
                 BusId = b.Id,
                 BusNumber = b.BusNumber,
                 BusType = b.BusType,
+                Capacity = b.Capacity,
+                DriverName = b.DriverName,
+                DriverPhone = b.DriverPhone,
                 RouteId = b.RouteId,
                 RouteName = b.Route?.RouteName
             })
@@ -514,12 +527,159 @@ public class BusOperationsService : IBusOperationsService
                             .Select(ToRow)
                             .OrderBy(r => r.EnteredAt)
                             .ToList(),
-            AvailableBuses = available.Where(b => b.BusType != "Reserve").ToList(),
-            AvailableReserves = available.Where(b => b.BusType == "Reserve").ToList(),
+            AvailableBuses = available.Where(b => b.BusType != BusKind.Reserve).ToList(),
+            AvailableReserves = available.Where(b => b.BusType == BusKind.Reserve).ToList(),
             UndoableEventId = undoable?.Id
         };
 
         return new ServiceResponseDto<OperatorQueueModel> { Data = model, Message = "Queue fetched successfully." };
+    }
+
+    // ------------------------------------------------------------- platform status
+
+    public async Task<ServiceResponseDto<PlatformStatusModel>> GetPlatformStatusAsync()
+    {
+        var session = await _sessions.CurrentSessionAsync();
+        if (session == null)
+            return new ServiceResponseDto<PlatformStatusModel>
+            {
+                Success = false,
+                Message = "No dispersal session is open."
+            };
+
+        var platforms = await ActivePlatformsAsync();
+
+        var occupantByPlatform = (await RowQuery()
+                .Where(e => e.SessionId == session.Id
+                         && BoardingStatus.Occupying.Contains(e.Status)
+                         && e.PlatformId != null)
+                .ToListAsync())
+            .ToDictionary(e => e.PlatformId!.Value);
+
+        var slots = platforms.Select(p =>
+        {
+            occupantByPlatform.TryGetValue(p.Id, out var occ);
+            return new PlatformSlotModel
+            {
+                PlatformId = p.Id,
+                PlatformNumber = p.PlatformNumber,
+                PlatformName = p.PlatformName,
+                NearestGateId = p.NearestGateId,
+                IsOccupied = occ != null,
+                EventId = occ?.Id,
+                BusId = occ?.BusId,
+                BusNumber = occ?.Bus?.BusNumber,
+                RouteName = occ?.Route?.RouteName,
+                Status = occ?.Status,
+                AssignedAt = occ?.AssignedAt
+            };
+        }).ToList();
+
+        var nextFree = slots.FirstOrDefault(s => !s.IsOccupied);
+
+        var model = new PlatformStatusModel
+        {
+            SessionId = session.Id,
+            PlatformCount = slots.Count,
+            OccupiedCount = slots.Count(s => s.IsOccupied),
+            AvailableCount = slots.Count(s => !s.IsOccupied),
+            NextFreePlatformNumber = nextFree?.PlatformNumber,
+            YardFull = nextFree == null,
+            Platforms = slots
+        };
+
+        return new ServiceResponseDto<PlatformStatusModel>
+        {
+            Data = model,
+            TotalRecords = slots.Count,
+            Message = "Platform status fetched successfully."
+        };
+    }
+
+    // ------------------------------------------------------------------ bus status
+
+    public async Task<ServiceResponseDto<BusStatusModel>> GetBusStatusAsync()
+    {
+        var session = await _sessions.CurrentSessionAsync();
+
+        var buses = await _context.BusesMasters
+            .Include(b => b.Route)
+            .Where(b => !b.IsDeleted)
+            .OrderBy(b => b.BusNumber)
+            .ToListAsync();
+
+        // Latest event per bus in this session (highest Id wins).
+        var latestByBus = new Dictionary<int, BoardingEvents>();
+        if (session != null)
+        {
+            foreach (var e in await RowQuery()
+                         .Where(e => e.SessionId == session.Id)
+                         .OrderByDescending(e => e.Id)
+                         .ToListAsync())
+                latestByBus.TryAdd(e.BusId, e);
+        }
+
+        var rows = buses.Select(b =>
+        {
+            latestByBus.TryGetValue(b.Id, out var ev);
+            return new BusStatusRowModel
+            {
+                BusId = b.Id,
+                BusNumber = b.BusNumber,
+                BusType = b.BusType,
+                IsActive = b.IsActive,
+                ServiceStatus = b.ServiceStatus,
+                OutOfServiceReason = b.OutOfServiceReason,
+                Availability = ResolveBusAvailability(b, ev),
+                Capacity = b.Capacity,
+                DriverName = b.DriverName,
+                DriverPhone = b.DriverPhone,
+                RouteId = b.RouteId,
+                RouteName = b.Route?.RouteName,
+                CurrentEventId = ev?.Id,
+                CurrentStatus = ev?.Status,
+                CurrentPlatformNumber = ev?.Platform?.PlatformNumber
+            };
+        }).ToList();
+
+        var model = new BusStatusModel
+        {
+            SessionId = session?.Id,
+            TotalBuses = rows.Count,
+            AvailableCount = rows.Count(r => r.Availability == BusAvailability.Available),
+            InYardCount = rows.Count(r =>
+                r.Availability is BusAvailability.InYard or BusAvailability.Waiting),
+            OutOfServiceCount = rows.Count(r => r.Availability == BusAvailability.OutOfService),
+            Buses = rows
+        };
+
+        return new ServiceResponseDto<BusStatusModel>
+        {
+            Data = model,
+            TotalRecords = rows.Count,
+            Message = "Bus status fetched successfully."
+        };
+    }
+
+    /// <summary>
+    /// Folds the master-data flags and the live boarding event into one operational
+    /// state. A live event beats the roster flags — a bus that broke down mid-run is
+    /// still Replaced/Departed for the board, not OutOfService.
+    /// </summary>
+    private static string ResolveBusAvailability(BusesMaster b, BoardingEvents? ev)
+    {
+        if (!b.IsActive) return BusAvailability.Inactive;
+
+        if (ev != null)
+        {
+            if (ev.Status == BoardingStatus.Waiting) return BusAvailability.Waiting;
+            if (BoardingStatus.Occupying.Contains(ev.Status)) return BusAvailability.InYard;
+            if (ev.Status == BoardingStatus.Departed) return BusAvailability.Departed;
+            if (ev.Status == BoardingStatus.Replaced) return BusAvailability.Replaced;
+        }
+
+        if (BusServiceState.OutOfService.Contains(b.ServiceStatus)) return BusAvailability.OutOfService;
+        return BusAvailability.Available;
     }
 
     // -------------------------------------------------------------------- helpers

@@ -18,6 +18,13 @@ public partial class PlatformsMaster : BaseEntity
     public int SortOrder { get; set; }
 
     /// <summary>
+    /// Which arm of the U-shaped compound this platform sits on: "Left" or "Right".
+    /// Null until assigned. Not derivable from the number, so it is stored explicitly.
+    /// </summary>
+    [MaxLength(10)]
+    public string? Side { get; set; }
+
+    /// <summary>
     /// Building exit this platform is nearest to. The compound is U-shaped with two
     /// student exits, so "which door do I walk out of" is not derivable from the number.
     /// </summary>

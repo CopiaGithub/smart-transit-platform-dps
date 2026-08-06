@@ -45,6 +45,21 @@ public partial class ApplicationDbContext : DbContext
                 .WithMany(r => r.Buses)
                 .HasForeignKey(e => e.RouteId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            entity.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_buses_master_BusType",
+                    $"[BusType] IN ({Quoted(BusKind.All)})");
+
+                t.HasCheckConstraint(
+                    "CK_buses_master_ServiceStatus",
+                    $"[ServiceStatus] IN ({Quoted(BusServiceState.All)})");
+
+                t.HasCheckConstraint(
+                    "CK_buses_master_Capacity",
+                    "[Capacity] IS NULL OR [Capacity] > 0");
+            });
         });
 
         modelBuilder.Entity<BoardingEvents>(entity =>
@@ -190,6 +205,10 @@ public partial class ApplicationDbContext : DbContext
                 .WithMany(g => g.Platforms)
                 .HasForeignKey(e => e.NearestGateId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_platforms_master_Side",
+                "[Side] IS NULL OR [Side] IN ('Left','Right')"));
         });
 
         modelBuilder.Entity<DisplayMaster>(entity =>

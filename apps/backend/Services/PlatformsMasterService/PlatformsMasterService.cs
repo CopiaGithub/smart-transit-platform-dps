@@ -54,6 +54,7 @@ public class PlatformsMasterService : IPlatformsMasterService
                 PlatformNumber = p.PlatformNumber,
                 PlatformName = p.PlatformName,
                 SortOrder = p.SortOrder,
+                Side = p.Side,
                 IsActive = p.IsActive,
                 CreatedAt = p.CreatedAt,
                 UpdatedAt = p.UpdatedAt
@@ -93,12 +94,17 @@ public class PlatformsMasterService : IPlatformsMasterService
         if (exists)
             return new ServiceResponseDto<PlatformsMasterListModel> { Success = false, Message = "A platform with this number already exists." };
 
+        var side = NormalizeSide(model.Side);
+        if (side != null && side != "Left" && side != "Right")
+            return new ServiceResponseDto<PlatformsMasterListModel> { Success = false, Message = "Side must be 'Left' or 'Right'." };
+
         var currentUserId = _jwtTokenUtility.GetUserId();
         var platform = new PlatformsMaster
         {
             PlatformNumber = model.PlatformNumber,
             PlatformName = model.PlatformName,
             SortOrder = model.SortOrder > 0 ? model.SortOrder : model.PlatformNumber,
+            Side = side,
             IsActive = model.IsActive ?? true,
             IsDeleted = false,
             CreatedById = currentUserId,
@@ -134,6 +140,14 @@ public class PlatformsMasterService : IPlatformsMasterService
                 return new ServiceResponseDto<bool> { Success = false, Message = "A platform with this number already exists." };
         }
 
+        if (model.Side != null)
+        {
+            var side = NormalizeSide(model.Side);
+            if (side != null && side != "Left" && side != "Right")
+                return new ServiceResponseDto<bool> { Success = false, Message = "Side must be 'Left' or 'Right'." };
+            platform.Side = side;
+        }
+
         if (model.PlatformNumber.HasValue) platform.PlatformNumber = model.PlatformNumber.Value;
         if (model.PlatformName != null) platform.PlatformName = model.PlatformName;
         if (model.SortOrder.HasValue) platform.SortOrder = model.SortOrder.Value;
@@ -166,8 +180,20 @@ public class PlatformsMasterService : IPlatformsMasterService
         PlatformNumber = p.PlatformNumber,
         PlatformName = p.PlatformName,
         SortOrder = p.SortOrder,
+        Side = p.Side,
         IsActive = p.IsActive,
         CreatedAt = p.CreatedAt,
         UpdatedAt = p.UpdatedAt
     };
+
+    private static string? NormalizeSide(string? side)
+    {
+        if (string.IsNullOrWhiteSpace(side)) return null;
+        return side.Trim().ToLowerInvariant() switch
+        {
+            "left" or "l" => "Left",
+            "right" or "r" => "Right",
+            _ => side.Trim()
+        };
+    }
 }

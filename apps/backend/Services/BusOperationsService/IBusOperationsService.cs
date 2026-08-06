@@ -22,4 +22,10 @@ public interface IBusOperationsService
     Task<ServiceResponseDto<BoardModel>> GetBoardAsync(string? displayCode);
 
     Task<ServiceResponseDto<OperatorQueueModel>> GetQueueAsync();
+
+    /// <summary>Fleet status for the current session: available, in the yard, out of service.</summary>
+    Task<ServiceResponseDto<BusStatusModel>> GetBusStatusAsync();
+
+    /// <summary>Every marked platform and whether it is free or held right now.</summary>
+    Task<ServiceResponseDto<PlatformStatusModel>> GetPlatformStatusAsync();
 }
