@@ -1,0 +1,9 @@
+<label
+  class="cds-label text-[14px] font-heading"
+  [for]="id"
+  [ngClass]="customLabel"
+>
+  {{ label }}
+  <!-- Only show asterisk if isAstRequired is true -->
+  <span *ngIf="isAstRequired" class="text-red-700"> *</span>
+</label>

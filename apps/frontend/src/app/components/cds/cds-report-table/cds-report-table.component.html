@@ -1,0 +1,27 @@
+<div class="container mx-auto p-0 mt-6">
+  <!-- Table wrapper: lets wide tables scroll horizontally on small screens -->
+  <div class="w-full overflow-x-auto">
+    <table class="w-full border-collapse border border-gray-300">
+    <thead class="bg-blue-100">
+      <tr>
+        <th
+          *ngFor="let header of headers"
+          class="border border-gray-300 px-4 py-2 text-left font-semibold text-sm text-gray-600"
+        >
+          {{ header.label }}
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of data">
+        <td
+          *ngFor="let header of headers"
+          class="border border-gray-300 px-4 py-2 text-sm text-gray-800 text-left"
+        >
+          {{ row[header.key] }}
+        </td>
+      </tr>
+    </tbody>
+    </table>
+  </div>
+</div>

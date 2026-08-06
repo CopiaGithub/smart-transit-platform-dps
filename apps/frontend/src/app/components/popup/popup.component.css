@@ -1,0 +1,147 @@
+:host {
+  display: contents;
+  font-family: var(--argon-font-family);
+}
+
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(17, 43, 77, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.popup-overlay--visible {
+  display: flex;
+}
+
+.popup-card {
+  width: 100%;
+  max-width: 28rem;
+  background: var(--argon-white);
+  border: 1px solid var(--argon-border-color);
+  border-radius: 0.5rem;
+  box-shadow: var(--argon-card-shadow);
+  overflow: hidden;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: var(--argon-white);
+  border-bottom: 1px solid var(--argon-border-color);
+}
+
+.popup-header--success {
+  border-bottom-color: rgba(45, 206, 137, 0.25);
+}
+
+.popup-header--error {
+  border-bottom-color: rgba(245, 54, 92, 0.25);
+}
+
+.popup-header--warning {
+  border-bottom-color: rgba(251, 99, 64, 0.25);
+}
+
+.popup-header--info {
+  border-bottom-color: rgba(94, 114, 228, 0.25);
+}
+
+.popup-title {
+  margin: 0;
+  font-family: var(--argon-font-family);
+  font-size: 1.0625rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-heading-color);
+  letter-spacing: -0.01em;
+}
+
+.popup-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--argon-gray-600);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.popup-close:hover {
+  background: var(--argon-gray-100);
+  color: var(--argon-heading-color);
+}
+
+.popup-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1.25rem 1.5rem;
+  color: var(--argon-body-color);
+}
+
+.popup-icon {
+  flex-shrink: 0;
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  font-size: 2.25rem !important;
+}
+
+.popup-icon--success {
+  color: var(--argon-success);
+}
+
+.popup-icon--error {
+  color: var(--argon-danger);
+}
+
+.popup-icon--warning {
+  color: var(--argon-warning);
+}
+
+.popup-icon--info {
+  color: var(--argon-primary);
+}
+
+.popup-image {
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.popup-message {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--argon-gray-700);
+}
+
+.popup-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.875rem 1.25rem;
+  background: var(--argon-gray-100);
+  border-top: 1px solid var(--argon-border-color);
+}
+
+@media (max-width: 480px) {
+  .popup-overlay {
+    padding: 0.75rem;
+  }
+
+  .popup-card {
+    max-width: 100%;
+  }
+}

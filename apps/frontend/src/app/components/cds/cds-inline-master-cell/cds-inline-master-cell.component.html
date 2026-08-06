@@ -1,0 +1,41 @@
+<div class="inline-master-cell">
+  @if (mode === 'select') {
+    <select
+      class="inline-master-select"
+      [disabled]="disabled"
+      [ngModel]="selectedId"
+      (ngModelChange)="onSelectChange($event)"
+    >
+      <option [ngValue]="null">{{ placeholder }}</option>
+      @for (opt of options; track opt.value) {
+        <option [ngValue]="opt.value">{{ opt.name }}</option>
+      }
+    </select>
+  } @else {
+    <div class="inline-master-search-wrap">
+      <input
+        type="text"
+        class="inline-master-search"
+        [placeholder]="placeholder"
+        [disabled]="disabled"
+        [(ngModel)]="searchText"
+        (focus)="onFocus()"
+        (blur)="onBlur()"
+        (input)="onSearchInput($any($event.target).value)"
+      />
+      @if (showDropdown && filteredOptions.length) {
+        <ul class="inline-master-panel">
+          @for (opt of filteredOptions; track opt.value) {
+            <li
+              class="inline-master-option"
+              [class.selected]="value?.value === opt.value"
+              (mousedown)="pickOption(opt)"
+            >
+              {{ opt.name }}
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</div>

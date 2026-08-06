@@ -1,0 +1,134 @@
+<div class="inline-grid-wrap">
+  <div class="grid-toolbar" *ngIf="showToolbar">
+    <div class="grid-toolbar-left">
+      <ng-content select="[toolbar-left]"></ng-content>
+    </div>
+    <div class="flex gap-2">
+      <ng-content select="[toolbar-right]"></ng-content>
+      <button
+        *ngIf="allowAdd"
+        type="button"
+        class="inline-flex items-center gap-1 rounded border border-blue-600 bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
+        (click)="addRow()"
+      >
+        <mat-icon class="!text-base !w-4 !h-4">add</mat-icon>
+        {{ addRowLabel }}
+      </button>
+    </div>
+  </div>
+
+  <div
+    class="inline-grid"
+    *ngIf="rows.length; else emptyState"
+    [style.grid-template-columns]="gridTemplateColumns"
+  >
+    <div class="grid-cell grid-header" *ngFor="let col of columns">
+      {{ col.label }}
+    </div>
+    <div class="grid-cell grid-header" *ngIf="showActions">Actions</div>
+
+    <ng-container *ngFor="let row of rows; trackBy: trackById">
+      <div
+        class="grid-cell"
+        *ngFor="let col of columns"
+        [class.cell-highlight]="col.highlight"
+        [class.cell-master]="col.type === 'masterSelect' || col.type === 'masterAutocomplete'"
+        [class.is-dirty]="isDirty(row)"
+        [class.is-new]="row['_isNew']"
+      >
+        <ng-container [ngSwitch]="col.type ?? 'text'">
+          <span *ngSwitchCase="'readonly'" class="cell-readonly">
+            {{ displayValue(row, col) }}
+          </span>
+
+          <input
+            *ngSwitchCase="'number'"
+            type="number"
+            class="cell-input"
+            [placeholder]="col.placeholder ?? ''"
+            [ngModel]="row[col.key]"
+            (ngModelChange)="onCellChange(row, col.key, $event)"
+            [disabled]="readonly"
+          />
+
+          <input
+            *ngSwitchCase="'date'"
+            type="date"
+            class="cell-input"
+            [ngModel]="row[col.key]"
+            (ngModelChange)="onCellChange(row, col.key, $event)"
+            [disabled]="readonly"
+          />
+
+          <select
+            *ngSwitchCase="'select'"
+            class="cell-input"
+            [ngModel]="row[col.key]"
+            (ngModelChange)="onCellChange(row, col.key, $event)"
+            [disabled]="readonly"
+          >
+            <option value="">— Select —</option>
+            <option *ngFor="let opt of col.options" [ngValue]="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
+
+          <cds-inline-master-cell
+            *ngSwitchCase="'masterSelect'"
+            [mode]="'select'"
+            [options]="getMasterOptions(col)"
+            [value]="asDropdownValue(row, col.key)"
+            [placeholder]="col.placeholder ?? 'Select'"
+            [disabled]="readonly"
+            (valueChange)="onMasterCellChange(row, col.key, $event)"
+          ></cds-inline-master-cell>
+
+          <cds-inline-master-cell
+            *ngSwitchCase="'masterAutocomplete'"
+            [mode]="'autocomplete'"
+            [options]="getMasterOptions(col)"
+            [value]="asDropdownValue(row, col.key)"
+            [placeholder]="col.placeholder ?? 'Search…'"
+            [disabled]="readonly"
+            (valueChange)="onMasterCellChange(row, col.key, $event)"
+          ></cds-inline-master-cell>
+
+          <input
+            *ngSwitchDefault
+            type="text"
+            class="cell-input"
+            [placeholder]="col.placeholder ?? ''"
+            [ngModel]="row[col.key]"
+            (ngModelChange)="onCellChange(row, col.key, $event)"
+            [disabled]="readonly"
+          />
+        </ng-container>
+      </div>
+
+      <div
+        class="grid-cell"
+        *ngIf="showActions"
+        [class.is-dirty]="isDirty(row)"
+        [class.is-new]="row['_isNew']"
+      >
+        <div class="row-actions">
+          <button
+            type="button"
+            class="icon-btn danger"
+            title="Delete row"
+            (click)="deleteRow(row)"
+            [disabled]="readonly"
+          >
+            <mat-icon class="!text-lg">delete_outline</mat-icon>
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <ng-template #emptyState>
+    <div class="grid-empty">
+      {{ emptyMessage }}
+    </div>
+  </ng-template>
+</div>

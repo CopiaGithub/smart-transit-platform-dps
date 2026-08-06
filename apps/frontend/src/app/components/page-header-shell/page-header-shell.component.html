@@ -1,0 +1,95 @@
+@if (header.state().visible) {
+  <div class="page-header-shell">
+    <div class="page-title-bar">
+      <div class="page-title-main">
+        @if (header.state().breadcrumbs.length) {
+          <nav class="page-breadcrumb" aria-label="Breadcrumb">
+            @for (crumb of header.state().breadcrumbs; track $index; let last = $last) {
+              <span class="page-breadcrumb-item">
+                @if (!last && crumb.route) {
+                  <a class="page-breadcrumb-link" [routerLink]="crumb.route">
+                    {{ crumb.label }}
+                  </a>
+                } @else {
+                  <span class="page-breadcrumb-current">{{ crumb.label }}</span>
+                }
+                @if (!last) {
+                  <mat-icon class="page-breadcrumb-separator" aria-hidden="true">
+                    chevron_right
+                  </mat-icon>
+                }
+              </span>
+            }
+          </nav>
+        }
+
+        <h2
+          [attr.data-testid]="header.state().id + '-title'"
+          class="page-title-text"
+        >
+          {{ header.state().title }}
+        </h2>
+      </div>
+
+      @if (
+        (header.state().showButton &&
+          (header.state().buttonText || header.state().buttonIcon)) ||
+        header.state().showCart ||
+        header.state().showPrint
+      ) {
+        <div class="page-title-actions">
+          @if (header.state().showPrint) {
+            <cds-button
+              [testid]="header.state().id + '-print-button'"
+              [variant]="'primary'"
+              (click)="header.triggerPrintClick()"
+            >
+              Print
+            </cds-button>
+          }
+          @if (header.state().showCart) {
+            <button
+              type="button"
+              class="page-title-cart-btn"
+              [attr.data-testid]="header.state().id + '-cart-button'"
+              [attr.aria-label]="'Cart (' + header.state().cartCount + ' items)'"
+              (click)="header.triggerCartClick()"
+            >
+              <mat-icon aria-hidden="true">shopping_cart</mat-icon>
+              @if (header.state().cartCount > 0) {
+                <span class="page-title-cart-badge">{{
+                  header.state().cartCount
+                }}</span>
+              }
+            </button>
+          }
+          @if (
+            header.state().showButton &&
+            (header.state().buttonText || header.state().buttonIcon)
+          ) {
+            <cds-button
+              [testid]="header.state().id + '-add-button'"
+              [variant]="'primary'"
+              [class.page-title-icon-btn]="!!header.state().buttonIcon"
+              [attr.aria-label]="
+                header.state().buttonIcon && !header.state().buttonText
+                  ? 'Edit'
+                  : null
+              "
+              (click)="header.triggerButtonClick()"
+            >
+              @if (header.state().buttonIcon) {
+                <mat-icon aria-hidden="true">{{
+                  header.state().buttonIcon
+                }}</mat-icon>
+              }
+              @if (header.state().buttonText) {
+                {{ header.state().buttonText }}
+              }
+            </cds-button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

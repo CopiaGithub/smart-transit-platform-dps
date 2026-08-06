@@ -1,0 +1,469 @@
+/*
+ * Argon Dashboard theme layer for DMS (CSS-only)
+ * Maps Argon tokens onto existing app selectors without TS changes.
+ */
+
+/* --- Global typography & surfaces --- */
+
+html,
+body,
+.mat-typography {
+  font-family: var(--argon-font-family);
+  font-size: var(--argon-font-size-base);
+  line-height: var(--argon-line-height-base);
+  color: var(--argon-body-color);
+}
+
+body {
+  background-color: var(--argon-body-bg);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-heading,
+.font-heading1 {
+  color: var(--argon-heading-color);
+  font-family: var(--argon-font-family);
+}
+
+.main-content {
+  background-color: var(--argon-body-bg);
+}
+
+.page-content,
+.bg-blue {
+  background-color: var(--argon-body-bg) !important;
+}
+
+/* --- Angular Material (azure-blue overrides) --- */
+
+:root {
+  --mat-sys-primary: var(--argon-primary);
+  --mat-sys-on-primary: var(--argon-white);
+  --mat-sys-primary-container: var(--argon-primary-muted);
+  --mat-sys-on-primary-container: var(--argon-default);
+  --mat-sys-surface: var(--argon-white);
+  --mat-sys-surface-container: var(--argon-gray-100);
+  --mat-sys-on-surface: var(--argon-body-color);
+  --mat-sys-outline: var(--argon-border-color);
+}
+
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-unelevated-button.mat-primary,
+.mat-mdc-fab.mat-primary,
+.mat-mdc-mini-fab.mat-primary {
+  --mdc-protected-button-container-color: var(--argon-primary);
+  --mdc-filled-button-container-color: var(--argon-primary);
+  --mat-fab-background-color: var(--argon-primary);
+  box-shadow: var(--argon-btn-shadow);
+}
+
+.mat-mdc-outlined-button.mat-primary {
+  --mdc-outlined-button-label-text-color: var(--argon-primary);
+  --mdc-outlined-button-outline-color: var(--argon-primary);
+}
+
+.mat-mdc-checkbox.mat-primary {
+  --mdc-checkbox-selected-focus-icon-color: var(--argon-primary);
+  --mdc-checkbox-selected-hover-icon-color: var(--argon-primary);
+  --mdc-checkbox-selected-icon-color: var(--argon-primary);
+  --mdc-checkbox-selected-pressed-icon-color: var(--argon-primary);
+}
+
+.mat-mdc-radio-button.mat-primary {
+  --mdc-radio-selected-focus-icon-color: var(--argon-primary);
+  --mdc-radio-selected-hover-icon-color: var(--argon-primary);
+  --mdc-radio-selected-icon-color: var(--argon-primary);
+  --mdc-radio-selected-pressed-icon-color: var(--argon-primary);
+}
+
+.mat-mdc-tab-group.mat-primary,
+.mat-mdc-tab-nav-bar.mat-primary {
+  --mat-tab-header-active-label-text-color: var(--argon-primary);
+  --mat-tab-header-active-ripple-color: var(--argon-primary);
+  --mat-tab-header-inactive-ripple-color: var(--argon-primary);
+  --mat-tab-header-active-focus-label-text-color: var(--argon-primary);
+  --mat-tab-header-active-hover-label-text-color: var(--argon-primary);
+  --mdc-tab-indicator-active-indicator-color: var(--argon-primary);
+}
+
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__leading,
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__notch,
+.mat-mdc-form-field.mat-focused .mdc-notched-outline__trailing {
+  border-color: var(--argon-primary) !important;
+}
+
+.mat-mdc-form-field.mat-focused .mat-mdc-floating-label {
+  color: var(--argon-primary) !important;
+}
+
+.mat-mdc-dialog-container .mdc-dialog__surface {
+  border-radius: 0.375rem;
+  box-shadow: var(--argon-card-shadow);
+}
+
+.mat-mdc-card {
+  border: 0;
+  box-shadow: var(--argon-card-shadow);
+  border-radius: 0.375rem;
+}
+
+/* --- Tailwind blue utility remap --- */
+
+.text-blue-500 { color: var(--argon-tw-blue-500) !important; }
+.text-blue-600 { color: var(--argon-tw-blue-600) !important; }
+.text-blue-700 { color: var(--argon-tw-blue-700) !important; }
+.text-blue-800 { color: var(--argon-tw-blue-800) !important; }
+
+.bg-blue-100 { background-color: var(--argon-tw-blue-100) !important; }
+.bg-blue-200 { background-color: var(--argon-tw-blue-200) !important; }
+.bg-blue-500 { background-color: var(--argon-tw-blue-500) !important; }
+.bg-blue-600 { background-color: var(--argon-tw-blue-600) !important; }
+
+.hover\:bg-blue-50:hover { background-color: var(--argon-tw-blue-50) !important; }
+.hover\:bg-blue-600:hover { background-color: var(--argon-tw-blue-600) !important; }
+.hover\:bg-blue-700:hover { background-color: var(--argon-tw-blue-700) !important; }
+.hover\:text-blue-800:hover { color: var(--argon-tw-blue-800) !important; }
+
+.border-blue-300 { border-color: var(--argon-tw-blue-300) !important; }
+.hover\:border-blue-700:hover { border-color: var(--argon-tw-blue-700) !important; }
+
+.text-blue-500 { color: var(--argon-tw-blue-500) !important; }
+
+.focus\:ring-blue-500:focus { --tw-ring-color: var(--argon-tw-blue-500) !important; }
+
+.bg-blue-50 { background-color: var(--argon-primary-muted) !important; }
+.bg-blue-700 { background-color: var(--argon-tw-blue-700) !important; }
+.hover\:bg-blue-700:hover { background-color: var(--argon-tw-blue-700) !important; }
+.hover\:text-blue-700:hover { color: var(--argon-tw-blue-700) !important; }
+
+.bg-gray-100 { background-color: var(--argon-body-bg) !important; }
+.bg-gray-50 { background-color: var(--argon-gray-100) !important; }
+.hover\:bg-gray-50:hover { background-color: var(--argon-gray-100) !important; }
+
+/* --- Page section headers (bg-blue-500 bars) --- */
+
+.page-content .bg-blue-500.flex,
+.page-content .bg-blue-500.rounded-t,
+.page-content div.bg-blue-500.flex.justify-between,
+.page-content div.flex.justify-between.bg-blue-500,
+.page-content div.flex.justify-between.items-center.bg-blue-500 {
+  background: var(--argon-gradient-primary) !important;
+  box-shadow: var(--argon-btn-shadow);
+  border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.fixed .bg-blue-500.rounded-t,
+.fixed .bg-blue-500.flex {
+  background: var(--argon-gradient-primary) !important;
+}
+
+/* --- CDS container cards --- */
+
+.page-content .border.border-gray-200.rounded-lg,
+.page-content .p-6.bg-white.rounded-lg.shadow-xl,
+.page-content .bg-white.rounded-lg.shadow-xl {
+  border: 0 !important;
+  border-radius: 0.375rem !important;
+  box-shadow: var(--argon-card-shadow) !important;
+  background-color: var(--argon-white) !important;
+}
+
+.page-content .border.border-gray-200.rounded-lg > .bg-blue-50 {
+  background: var(--argon-white) !important;
+  border-bottom: 1px solid var(--argon-border-color) !important;
+  border-radius: 0 !important;
+  padding: 0.625rem 1.25rem !important;
+  box-shadow: none !important;
+}
+
+.page-content .border.border-gray-200.rounded-lg > .bg-blue-50 h2 {
+  font-size: 0.9375rem !important;
+  font-weight: 600 !important;
+  color: var(--argon-heading-color) !important;
+}
+
+.page-content .border.border-gray-200.rounded-lg > .bg-blue-50 mat-icon {
+  color: var(--argon-primary) !important;
+  font-size: 1.125rem !important;
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+}
+
+.page-content .border.border-gray-200.rounded-lg > .bg-blue-50 button.bg-blue-600 {
+  background: var(--argon-gradient-primary) !important;
+  border: 0 !important;
+  box-shadow: var(--argon-btn-shadow) !important;
+  color: var(--argon-white) !important;
+}
+
+.page-content .border.border-gray-200.rounded-lg > .bg-blue-50 button.bg-blue-600:hover {
+  filter: brightness(0.95);
+}
+
+/* --- Tables (Argon thead-light style) --- */
+
+.page-content table thead th,
+.page-content table thead tr th,
+.page-content thead.bg-blue-100 th,
+.page-content thead.bg-blue-200 th,
+app-table table thead th,
+app-table table thead tr th {
+  background-color: var(--argon-table-head-bg) !important;
+  color: var(--argon-table-head-color) !important;
+  font-size: var(--argon-table-head-font-size) !important;
+  font-weight: var(--argon-font-weight-bold) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem;
+  border-bottom: 1px solid var(--argon-table-border-color) !important;
+}
+
+.page-content table tbody td,
+app-table table tbody td {
+  font-size: var(--argon-table-body-font-size);
+  color: var(--argon-body-color);
+  border-bottom: 1px solid var(--argon-table-border-color);
+}
+
+.page-content table tbody tr:hover,
+app-table table tbody tr:hover {
+  background-color: var(--argon-gray-100) !important;
+}
+
+.table-scroll thead::after {
+  box-shadow: none !important;
+}
+
+/* --- Login / auth pages --- */
+
+app-login .min-h-screen.bg-gray-100,
+app-otp-verfication .min-h-screen,
+app-forgot-password .min-h-screen {
+  background-color: var(--argon-body-bg) !important;
+}
+
+app-login .bg-white.rounded-2xl,
+app-otp-verfication .bg-white.rounded-2xl {
+  border-radius: 0.375rem !important;
+  box-shadow: var(--argon-card-shadow) !important;
+}
+
+app-login button[type="submit"],
+app-otp-verfication button[type="submit"] {
+  background: var(--argon-gradient-primary) !important;
+  border-radius: 0.375rem !important;
+  box-shadow: var(--argon-btn-shadow) !important;
+  font-weight: var(--argon-font-weight-semibold);
+}
+
+app-login button[type="submit"]:hover:not(:disabled),
+app-otp-verfication button[type="submit"]:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+app-login .text-sm.hover\:underline[style],
+app-login button.text-sm.hover\:underline {
+  color: var(--argon-primary) !important;
+}
+
+app-login input:focus,
+app-otp-verfication input:focus {
+  border-color: var(--argon-primary) !important;
+  box-shadow: 0 3px 9px rgba(50, 50, 9, 0), 3px 4px 8px rgba(94, 114, 228, 0.15) !important;
+}
+
+app-login h2.text-gray-800,
+app-otp-verfication h2.text-gray-800 {
+  color: var(--argon-heading-color) !important;
+}
+
+app-login .text-gray-500,
+app-login .text-gray-600,
+app-otp-verfication .text-gray-500,
+app-otp-verfication .text-gray-600 {
+  color: var(--argon-gray-600) !important;
+}
+
+/* --- Title "Add New" button: compact size + leading + icon --- */
+
+cds-button button[data-testid$="-add-button"] {
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  height: 2rem !important;
+  min-height: 2rem !important;
+  max-height: 2rem !important;
+  padding: 0 0.875rem !important;
+  line-height: 1 !important;
+  border-radius: 0.375rem !important;
+  box-shadow: var(--argon-btn-shadow) !important;
+}
+
+cds-button button[data-testid$="-add-button"]::before {
+  content: "\e145"; /* Material Icons: add */
+  font-family: "Material Icons";
+  font-size: 1.05rem;
+  line-height: 1;
+  font-weight: 400;
+  letter-spacing: normal;
+  -webkit-font-feature-settings: "liga";
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Compact form typography (Argon scale ~14px) --- */
+
+cds-input input,
+cds-autocomplete-dropdown input,
+cds-select > div > button,
+cds-select-vertical button,
+app-cds-textarea textarea,
+app-datepicker input,
+app-cds-select-multiple button,
+app-cds-multi-select-dd button,
+app-cds-multi-select button,
+app-cds-multi-select input {
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  color: var(--argon-heading-color) !important;
+}
+
+cds-input input::placeholder,
+cds-autocomplete-dropdown input::placeholder,
+app-cds-textarea textarea::placeholder,
+app-datepicker input::placeholder,
+cds-select .text-gray-400,
+cds-select-vertical .text-gray-400,
+app-cds-select-multiple .text-\[\#ccc\] {
+  color: var(--argon-gray-600) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  opacity: 1 !important;
+}
+
+cds-label label {
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  color: var(--argon-heading-color) !important;
+}
+
+/* dropdown option text */
+.cds-select-option,
+cds-select ul li,
+cds-select-vertical ul li,
+cds-autocomplete-dropdown ul li {
+  font-size: 0.875rem !important;
+}
+
+/* --- Multi-select dropdowns (Argon styling) --- */
+
+app-cds-multi-select-dd label.block,
+app-cds-multi-select label.block,
+app-cds-multi-select-dd cds-label label,
+app-cds-multi-select cds-label label {
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  color: var(--argon-heading-color) !important;
+}
+
+/* Trigger button */
+app-cds-multi-select-dd > div > button,
+app-cds-multi-select .relative.border {
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.375rem !important;
+  background: var(--argon-white) !important;
+  color: var(--argon-heading-color) !important;
+  min-height: 2.25rem !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+app-cds-multi-select-dd > div > button:hover,
+app-cds-multi-select .relative.border:hover {
+  border-color: var(--argon-primary) !important;
+}
+
+app-cds-multi-select-dd > div > button:focus,
+app-cds-multi-select-dd > div > button:focus-visible {
+  outline: none !important;
+  border-color: var(--argon-primary) !important;
+  box-shadow: 0 0 0 3px rgba(94, 114, 228, 0.12) !important;
+}
+
+/* Chevron color */
+app-cds-multi-select-dd > div > button > span:last-child,
+app-cds-multi-select .relative.border > span.absolute {
+  color: var(--argon-gray-500) !important;
+  font-size: 0.75rem !important;
+}
+
+/* Dropdown panel */
+app-cds-multi-select-dd ul,
+app-cds-multi-select > div > div[class*="absolute"] {
+  border: 1px solid var(--argon-border-color) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 0.5rem 2rem 0 rgba(50, 50, 93, 0.12), 0 0.25rem 0.5rem rgba(0, 0, 0, 0.08) !important;
+  padding: 0.25rem !important;
+  background: var(--argon-white) !important;
+  overflow: auto !important;
+}
+
+/* Options */
+app-cds-multi-select-dd ul li,
+app-cds-multi-select > div > div[class*="absolute"] > div {
+  font-size: 0.875rem !important;
+  color: var(--argon-body-color) !important;
+  border-radius: 0.375rem !important;
+  padding: 0.45rem 0.6rem !important;
+  border-bottom: 0 !important;
+  transition: background-color 0.12s ease, color 0.12s ease !important;
+}
+
+app-cds-multi-select-dd ul li:hover,
+app-cds-multi-select > div > div[class*="absolute"] > div:hover {
+  background-color: var(--argon-primary-muted) !important;
+  color: var(--argon-primary) !important;
+}
+
+/* "Select All" row: keep a subtle divider */
+app-cds-multi-select-dd ul li:first-child {
+  border-bottom: 1px solid var(--argon-border-color) !important;
+  border-radius: 0.375rem 0.375rem 0 0 !important;
+  margin-bottom: 0.15rem !important;
+  color: var(--argon-heading-color) !important;
+}
+
+app-cds-multi-select-dd ul li:first-child b {
+  font-weight: 600 !important;
+}
+
+/* Checkboxes → Argon primary */
+app-cds-multi-select-dd input[type="checkbox"],
+app-cds-multi-select input[type="checkbox"] {
+  width: 0.95rem !important;
+  height: 0.95rem !important;
+  accent-color: var(--argon-primary) !important;
+  cursor: pointer !important;
+}
+
+/* --- Remove redundant outer wrapper box (match other pages) --- */
+
+app-save-dealer-master .bg-white.shadow-md.rounded-lg.border.border-gray-300 {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin-left: 1rem !important;
+  margin-right: 1rem !important;
+  margin-top: 0.5rem !important;
+}

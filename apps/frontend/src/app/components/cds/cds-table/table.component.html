@@ -1,0 +1,743 @@
+<div [class]="containerClass">
+  <!-- Table wrapper with optional scrolling -->
+  <div [ngStyle]="tableWrapperStyle" class="w-full overflow-x-auto">
+    <!-- Table -->
+    <table [class]="tableClass" [ngClass]="'border-0'">
+      <thead [class]="theadClass" [ngStyle]="tableHeaderStyle">
+        <tr>
+          <!-- Checkbox column for row selection -->
+          <th
+            *ngIf="showCheckboxes"
+            class="px-3 py-2 w-10 text-center bg-gray-100"
+          >
+            <input
+              type="checkbox"
+              [checked]="allSelected"
+              (click)="toggleMasterSelection($event)"
+              class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+            />
+          </th>
+
+          <!-- Header cells -->
+          <th
+            *ngFor="let header of headers"
+            class="px-3 py-2 text-left font-semibold text-sm text-gray-700 bg-gray-100 font-heading text-nowrap"
+            [ngStyle]="getColumnStyle(header)"
+          >
+            {{ header.label }}
+          </th>
+
+          <!-- Actions column if needed -->
+          <th
+            *ngIf="showActionsColumn"
+            class="px-3 py-2 text-left font-semibold text-sm text-gray-700 bg-gray-100 font-heading"
+          >
+            Actions
+          </th>
+          <th
+            *ngIf="addContacts"
+            class="px-3 py-2 text-left font-semibold text-sm text-gray-700 bg-gray-100 font-heading"
+          >
+            Create Contact
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <ng-container
+          *ngFor="let row of paginatedData; let i = index; trackBy: trackByFn"
+        >
+          <!-- Parent Row -->
+          <tr
+            [attr.data-testid]="'row-' + tableId + '-' + i"
+            (click)="toggleRow(row)"
+            [class]="
+              getRowClass(row, i) + ' hover:bg-gray-50 border-b border-gray-200'
+            "
+          >
+            <!-- Checkbox cell for row selection -->
+            <td
+              *ngIf="showCheckboxes"
+              class="px-3 py-1 text-center"
+              (click)="$event.stopPropagation()"
+            >
+              <input
+                type="checkbox"
+                [attr.data-testid]="'checkbox-' + tableId + '-' + i"
+                [checked]="isSelected(row)"
+                (click)="$event.stopPropagation(); toggleSelection(row, $event)"
+                class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 font-heading"
+              />
+            </td>
+
+            <!-- Data cells -->
+            <td
+              *ngFor="let header of headers"
+              class="px-3 py-1 text-sm text-gray-700 text-left font-heading"
+              [ngClass]="
+                header.wrap
+                  ? 'whitespace-normal break-words align-top'
+                  : header.truncate
+                    ? 'truncate whitespace-nowrap overflow-hidden align-middle'
+                    : 'text-nowrap align-middle'
+              "
+              [ngStyle]="getColumnStyle(header)"
+              [title]="header.truncate ? (row[header.key] ?? '') : null"
+              (click)="$event.stopPropagation()"
+            >
+              <ng-container *ngIf="getTemplate(header.key); else typeOrDefault">
+                <ng-container
+                  *ngTemplateOutlet="
+                    getTemplate(header.key);
+                    context: { $implicit: row, index: i }
+                  "
+                >
+                </ng-container>
+              </ng-container>
+              <ng-template #typeOrDefault>
+                <ng-container *ngIf="header.type === 'serial'">
+                  {{ i + 1 }}
+                </ng-container>
+                <!-- Number input column -->
+                <!-- Number input column -->
+                <!-- Number input -->
+                <ng-container *ngIf="header.type === 'number'">
+                  <ng-container *ngIf="shouldShowCell(header, row)">
+                    <input
+                      type="number"
+                      class="h-[36px] px-3 border border-gray-300 rounded-md bg-white min-w-[90px] max-w-[130px] w-full focus:ring-2 focus:ring-blue-500"
+                      [(ngModel)]="row[header.key]"
+                      (click)="$event.stopPropagation()"
+                      (ngModelChange)="
+                        onNumberChange(row, header.key, $event, 'number')
+                      "
+                      [disabled]="row.isDisabled"
+                      min="0"
+                    />
+                  </ng-container>
+                </ng-container>
+
+                <!-- Text input -->
+                <ng-container *ngIf="header.type === 'text'">
+                  <ng-container *ngIf="shouldShowCell(header, row)">
+                    <input
+                      type="text"
+                      class="h-[36px] px-3 border border-gray-300 rounded-md bg-white min-w-[90px] max-w-[130px] w-full focus:ring-2 focus:ring-blue-500"
+                      [(ngModel)]="row[header.key]"
+                      (click)="$event.stopPropagation()"
+                      (ngModelChange)="
+                        onNumberChange(row, header.key, $event, 'text')
+                      "
+                      [disabled]="row.isDisabled"
+                    />
+                  </ng-container>
+                </ng-container>
+
+                <!-- Dropdown type -->
+                <ng-container *ngIf="header.type === 'dropdown'">
+                  <select
+                    class="h-[36px] px-3 border border-gray-300 rounded-md bg-white min-w-[100px] focus:ring-2 focus:ring-blue-500"
+                    [ngModel]="getDropdownValue(row, header.key)"
+                    (ngModelChange)="onDropdownChange(row, header.key, $event)"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <option [ngValue]="null">Select</option>
+                    <option
+                      *ngFor="let opt of header.options"
+                      [ngValue]="opt.value ?? opt.id ?? opt"
+                    >
+                      {{ opt.name ?? opt.label ?? opt }}
+                    </option>
+                  </select>
+                </ng-container>
+
+                <ng-container *ngIf="header.type === 'textarea'">
+                  <textarea
+                    class="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                    style="min-width: 180px; min-height: 60px"
+                    [(ngModel)]="row[header.key]"
+                    (click)="$event.stopPropagation()"
+                    (ngModelChange)="onTextareaChange(row, header.key, $event)"
+                    [disabled]="row.isDisabled"
+                    placeholder="Enter remarks"
+                  ></textarea>
+                </ng-container>
+                <!-- Specification column: show View button -->
+                <ng-container *ngIf="header.type === 'specification'">
+                  <button
+                    (click)="onViewSepcification(row, $event)"
+                    class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-500 hover:bg-blue-50"
+                  >
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                </ng-container>
+
+                <!-- Accessories column: show View + Add buttons -->
+                <ng-container
+                  *ngIf="
+                    header.type === 'accessories' ||
+                    header.type === 'discountPopup'
+                  "
+                >
+                  <!-- <button
+                    *ngIf="row.accessoryId || row.accessoryPrice > 0"
+                    (click)="
+                      viewAccessories.emit(row); $event.stopPropagation()
+                    "
+                    class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-500 hover:bg-blue-50"
+                    title="View Accessories"
+                  >
+                    <mat-icon>visibility</mat-icon>
+                  </button> -->
+
+                  <button
+                    (click)="onDynamicAdd(row, header.type, $event)"
+                    class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-500 hover:bg-blue-50"
+                    [title]="
+                      header.type === 'accessories'
+                        ? 'Add Accessories'
+                        : 'Add Discount'
+                    "
+                  >
+                    <mat-icon>add</mat-icon>
+                  </button>
+                </ng-container>
+
+                <!-- Checkbox type -->
+                <ng-container *ngIf="header.type === 'checkbox'">
+                  <input
+                    type="checkbox"
+                    [checked]="row[header.key]"
+                    (change)="onCheckboxChange(row, header.key, $event)"
+                    class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                    (click)="$event.stopPropagation()"
+                  />
+                </ng-container>
+                <!-- Add this new block near the other type-specific containers,
+     e.g. right after the "checkbox" ng-container -->
+                <ng-container *ngIf="header.type === 'accessoryDelete'">
+                  <div class="flex items-center gap-2">
+                    <button
+                      *ngIf="row.showEdit !== false"
+                      (click)="
+                        onEditAccessory(row, $event); $event.stopPropagation()
+                      "
+                      class="inline-flex items-center justify-center w-8 h-8 rounded-full text-green-500 hover:bg-green-50"
+                      title="Edit"
+                    >
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button
+                      *ngIf="row.showDelete !== false"
+                      (click)="
+                        onDeleteAccessory(row, $event); $event.stopPropagation()
+                      "
+                      class="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-500 hover:bg-red-50"
+                      title="Remove"
+                    >
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </ng-container>
+                <!-- <div class="px-3 py-1 text-sm text-gray-700 text-left align-middle
+              font-heading" (click)="$event.stopPropagation()" >
+         
+              <ng-container *ngIf="header.type === 'checkbox'">
+                <input
+                  type="checkbox"
+                  [checked]="row[header.key]"
+                  (change)="onCheckboxChange(row, header.key, $event)"
+                  class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                  (click)="$event.stopPropagation()"
+                />
+              </ng-container> -->
+
+                <!-- Details column -->
+                <!-- <ng-container *ngIf="header.type === 'details'">
+        <button (click)="toggleRow(row)" class="flex items-center details-cell">
+          <mat-icon [ngClass]="row.expanded ? 'rotate-90' : ''">chevron_right</mat-icon>
+        </button>
+      </ng-container> -->
+                <!-- Details column -->
+                <ng-container *ngIf="header.type === 'details'">
+                  <ng-container
+                    *ngIf="row.punchRecords?.length > 0; else blankCell"
+                  >
+                    <button
+                      (click)="toggleRow(row)"
+                      class="flex items-center details-cell"
+                    >
+                      <mat-icon [ngClass]="row.expanded ? 'rotate-90' : ''"
+                        >chevron_right</mat-icon
+                      >
+                    </button>
+                  </ng-container>
+                  <ng-template #blankCell>
+                    <!-- <span class="text-gray-400">—</span> -->
+                    <mat-icon class="text-gray-300 cursor-not-allowed"
+                      >chevron_right</mat-icon
+                    >
+                  </ng-template>
+                </ng-container>
+
+                <ng-container *ngIf="header.type === 'accessoryDetails'">
+                  <ng-container
+                    *ngIf="row.moreInfoData?.length > 0; else blankAccessory"
+                  >
+                    <button
+                      (click)="
+                        toggleAccessoryDetails(row); $event.stopPropagation()
+                      "
+                      class="flex items-center"
+                    >
+                      <mat-icon
+                        [ngClass]="row.accessoryExpanded ? 'rotate-90' : ''"
+                      >
+                        chevron_right
+                      </mat-icon>
+                    </button>
+                  </ng-container>
+                  <ng-template #blankAccessory>
+                    <mat-icon class="text-gray-300 cursor-not-allowed"
+                      >chevron_right</mat-icon
+                    >
+                  </ng-template>
+                </ng-container>
+
+                <!-- Image column -->
+                <ng-container *ngIf="header.type === 'image'">
+                  <div class="flex justify-center">
+                    <button
+                      *ngIf="row[header.key]"
+                      (click)="
+                        openAttachmentsModal(row[header.key], header.label)
+                      "
+                      class="text-blue-500 hover:underline"
+                    >
+                      View Attachment
+                    </button>
+                    <span class="text-gray-500" *ngIf="!row[header.key]"
+                      >No image</span
+                    >
+                  </div>
+                </ng-container>
+
+                <!-- PDF COLUMN (ROW LEVEL) -->
+                <ng-container *ngIf="header.key === 'pdf'">
+                  <button
+                    *ngIf="row.hasQuotation"
+                    (click)="PdfDownload(row); $event.stopPropagation()"
+                    class="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-red-50"
+                    title="Download PDF"
+                  >
+                    <mat-icon class="text-red-600">picture_as_pdf</mat-icon>
+                  </button>
+
+                  <span *ngIf="!row.hasQuotation" class="text-gray-300">—</span>
+                </ng-container>
+
+                <!-- Text column -->
+                <ng-container
+                  *ngIf="
+                    !header.type ||
+                    (header.type !== 'checkbox' &&
+                      header.type !== 'details' &&
+                      header.type !== 'image' &&
+                      header.type !== 'serial' &&
+                      header.type !== 'textarea' &&
+                      header.type !== 'number' &&
+                      header.type !== 'text' &&
+                      header.type !== 'dropdown' &&
+                      header.type !== 'moreInfo' &&
+                      header.type !== 'accessoryDelete')
+                  "
+                >
+                  <ng-container *ngIf="row[header.key] === 'Absent'">
+                    <!-- <span class="inline-block bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm"> -->
+                    {{ row[header.key] }}
+                    <!-- </span> -->
+                  </ng-container>
+                  <ng-container *ngIf="row[header.key] !== 'Absent'">
+                    {{ row[header.key] }}
+                  </ng-container>
+                </ng-container>
+                <ng-container *ngIf="header.type === 'moreInfo'">
+                  <ng-container
+                    *ngIf="row.moreInfoData?.length > 0; else noMoreInfo"
+                  >
+                    <button
+                      (click)="toggleMoreInfo(row); $event.stopPropagation()"
+                      class="flex items-center"
+                    >
+                      <mat-icon
+                        [ngClass]="row.moreInfoExpanded ? 'rotate-90' : ''"
+                      >
+                        chevron_right
+                      </mat-icon>
+                    </button>
+                  </ng-container>
+
+                  <ng-template #noMoreInfo>
+                    <mat-icon class="text-gray-300 cursor-not-allowed">
+                      chevron_right
+                    </mat-icon>
+                  </ng-template>
+                </ng-container></ng-template
+              >
+            </td>
+
+            <!-- Actions column -->
+            <td
+              *ngIf="showActionsColumn"
+              class="px-3 py-1 text-sm text-gray-800 text-left whitespace-nowrap"
+              (click)="$event.stopPropagation()"
+            >
+              <div
+                *ngIf="!customActionsTemplate"
+                class="flex items-center justify-left gap-3"
+              >
+                <button
+                  *ngIf="
+                    row.showView !== undefined ? row.showView : showViewAction
+                  "
+                  (click)="onView(row, $event)"
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-500 hover:bg-blue-50"
+                >
+                  <mat-icon>visibility</mat-icon>
+                </button>
+                <button
+                  *ngIf="
+                    row.showEdit !== undefined ? row.showEdit : showEditAction
+                  "
+                  (click)="onEdit(row, $event)"
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-full text-green-500 hover:bg-green-50"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  *ngIf="showDeleteAction"
+                  (click)="onDelete(row, $event)"
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-500 hover:bg-red-50"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+                <button
+                  *ngIf="showDownloadAction"
+                  (click)="onDownload(row, $event)"
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-full text-green-500 hover:bg-green-50"
+                >
+                  <mat-icon>download</mat-icon>
+                </button>
+                <button
+                  *ngIf="showCustomAction"
+                  [attr.data-testid]="'btn-custom-action-' + tableId + '-' + i"
+                  (click)="onCustomAction(row, $event)"
+                  [class]="customActionClass"
+                >
+                  {{ customActionLabel }}
+                </button>
+              </div>
+
+              <!-- Custom actions template -->
+              <ng-container *ngIf="customActionsTemplate">
+                <ng-container
+                  *ngTemplateOutlet="
+                    customActionsTemplate;
+                    context: { $implicit: row }
+                  "
+                ></ng-container>
+              </ng-container>
+            </td>
+
+            <!-- Add Contact column -->
+            <td
+              *ngIf="addContacts"
+              class="px-3 py-1 text-sm text-blue-600 cursor-pointer hover:underline font-heading"
+              (click)="onAddContacts(row)"
+            >
+              Add Contact
+            </td>
+          </tr>
+
+          <!-- <tr *ngIf="row.expanded" class="expanded-row">
+            <td
+              [attr.colspan]="headers.length + (showActionsColumn ? 1 : 0)"
+              class="bg-gray-50 px-3 py-2"
+            >
+              <table class="w-full text-sm border border-gray-300">
+                <thead class="bg-gray-200">
+                  <tr>
+                    <th
+                      *ngFor="let punchHeader of getPunchHeaders(row)"
+                      class="px-2 py-1 border font-heading"
+                    >
+                      {{ punchHeader.label }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let punch of row.punchRecords">
+                    <td
+                      *ngFor="let punchHeader of getPunchHeaders(row)"
+                      class="px-2 py-1 border font-heading"
+                    >
+                      <ng-container
+                        *ngIf="punchHeader.type === 'image'; else textCell"
+                      >
+                        <img
+                          *ngIf="punch[punchHeader.key]"
+                          [src]="punch[punchHeader.key]"
+                          alt="{{ punchHeader.label }}"
+                          class="h-12 w-12 object-cover rounded"
+                        />
+                        <span
+                          *ngIf="!punch[punchHeader.key]"
+                          class="text-gray-400"
+                          >-</span
+                        >
+                      </ng-container>
+                      <ng-template #textCell>
+                        {{ punch[punchHeader.key] }}
+                      </ng-template>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr> -->
+          <!-- MORE INFO (multipurpose, depth-aware) -->
+          <tr *ngIf="row.moreInfoExpanded">
+            <td
+              [attr.colspan]="headers.length + (showActionsColumn ? 1 : 0)"
+              class="bg-white border-b px-3 py-2"
+            >
+              <app-table
+                [headers]="headers2?.length ? headers2 : headers3"
+                [headers2]="headers3"
+                [data]="row.moreInfoData"
+                [showPagination]="false"
+                [showCheckboxes]="false"
+                [enableHorizontalScroll]="true"
+                (customAction)="onNestedCustomAction(row, $event)"
+              >
+              </app-table>
+            </td>
+          </tr>
+
+          <tr *ngIf="row.accessoryExpanded && row.moreInfoData?.length > 0">
+            <td
+              [attr.colspan]="
+                headers.length +
+                (showActionsColumn ? 1 : 0) +
+                (showCheckboxes ? 1 : 0)
+              "
+              class="bg-gray-50 border-b px-3 py-2"
+            >
+              <div
+                class="mb-2 text-sm font-semibold text-gray-600 font-heading"
+              >
+                Accessory Details
+              </div>
+              <app-table
+                [headers]="headers2"
+                [data]="row.moreInfoData"
+                [showPagination]="false"
+                [showCheckboxes]="false"
+                [enableHorizontalScroll]="true"
+                (customAction)="onNestedCustomAction(row, $event)"
+              >
+              </app-table>
+            </td>
+          </tr>
+
+          <!-- Expanded Punch Records Row -->
+          <!-- <tr *ngIf="row.expanded" class="expanded-row">
+  <td [attr.colspan]="headers.length + (showActionsColumn ? 1 : 0)" class="bg-gray-50 px-3 py-2">
+    <table class="w-full text-sm border border-gray-300">
+      <thead class="bg-gray-200">
+        <tr>
+          <th *ngFor="let punchHeader of punchHeaders" class="px-2 py-1 border font-heading">
+            {{ punchHeader.label }}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let punch of row.punchRecords">
+          <td *ngFor="let punchHeader of punchHeaders" class="px-2 py-1 border font-heading">
+        
+            <ng-container *ngIf="punchHeader.type === 'image'; else textCell">
+              <img *ngIf="punch[punchHeader.key]" [src]="punch[punchHeader.key]" alt="{{ punchHeader.label }}" class="h-12 w-12 object-cover rounded" />
+              <span *ngIf="!punch[punchHeader.key]" class="text-gray-400">-</span>
+            </ng-container>
+            <ng-template #textCell>
+              {{ punch[punchHeader.key] }}
+            </ng-template>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </td>
+</tr> -->
+
+          <!-- tst -->
+          <!-- Expanded Punch Records Row  19 jan -->
+          <!-- <tr *ngIf="row.expanded" class="expanded-row">
+    <td [attr.colspan]="headers.length + (showActionsColumn ? 1 : 0)" class="bg-gray-50 px-3 py-2">
+      <table class="w-full text-sm border border-gray-300">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="px-2 py-1 border font-heading">In Time</th>
+            <th class="px-2 py-1 border font-heading">Out Time</th>
+            <th class="px-2 py-1 border font-heading">Total Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let punch of row.punchRecords">
+            <td class="px-2 py-1 border font-heading">{{ punch.inTime }}</td>
+            <td class="px-2 py-1 border font-heading">{{ punch.outTime }}</td>
+            <td class="px-2 py-1 border font-heading">{{ punch.totalHrs }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </td>
+  </tr> -->
+
+          <!-- working list end-->
+        </ng-container>
+
+        <!-- No data row -->
+        <tr *ngIf="data.length === 0">
+          <td
+            [attr.colspan]="
+              (showCheckboxes ? 1 : 0) +
+              (showActionsColumn ? headers.length + 2 : headers.length)
+            "
+            class="px-6 py-8 text-center text-gray-500 font-heading"
+          >
+            No data available
+          </td>
+        </tr>
+        <!-- Footer Row -->
+        <tr *ngIf="footerRow" class="bg-gray-100 font-semibold">
+          <td *ngIf="showCheckboxes" class="px-3 py-1.5 border-t"></td>
+
+          <td
+            *ngFor="let header of headers"
+            class="px-3 py-1.5 border-t text-sm text-nowrap text-gray-800"
+          >
+            <ng-container *ngIf="header.key === footerRow.labelKey">
+              {{ footerRow.label }}
+            </ng-container>
+
+            <ng-container *ngIf="header.key === footerRow.valueKey">
+              {{ footerRow.value }}
+            </ng-container>
+          </td>
+
+          <td *ngIf="showActionsColumn" class="border-t"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="data.length > 0 && showToRecords">
+    <div class="flex justify-end">
+      <span class="text-sm text-gray-600 py-3">
+        Displaying {{ displayedRecords }} out of {{ totalAvailableRecords }}
+      </span>
+    </div>
+  </div>
+  <!-- Pagination - only shown if there's data -->
+  <div *ngIf="data.length > 0 && showPagination">
+    <div
+      class="table-pagination flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center px-2 sm:px-3"
+    >
+      <div class="text-left">
+        <span class="text-xs sm:text-sm text-gray-600">
+          Displaying {{ displayedRecords }} out of {{ totalAvailableRecords }}
+        </span>
+      </div>
+      <div [ngClass]="[paginationClass, 'table-pagination-controls']">
+        <button
+          (click)="previousPage()"
+          [disabled]="currentPage === 1"
+          class="table-pagination-button"
+        >
+          <mat-icon class="table-pagination-icon" aria-hidden="true"
+            >chevron_left</mat-icon
+          >
+          Previous
+        </button>
+
+        <span class="table-pagination-page">
+          {{ currentPage }} / {{ totalPages }}
+        </span>
+
+        <button
+          (click)="nextPage()"
+          [disabled]="currentPage === totalPages"
+          class="table-pagination-button table-pagination-button-next"
+        >
+          Next
+          <mat-icon class="table-pagination-icon" aria-hidden="true"
+            >chevron_right</mat-icon
+          >
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- table.component.html -->
+
+  <div class="flex justify-end mb-2" *ngIf="showPdfDownloadButton">
+    <button
+      (click)="onPdfDownload()"
+      class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 flex items-center gap-2"
+    >
+      <mat-icon>picture_as_pdf</mat-icon>
+      Download PDF
+    </button>
+  </div>
+
+  <!-- Attachment Modal -->
+  <div
+    *ngIf="showAttachmentModal"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+  >
+    <div
+      class="bg-white rounded-lg p-6 max-w-xl w-full max-h-screen overflow-auto"
+    >
+      <div class="flex justify-between items-center mb-4">
+        <h3
+          class="text-2xl font-heading text-gray-700 font-semibold underline-offset-3 underline"
+        >
+          {{ currentAttachmentTitle }}
+        </h3>
+        <button
+          (click)="closeAttachmentsModal()"
+          class="text-gray-500 hover:text-gray-700 font-bold text-xl"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div
+        *ngIf="currentAttachmentImages.length === 0"
+        class="text-center text-gray-500 py-4"
+      >
+        No attachments available
+      </div>
+
+      <div
+        *ngIf="currentAttachmentImages.length > 0"
+        class="flex items-center justify-center py-4"
+      >
+        <img
+          [src]="getImageSource(currentAttachmentImages[0])"
+          alt="Attachment"
+          class="w-fit h-64 object-contain"
+        />
+      </div>
+    </div>
+  </div>
+</div>

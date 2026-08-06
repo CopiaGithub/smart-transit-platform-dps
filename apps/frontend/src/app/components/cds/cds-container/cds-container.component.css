@@ -1,0 +1,25 @@
+.table-scroll .content-wrapper {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+:host {
+  display: block;
+}
+
+:host .border.border-gray-200.rounded-lg {
+  border: 0 !important;
+  border-radius: 0.375rem;
+  box-shadow: var(--argon-card-shadow);
+  overflow: visible;
+}
+
+:host .border.border-gray-200.rounded-lg > .panel-body {
+  overflow: visible !important;
+}
+
+@media (max-width: 640px) {
+  .table-scroll .content-wrapper {
+    max-height: 280px;
+  }
+}
