@@ -105,6 +105,24 @@ public class ParentMasterService : IParentMasterService
         return new ServiceResponseDto<ParentMasterListModel> { Data = MapToListModel(parent, await CountChildrenAsync(parent.Id)) };
     }
 
+    /// <summary>
+    /// Resolves the signed-in parent from their sign-in account. This is how the
+    /// parent app finds itself: its token carries a userId and nothing else.
+    /// Matching on the mobile number instead would break the moment an admin
+    /// corrected that number in one table and not the other.
+    /// </summary>
+    public async Task<ServiceResponseDto<ParentMasterListModel>> GetByUserIdAsync(int userId)
+    {
+        if (userId <= 0)
+            return new ServiceResponseDto<ParentMasterListModel> { Success = false, Message = "A valid user id is required." };
+
+        var parent = await LoadWithReferencesAsync(p => p.UserId == userId);
+        if (parent == null)
+            return new ServiceResponseDto<ParentMasterListModel> { Success = false, Message = "No parent record is linked to this account." };
+
+        return new ServiceResponseDto<ParentMasterListModel> { Data = MapToListModel(parent, await CountChildrenAsync(parent.Id)) };
+    }
+
     public async Task<ServiceResponseDto<List<ParentChildModel>>> GetChildrenAsync(int id)
     {
         bool exists = await _context.ParentMasters.AnyAsync(p => p.Id == id && !p.IsDeleted);

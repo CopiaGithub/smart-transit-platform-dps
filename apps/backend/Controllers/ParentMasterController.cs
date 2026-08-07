@@ -49,6 +49,20 @@ public class ParentMasterController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// The parent record behind a sign-in account. The parent app calls this
+    /// first, with the userId from its own token, to find out who it is.
+    /// </summary>
+    [HttpGet("by-user/{userId:int}")]
+    public async Task<IActionResult> GetParentMasterByUserId(int userId)
+    {
+        var response = await _service.GetByUserIdAsync(userId);
+        if (!response.Success)
+            return NotFound(response.Message);
+
+        return Ok(response);
+    }
+
     /// <summary>Every child linked to this parent — one call for the parent app home screen.</summary>
     [HttpGet("{id}/children")]
     public async Task<IActionResult> GetParentChildren(int id)

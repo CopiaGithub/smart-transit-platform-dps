@@ -207,6 +207,11 @@ public static class DemoDataSeeder
             ("EMP006", "Sunita Rao",           "sunita.rao@dpsnerul.edu",     "9820000006", "Teacher"),
             ("EMP007", "Vikram Joshi",         "vikram.joshi@dpsnerul.edu",   "9820000007", "Teacher"),
             ("EMP008", "Priya Menon",          "priya.menon@dpsnerul.edu",    "9820000008", "Teacher"),
+            // A parent sign-in. The contact is deliberately the same number as
+            // the ParentMaster record below, so the person is reachable on one
+            // number whichever table you look them up in. The link the app uses
+            // is ParentMaster.UserId, set in SeedStudentsAndParentsAsync.
+            ("PAR001", "Rajesh Sharma",        "rajesh.sharma@gmail.com",     "9821004501", "Parent"),
         };
 
         foreach (var (code, name, email, contact, role) in definitions)
@@ -234,15 +239,60 @@ public static class DemoDataSeeder
 
     // ------------------------------------------------------------------- routes
 
+    /// <summary>
+    /// One route per running bus, as the school actually operates. The first
+    /// five keep their original codes so existing allocations, students and
+    /// boarding history still resolve.
+    /// </summary>
     private static async Task<Dictionary<string, int>> SeedRoutesAsync(ApplicationDbContext db)
     {
         var definitions = new (string Code, string Name, string LedName)[]
         {
-            ("VS17", "Vashi Sec-17", "VASHI SEC-17"),
-            ("SW",   "Seawoods",     "SEAWOODS"),
-            ("BLP",  "Belapur",      "BELAPUR"),
-            ("NRE",  "Nerul East",   "NERUL EAST"),
-            ("KHG",  "Kharghar",     "KHARGHAR"),
+            ("VS17", "Vashi Sec-17",     "VASHI SEC-17"),
+            ("SW",   "Seawoods",         "SEAWOODS"),
+            ("BLP",  "Belapur",          "BELAPUR"),
+            ("NRE",  "Nerul East",       "NERUL EAST"),
+            ("KHG",  "Kharghar",         "KHARGHAR"),
+            ("NRW",  "Nerul West",       "NERUL WEST"),
+            ("SNP",  "Sanpada",          "SANPADA"),
+            ("KPK",  "Koparkhairane",    "KOPARKHAIRANE"),
+            ("AIR",  "Airoli",           "AIROLI"),
+            ("GHN",  "Ghansoli",         "GHANSOLI"),
+            ("PNV",  "Panvel",           "PANVEL"),
+            ("ULW",  "Ulwe",             "ULWE"),
+            ("TLJ",  "Taloja",           "TALOJA"),
+            ("TRB",  "Turbhe",           "TURBHE"),
+            ("SRS",  "Sarsole",          "SARSOLE"),
+            ("SHV",  "Shiravane",        "SHIRAVANE"),
+            ("MLT",  "Millennium Towers","MILLENNIUM"),
+            ("SW54", "Seawoods Sec-54",  "SEAWOODS 54"),
+            ("KKT",  "Kukshet",          "KUKSHET"),
+            ("VS27", "Vashi Sec-27",     "VASHI SEC-27"),
+            ("KLB",  "Kalamboli",        "KALAMBOLI"),
+            ("KMT",  "Kamothe",          "KAMOTHE"),
+            ("DRN",  "Dronagiri",        "DRONAGIRI"),
+            ("NR6",  "Nerul Sec-6",      "NERUL SEC-6"),
+            ("NR48", "Nerul Sec-48",     "NERUL SEC-48"),
+            ("BL11", "Belapur Sec-11",   "BELAPUR 11"),
+            ("KHOW", "Kharghar Owe",     "KHARGHAR OWE"),
+            ("KH35", "Kharghar Sec-35",  "KHARGHAR 35"),
+            ("VS9",  "Vashi Sec-9",      "VASHI SEC-9"),
+            ("KP20", "Koparkhairane 20", "KOPARKHAIRANE 20"),
+            ("AI8A", "Airoli Sec-8A",    "AIROLI 8A"),
+            ("GHTL", "Ghansoli Talavali","GHANSOLI TAL"),
+            ("SNP5", "Sanpada Sec-5",    "SANPADA 5"),
+            ("NR21", "Nerul Sec-21",     "NERUL SEC-21"),
+            ("SW44", "Seawoods Sec-44",  "SEAWOODS 44"),
+            ("PNVE", "New Panvel East",  "NEW PANVEL E"),
+            ("KM20", "Kamothe Sec-20",   "KAMOTHE 20"),
+            ("UL23", "Ulwe Sec-23",      "ULWE 23"),
+            ("TLPD", "Taloja Padghe",    "TALOJA PADGHE"),
+            ("TR26", "Turbhe Sec-26",    "TURBHE 26"),
+            ("JNG",  "Juinagar",         "JUINAGAR"),
+            ("VS28", "Vashi Sec-28",     "VASHI SEC-28"),
+            ("PRSK", "Parsik Hill",      "PARSIK HILL"),
+            ("NR3",  "Nerul Sec-3",      "NERUL SEC-3"),
+            ("KHHR", "Kharghar Hiranandani", "KHARGHAR HIR"),
         };
 
         var map = new Dictionary<string, int>();
@@ -259,31 +309,57 @@ public static class DemoDataSeeder
 
     // -------------------------------------------------------------------- buses
 
+    /// <summary>
+    /// The real fleet: 45 running buses against 21 marked platforms, which is
+    /// what makes Waiting and automatic promotion (§2.4) reachable at all. A
+    /// smaller fleet can never fill the yard, so that whole path would go
+    /// untested — and it is the behaviour students actually experience.
+    /// </summary>
     private static async Task<Dictionary<string, int>> SeedBusesAsync(
         ApplicationDbContext db, Dictionary<string, int> routes)
     {
-        var definitions = new (string Number, string? RouteCode, string Type)[]
+        // One bus per route, in route order. The first five keep the numbers
+        // the school's own dispersal sheet uses.
+        var running = new (string Number, string RouteCode)[]
         {
-            ("18", "VS17", "Active"),
-            ("22", "SW",   "Active"),
-            ("31", "BLP",  "Active"),
-            ("12", "NRE",  "Active"),
-            ("45", "KHG",  "Active"),
-            // The contractor's spares — the 11th-hour substitutions in the brief.
-            ("R1", null,   "Reserve"),
-            ("R2", null,   "Reserve"),
+            ("18", "VS17"), ("22", "SW"),   ("31", "BLP"),  ("12", "NRE"),  ("45", "KHG"),
+            ("01", "NRW"),  ("02", "SNP"),  ("03", "KPK"),  ("04", "AIR"),  ("05", "GHN"),
+            ("06", "PNV"),  ("07", "ULW"),  ("08", "TLJ"),  ("09", "TRB"),  ("10", "SRS"),
+            ("11", "SHV"),  ("13", "MLT"),  ("14", "SW54"), ("15", "KKT"),  ("16", "VS27"),
+            ("17", "KLB"),  ("19", "KMT"),  ("20", "DRN"),  ("21", "NR6"),  ("23", "NR48"),
+            ("24", "BL11"), ("25", "KHOW"), ("26", "KH35"), ("27", "VS9"),  ("28", "KP20"),
+            ("29", "AI8A"), ("30", "GHTL"), ("32", "SNP5"), ("33", "NR21"), ("34", "SW44"),
+            ("35", "PNVE"), ("36", "KM20"), ("37", "UL23"), ("38", "TLPD"), ("39", "TR26"),
+            ("40", "JNG"),  ("41", "VS28"), ("42", "PRSK"), ("43", "NR3"),  ("44", "KHHR"),
         };
 
-        var map = new Dictionary<string, int>();
-        foreach (var (number, routeCode, type) in definitions)
+        var drivers = new[]
         {
+            "R. Shinde", "V. More", "S. Jadhav", "P. Gaikwad", "A. Chavan", "M. Bhosale",
+            "D. Kadam", "N. Salunkhe", "K. Waghmare", "T. Patil", "G. Sawant", "B. Thorat",
+        };
+
+        var definitions = new List<(string Number, string? RouteCode, string Type)>();
+        foreach (var (number, routeCode) in running)
+            definitions.Add((number, routeCode, BusKind.Active));
+        // The contractor's spares — the 11th-hour substitutions in the brief.
+        definitions.Add(("R1", null, BusKind.Reserve));
+        definitions.Add(("R2", null, BusKind.Reserve));
+
+        var map = new Dictionary<string, int>();
+        for (int i = 0; i < definitions.Count; i++)
+        {
+            var (number, routeCode, type) = definitions[i];
             var bus = await GetOrAddAsync(db, db.BusesMasters,
                 b => b.BusNumber == number,
                 () => new BusesMaster
                 {
                     BusNumber = number,
                     RouteId = routeCode is null ? null : routes[routeCode],
-                    BusType = type
+                    BusType = type,
+                    Capacity = 40,
+                    DriverName = drivers[i % drivers.Length],
+                    DriverPhone = $"98200{11000 + i}"
                 });
             map[number] = bus.Id;
         }
@@ -372,25 +448,32 @@ public static class DemoDataSeeder
                 });
         }
 
+        // Only Rajesh carries a sign-in account: he has two children on the same
+        // bus, which is the case the parent screen has to get right. The rest
+        // stay contact-only records, which is the normal state for a parent.
         var parents = new[]
         {
             new ParentSeed("Rajesh",  "Sharma",   "9821004501", "rajesh.sharma@gmail.com",   "Father",
-                new[] { ("DPS/2026/0101", true), ("DPS/2026/0106", true) }),
+                new[] { ("DPS/2026/0101", true), ("DPS/2026/0106", true) }, "PAR001"),
             new ParentSeed("Kavita",  "Sharma",   "9821004502", "kavita.sharma@gmail.com",   "Mother",
-                new[] { ("DPS/2026/0101", false), ("DPS/2026/0106", false) }),
+                new[] { ("DPS/2026/0101", false), ("DPS/2026/0106", false) }, null),
             new ParentSeed("Sanjay",  "Nair",     "9702214788", "sanjay.nair@yahoo.in",      "Father",
-                new[] { ("DPS/2026/0102", true) }),
+                new[] { ("DPS/2026/0102", true) }, null),
             new ParentSeed("Prakash", "Patil",    "9930011245", "prakash.patil@gmail.com",   "Father",
-                new[] { ("DPS/2026/0103", true) }),
+                new[] { ("DPS/2026/0103", true) }, null),
             new ParentSeed("Amit",    "Kulkarni", "9820556310", "amit.kulkarni@outlook.com", "Father",
-                new[] { ("DPS/2026/0104", true) }),
+                new[] { ("DPS/2026/0104", true) }, null),
             new ParentSeed("Farhan",  "Shaikh",   "9769887412", "farhan.shaikh@gmail.com",   "Father",
-                new[] { ("DPS/2026/0105", true) }),
+                new[] { ("DPS/2026/0105", true) }, null),
         };
 
         int priority = 1;
         foreach (var p in parents)
         {
+            int? parentUserId = p.UserCode is not null && users.TryGetValue(p.UserCode, out var uid)
+                ? uid
+                : null;
+
             var parent = await GetOrAddAsync(db, db.ParentMasters,
                 x => x.MobileNumber == p.Mobile,
                 () => new ParentMaster
@@ -403,8 +486,16 @@ public static class DemoDataSeeder
                     CityId = geography.CityId,
                     StateId = geography.StateId,
                     PinCodeId = geography.PinCodeId,
-                    IsMobileVerified = true
+                    IsMobileVerified = true,
+                    UserId = parentUserId
                 });
+
+            // Back-fill on a re-run: the parent row may predate the sign-in account.
+            if (parentUserId is not null && parent.UserId != parentUserId)
+            {
+                parent.UserId = parentUserId;
+                await db.SaveChangesAsync();
+            }
 
             foreach (var (admissionNumber, isPrimary) in p.Children)
             {
@@ -439,27 +530,34 @@ public static class DemoDataSeeder
 
     private sealed record ParentSeed(
         string FirstName, string LastName, string Mobile, string Email, string Relation,
-        (string AdmissionNumber, bool IsPrimary)[] Children);
+        (string AdmissionNumber, bool IsPrimary)[] Children,
+        /// <summary>Employee code of this parent's sign-in account, when they have one.</summary>
+        string? UserCode);
 
     // --------------------------------------------------- bus route allocations
 
     /// <summary>
-    /// Standing allocations for the five service buses. The two reserves get none —
-    /// a reserve earns a route only through a one-day override when it substitutes.
+    /// A standing allocation for every running bus, taken from the bus's own
+    /// default route so the two can never disagree. The reserves get none — a
+    /// reserve earns a route only through a one-day override when it
+    /// substitutes, which is exactly what the replace flow writes.
     /// </summary>
     private static async Task SeedAllocationsAsync(
         ApplicationDbContext db, Dictionary<string, int> routes, Dictionary<string, int> buses)
     {
         var from = new DateOnly(2026, 6, 1);
+        _ = routes;
 
-        var pairs = new (string Bus, string Route)[]
-        {
-            ("18", "VS17"), ("22", "SW"), ("31", "BLP"), ("12", "NRE"), ("45", "KHG"),
-        };
+        // Read the pairing back off the buses rather than repeating the list:
+        // a second copy is a second thing to get out of step.
+        var pairs = await db.BusesMasters
+            .Where(b => !b.IsDeleted && b.RouteId != null && b.BusType == BusKind.Active)
+            .Select(b => new { b.BusNumber, RouteId = b.RouteId!.Value })
+            .ToListAsync();
 
-        foreach (var (bus, route) in pairs)
+        foreach (var pair in pairs)
         {
-            int routeId = routes[route], busId = buses[bus];
+            int routeId = pair.RouteId, busId = buses[pair.BusNumber];
             await GetOrAddAsync(db, db.BusRouteAllocations,
                 a => a.RouteId == routeId && a.BusId == busId
                      && a.AllocationType == AllocationKind.Standing,

@@ -15,10 +15,14 @@ public class DispersalSessionService : IDispersalSessionService
     private readonly ApplicationDbContext _context;
     private readonly IJwtTokenUtility _jwtTokenUtility;
 
-    public DispersalSessionService(ApplicationDbContext context, IJwtTokenUtility jwtTokenUtility)
+    private readonly ISchoolClock _clock;
+
+    public DispersalSessionService(
+        ApplicationDbContext context, IJwtTokenUtility jwtTokenUtility, ISchoolClock clock)
     {
         _context = context;
         _jwtTokenUtility = jwtTokenUtility;
+        _clock = clock;
     }
 
     public async Task<ServiceResponseDto<PagedResult<DispersalSessionListModel>>> GetAllAsync(
@@ -92,7 +96,8 @@ public class DispersalSessionService : IDispersalSessionService
 
     public async Task<ServiceResponseDto<DispersalSessionListModel>> OpenAsync(OpenSessionModel model)
     {
-        var date = model.SessionDate ?? DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        // The school's own calendar date, not UTC's — see SchoolClock.
+        var date = model.SessionDate ?? _clock.Today;
         var shift = string.IsNullOrWhiteSpace(model.ShiftName) ? DefaultShift : model.ShiftName.Trim();
 
         // Two open sessions would split the platform allocation into two conflicting
@@ -107,16 +112,34 @@ public class DispersalSessionService : IDispersalSessionService
                           $"({alreadyOpen.ShiftName}). Close it before opening another."
             };
 
-        var duplicate = await _context.Sessions
-            .AnyAsync(s => !s.IsDeleted && s.SessionDate == date && s.ShiftName == shift);
-        if (duplicate)
+        var currentUserId = _jwtTokenUtility.GetUserId();
+
+        // One afternoon is one session (§2.1), so a second row for the same date
+        // and shift would split that day's report in two. But refusing outright
+        // strands an operator who closed the afternoon by mistake, or who had to
+        // force-close it to clear a stuck bus and now needs to carry on — and
+        // the app opens with a fixed shift name, so they cannot work around it.
+        // Reopening the existing row satisfies both. ResetAt is deliberately
+        // left in place: the audit trail must still show it was ended by hand.
+        var existing = await _context.Sessions
+            .FirstOrDefaultAsync(s => !s.IsDeleted && s.SessionDate == date && s.ShiftName == shift);
+
+        if (existing != null)
+        {
+            existing.Status = Open;
+            existing.EndedAt = null;
+            existing.IsActive = true;
+            existing.UpdatedById = currentUserId;
+            existing.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
             return new ServiceResponseDto<DispersalSessionListModel>
             {
-                Success = false,
-                Message = "A session already exists for this date and shift."
+                Data = await MapAsync(existing),
+                Message = "Dispersal session reopened."
             };
+        }
 
-        var currentUserId = _jwtTokenUtility.GetUserId();
         var session = new Sessions
         {
             SessionDate = date,
