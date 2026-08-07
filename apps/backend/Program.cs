@@ -108,6 +108,9 @@ try
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         await DatabaseSeeder.ResetLegacyPasswordsAsync(db, app.Configuration, logger);
         await DemoDataSeeder.SeedAsync(db, app.Configuration, logger);
+        // Last, so it overwrites whatever the demo seeder just created.
+        await DevLoginsSeeder.ApplyAsync(db, app.Configuration, app.Environment, logger);
+        await DevLoginsSeeder.ClearOpenSessionBoardAsync(db, app.Configuration, app.Environment, logger);
     }
 
     // Envelope for unhandled exceptions and un-routed (404) requests.
