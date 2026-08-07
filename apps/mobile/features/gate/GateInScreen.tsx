@@ -151,7 +151,7 @@ export default function GateInScreen() {
         >
           <Feather name="log-in" size={24} color={COLORS.white} />
           <Text style={styles.ctaText}>
-            {submitting ? "RECORDING…" : LABELS.gateIn.toUpperCase()}
+            {submitting ? "RECORDING…" : LABELS.recordIn.toUpperCase()}
           </Text>
         </Pressable>
       </ScrollView>

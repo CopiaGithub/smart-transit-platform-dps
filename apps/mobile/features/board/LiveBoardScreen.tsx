@@ -65,6 +65,7 @@ export default function LiveBoardScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={styles.wallStripBar}
           contentContainerStyle={styles.wallStrip}
         >
           {[{ DisplayCode: undefined, DisplayName: "ALL BUSES" }, ...displays].map((d) => {
@@ -211,7 +212,19 @@ const styles = StyleSheet.create({
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#22C55E" },
   liveText: { color: "#22C55E", fontSize: 10, fontWeight: "900", letterSpacing: 1 },
 
-  wallStrip: { gap: SPACING.sm, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
+  /**
+   * A horizontal ScrollView carries `flexGrow: 1` of its own, so as a direct
+   * child of this column it splits the screen with the bus list and the chips
+   * stretch to fill it. Both belong here: `flexGrow: 0` makes the strip only as
+   * tall as its content, `alignItems` stops a chip growing to the tallest one.
+   */
+  wallStripBar: { flexGrow: 0 },
+  wallStrip: {
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    alignItems: "center",
+  },
   wall: {
     paddingHorizontal: SPACING.md,
     paddingVertical: 6,

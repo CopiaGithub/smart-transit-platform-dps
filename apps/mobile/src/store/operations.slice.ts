@@ -7,6 +7,7 @@ import {
   type OperatorQueue,
 } from "../api/operations.api";
 import { ApiError, NetworkError } from "../api/types";
+import { closeSession, resetSession } from "./session.slice";
 import type { RootState } from ".";
 
 /**
@@ -44,24 +45,37 @@ const messageFor = (error: unknown): string => {
   return "Something went wrong. Please try again.";
 };
 
-export const fetchQueue = createAsyncThunk<OperatorQueue, void, { rejectValue: string }>(
+/**
+ * A read failure the screen has to act on differently depending on who refused.
+ * `answered` = the server replied and said no (the session is closed, the role
+ * may not look) — the data we are holding is gone and must not stay on screen.
+ * A dropped poll answers nothing, so the last good list stays put.
+ */
+type ReadFailure = { message: string; answered: boolean };
+
+const failure = (error: unknown): ReadFailure => ({
+  message: messageFor(error),
+  answered: error instanceof ApiError,
+});
+
+export const fetchQueue = createAsyncThunk<OperatorQueue, void, { rejectValue: ReadFailure }>(
   "ops/queue",
   async (_, { rejectWithValue }) => {
     try {
       return await operationsApi.getQueue();
     } catch (error) {
-      return rejectWithValue(messageFor(error));
+      return rejectWithValue(failure(error));
     }
   },
 );
 
-export const fetchBoard = createAsyncThunk<Board, string | undefined, { rejectValue: string }>(
+export const fetchBoard = createAsyncThunk<Board, string | undefined, { rejectValue: ReadFailure }>(
   "ops/board",
   async (displayCode, { rejectWithValue }) => {
     try {
       return await operationsApi.getBoard(displayCode);
     } catch (error) {
-      return rejectWithValue(messageFor(error));
+      return rejectWithValue(failure(error));
     }
   },
 );
@@ -152,12 +166,30 @@ const opsSlice = createSlice({
       .addCase(fetchQueue.rejected, (s, a) => {
         s.loading = false;
         // Keep the last good queue on screen — a dropped poll is not a reason
-        // to empty a gate operator's list mid-dispersal.
-        s.error = a.payload ?? "Could not read the queue.";
+        // to empty a gate operator's list mid-dispersal. A refusal is: the
+        // session has ended (or was ended on another device) and holding the
+        // old rows would show buses that are no longer anybody's to move.
+        if (a.payload?.answered) s.queue = null;
+        s.error = a.payload?.message ?? "Could not read the queue.";
       })
       .addCase(fetchBoard.fulfilled, (s, a) => {
         s.board = a.payload;
       })
+      .addCase(fetchBoard.rejected, (s, a) => {
+        if (a.payload?.answered) s.board = null;
+        s.error = a.payload?.message ?? "Could not read the board.";
+      })
+      // Ending the day empties the yard by definition. Without this the tiles
+      // and the board table keep yesterday's numbers until the next poll tick.
+      .addMatcher(
+        (a) => a.type === closeSession.fulfilled.type || a.type === resetSession.fulfilled.type,
+        (s) => {
+          s.queue = null;
+          s.board = null;
+          s.error = null;
+          s.lastAction = null;
+        },
+      )
       .addMatcher(
         (a) => a.type.startsWith("ops/") && a.type.endsWith("/pending"),
         (s, a: { type: string }) => {

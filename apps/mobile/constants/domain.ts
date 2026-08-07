@@ -9,8 +9,15 @@ export const LABELS = {
   slot: "Station",
   slotPlural: "Stations",
   route: "Route",
-  gateIn: "Gate In",
-  gateOut: "Gate Out",
+  // Two different things, deliberately named apart. The first pair names the
+  // guard's post — that is what a menu entry is, a place you go. The second
+  // names what they do there, so a button reads as an instruction. "Gate Out"
+  // was doing both jobs and sounded like freight terminal wording either way.
+  // The verbs match the manual's own §5.1 wording, "Record a bus in / out".
+  gateIn: "Entry Gate",
+  gateOut: "Exit Gate",
+  recordIn: "Record In",
+  recordOut: "Record Out",
 };
 
 /** Station numbers painted on the ground, boarding point -> exit gate. */

@@ -110,7 +110,7 @@ export default function GateOutScreen() {
                   onPress={() => release(item.BusId, item.BusNumber)}
                 >
                   <Feather name="log-out" size={17} color={COLORS.white} />
-                  <Text style={styles.btnText}>MARK{"\n"}GATE OUT</Text>
+                  <Text style={styles.btnText}>{LABELS.recordOut.toUpperCase()}</Text>
                 </Pressable>
               ) : (
                 <View style={styles.waitMark}>
@@ -187,11 +187,13 @@ const styles = StyleSheet.create({
   btnPressed: { opacity: 0.75, transform: [{ scale: 0.97 }] },
   btnText: {
     color: COLORS.white,
-    fontSize: 10,
+    // One line now, so it can carry its own weight instead of being squeezed
+    // onto two.
+    fontSize: 12,
     fontWeight: "900",
     letterSpacing: 0.5,
     textAlign: "center",
-    lineHeight: 12,
+    lineHeight: 15,
   },
 
   waitMark: { minWidth: 92, alignItems: "center", gap: 2 },
