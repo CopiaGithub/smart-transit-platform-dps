@@ -8,6 +8,15 @@ using transit_display_platform_api.Common;
 using transit_display_platform_api.Data;
 using transit_display_platform_api.Extensions;
 
+// When stdout is a pipe rather than a terminal — which is exactly what
+// `dotnet run` gives us, and what Docker and CI give us too — .NET buffers it
+// in blocks. The startup lines then sit unwritten until the buffer fills, so a
+// server that is running perfectly well looks like it has hung, and a server
+// that crashed looks the same. Flushing every write costs nothing at this
+// volume and makes the log say what is happening when it happens.
+Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });
+Console.SetError(new StreamWriter(Console.OpenStandardError()) { AutoFlush = true });
+
 Log.Logger = new LoggerConfiguration()
     .WriteTo.File("Logs/bootstrap-.txt", rollingInterval: RollingInterval.Day)
     .CreateBootstrapLogger();
