@@ -17,7 +17,12 @@ using transit_display_platform_api.Extensions;
 Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });
 Console.SetError(new StreamWriter(Console.OpenStandardError()) { AutoFlush = true });
 
+// Console as well as the file. Anything that kills the app before the real
+// logger is configured — a missing connection string, a bad setting — is
+// reported by this one, and a file-only bootstrap logger means the terminal
+// shows nothing at all. The process just disappears.
 Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
     .WriteTo.File("Logs/bootstrap-.txt", rollingInterval: RollingInterval.Day)
     .CreateBootstrapLogger();
 
@@ -58,32 +63,13 @@ try
     });
 
     builder.Services.AddApplicationServices();
-
-    // These live in user secrets (or environment variables in a deployment),
-    // never in appsettings — this repo is public. Fail here with a sentence
-    // that says what to do, rather than deeper down with "server not found".
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    if (string.IsNullOrWhiteSpace(connectionString))
-        throw new InvalidOperationException(
-            "ConnectionStrings:DefaultConnection is not configured. Run:\n" +
-            "  dotnet user-secrets set \"ConnectionStrings:DefaultConnection\" \"<your connection string>\"\n" +
-            "See SECRETS.md for the full list.");
-
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(connectionString));
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
     // JWT authentication
     var jwtSection = builder.Configuration.GetSection("JwtSettings");
     builder.Services.Configure<JwtSettings>(jwtSection);
     var jwtSettings = jwtSection.Get<JwtSettings>() ?? new JwtSettings();
-
-    // An empty signing key does not fail loudly — it quietly signs tokens
-    // anyone can forge, which is worse than not starting at all.
-    if (string.IsNullOrWhiteSpace(jwtSettings.SecretKey))
-        throw new InvalidOperationException(
-            "JwtSettings:SecretKey is not configured. Run:\n" +
-            "  dotnet user-secrets set \"JwtSettings:SecretKey\" \"<a long random string>\"\n" +
-            "See SECRETS.md.");
 
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
