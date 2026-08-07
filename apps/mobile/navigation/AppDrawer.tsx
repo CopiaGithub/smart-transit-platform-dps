@@ -9,8 +9,8 @@ import type { DrawerParamList } from "./types";
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
 export default function AppDrawer() {
-  const user = useAppSelector((s) => s.auth.user);
-  const items = visibleMenu(toViewer(user));
+  const roleName = useAppSelector((s) => s.auth.user?.roleName);
+  const items = visibleMenu(toViewer(roleName));
 
   return (
     <Drawer.Navigator

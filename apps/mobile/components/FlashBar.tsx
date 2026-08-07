@@ -28,17 +28,26 @@ export function useFlash() {
   return { flash, show, clear };
 }
 
-export default function FlashBar({ text, onUndo }: { text: string; onUndo: () => void }) {
+export default function FlashBar({
+  text,
+  onUndo,
+}: {
+  text: string;
+  /** Omitted when the server says nothing is undoable — no dead button. */
+  onUndo?: () => void;
+}) {
   return (
     <View style={styles.bar}>
       <Feather name="check-circle" size={20} color={COLORS.success} />
       <Text style={styles.text} numberOfLines={1}>
         {text}
       </Text>
-      <Pressable style={styles.undo} onPress={onUndo} hitSlop={8}>
-        <Feather name="rotate-ccw" size={13} color={COLORS.danger} />
-        <Text style={styles.undoText}>UNDO</Text>
-      </Pressable>
+      {!!onUndo && (
+        <Pressable style={styles.undo} onPress={onUndo} hitSlop={8}>
+          <Feather name="rotate-ccw" size={13} color={COLORS.danger} />
+          <Text style={styles.undoText}>UNDO</Text>
+        </Pressable>
+      )}
     </View>
   );
 }

@@ -23,25 +23,40 @@ export const SLOT_COUNT = 21;
  * A bus that has not reached the gate yet has `null` — it is on no board.
  */
 export const STATUS = {
+  waiting: "Waiting",
   arrived: "Arrived",
   boarding: "Boarding",
   departed: "Departed",
+  replaced: "Replaced",
 } as const;
 
 export type Status = (typeof STATUS)[keyof typeof STATUS];
 export type BusStatus = Status | null;
 
 export const STATUS_COLOR: Record<Status, string> = {
+  Waiting: "#64748B",
   Arrived: "#2563EB",
   Boarding: "#E6A700",
   Departed: "#16A34A",
+  Replaced: "#A855F7",
 };
 
-/** Board order: whoever needs attention first sits at the top. */
+/** Board order (§5.9): whoever students must act on first sits at the top. */
 export const STATUS_RANK: Record<Status, number> = {
   Boarding: 0,
   Arrived: 1,
-  Departed: 2,
+  Waiting: 2,
+  Replaced: 3,
+  Departed: 4,
+};
+
+/** What each status means to the person reading it, in their own words. */
+export const STATUS_HINT: Record<Status, string> = {
+  Waiting: "Inside, holding — every platform is occupied",
+  Arrived: "At its platform, students walking to it",
+  Boarding: "Students are getting in now",
+  Departed: "Left through the exit gate",
+  Replaced: "Pulled out of service, a reserve took over",
 };
 
 // ── who is using the app ────────────────────────────────────────────────────

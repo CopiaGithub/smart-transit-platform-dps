@@ -1,7 +1,7 @@
 import { Alert } from "react-native";
-import { findGate, ROLE_LABEL } from "../../constants/domain";
 import { logout } from "../../src/store/auth.slice";
-import { useAppDispatch, useAppSelector } from "../../src/store";
+import { useAppDispatch } from "../../src/store";
+import { useViewer } from "./useViewer";
 
 /**
  * One way out of the app, used by every Sign out button. Always confirms —
@@ -9,12 +9,11 @@ import { useAppDispatch, useAppSelector } from "../../src/store";
  */
 export function useSignOut() {
   const dispatch = useAppDispatch();
-  const user = useAppSelector((s) => s.auth.user);
+  const viewer = useViewer();
 
   return (onDone?: () => void) => {
-    const gate = findGate(user?.gateId);
-    const who = user
-      ? `${user.name} · ${ROLE_LABEL[user.role]}${gate ? ` · ${gate.label}` : ""}`
+    const who = viewer.name
+      ? `${viewer.name} · ${viewer.roleLabel}${viewer.gate ? ` · ${viewer.gate.label}` : ""}`
       : "";
 
     Alert.alert(

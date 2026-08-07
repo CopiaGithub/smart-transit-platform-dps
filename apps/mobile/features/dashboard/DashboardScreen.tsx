@@ -1,20 +1,19 @@
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useCallback } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import {
-  LABELS,
-  ROLES,
-  SLOT_COUNT,
-  STATUS,
-  STATUS_COLOR,
-} from "../../constants/domain";
+import { LABELS, STATUS, STATUS_COLOR, type Status } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING } from "../../constants/theme";
+import { usePolling } from "../../src/hooks/usePolling";
 import {
-  resetDay,
-  selectBoard,
-  selectStats,
+  fetchBoard,
+  fetchQueue,
+  selectBoardRows,
+  selectOpsStats,
 } from "../../src/store/operations.slice";
 import { useAppDispatch, useAppSelector } from "../../src/store";
+import { useViewer } from "../auth/useViewer";
+import SessionCard from "../session/SessionCard";
 
 /**
  * Home for teachers and admins: three numbers and the same table the LED wall
@@ -24,18 +23,30 @@ import { useAppDispatch, useAppSelector } from "../../src/store";
 export default function DashboardScreen() {
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
-  const user = useAppSelector((s) => s.auth.user);
-  const stats = useAppSelector(selectStats);
-  const rows = useAppSelector(selectBoard);
+  const viewer = useViewer();
+  const stats = useAppSelector(selectOpsStats);
+  const rows = useAppSelector(selectBoardRows);
 
-  const isAdmin = user?.role === ROLES.admin;
+  usePolling(
+    useCallback(() => {
+      dispatch(fetchBoard(undefined));
+      dispatch(fetchQueue());
+    }, [dispatch]),
+  );
+
+  // Every bus that has been through the gate today, plus those still to come.
+  // The board only holds buses that entered, so the yet-to-arrive count is
+  // what makes the progress bar mean "how much of the afternoon is done".
+  const seenToday = rows.length + stats.awaited;
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <View>
-        <Text style={styles.hello}>Hello, {user?.name ?? "there"}</Text>
+        <Text style={styles.hello}>Hello, {viewer.name || "there"}</Text>
         <Text style={styles.title}>Today's dispersal</Text>
       </View>
+
+      <SessionCard />
 
       <View style={styles.tiles}>
         <Tile
@@ -61,17 +72,18 @@ export default function DashboardScreen() {
       <View style={styles.progressCard}>
         <View style={styles.progressHead}>
           <Text style={styles.progressTitle}>
-            {stats.departed} of {stats.total} {LABELS.vehiclePlural.toLowerCase()} sent off
+            {stats.departed} of {seenToday} {LABELS.vehiclePlural.toLowerCase()} sent off
           </Text>
           <Text style={styles.progressSub}>
-            {stats.onCampus}/{SLOT_COUNT} {LABELS.slotPlural.toLowerCase()} in use
+            {stats.onCampus}/{stats.platformCount} {LABELS.slotPlural.toLowerCase()} in use
+            {stats.waiting > 0 ? ` · ${stats.waiting} waiting` : ""}
           </Text>
         </View>
         <View style={styles.track}>
           <View
             style={[
               styles.fill,
-              { width: `${stats.total ? (stats.departed / stats.total) * 100 : 0}%` },
+              { width: `${seenToday ? (stats.departed / seenToday) * 100 : 0}%` },
             ]}
           />
         </View>
@@ -98,17 +110,19 @@ export default function DashboardScreen() {
           </Text>
         ) : (
           rows.map((bus, i) => (
-            <View key={bus.id} style={[styles.tr, i % 2 === 1 && styles.trAlt]}>
-              <Text style={[styles.td, styles.cBus, styles.busNo]}>{bus.no}</Text>
+            <View key={bus.EventId} style={[styles.tr, i % 2 === 1 && styles.trAlt]}>
+              <Text style={[styles.td, styles.cBus, styles.busNo]}>{bus.BusNumber}</Text>
               <Text style={[styles.td, styles.cRoute]} numberOfLines={1}>
-                {bus.route}
+                {bus.RouteName ?? "—"}
               </Text>
               <Text style={[styles.td, styles.cSlot, styles.slot]}>
-                {String(bus.slot ?? 0).padStart(2, "0")}
+                {bus.PlatformNumber === null
+                  ? "—"
+                  : String(bus.PlatformNumber).padStart(2, "0")}
               </Text>
               <View style={styles.cStatus}>
-                <Text style={[styles.status, { color: STATUS_COLOR[bus.status!] }]}>
-                  {bus.status}
+                <Text style={[styles.status, { color: STATUS_COLOR[bus.Status as Status] }]}>
+                  {bus.Status}
                 </Text>
               </View>
             </View>
@@ -116,12 +130,7 @@ export default function DashboardScreen() {
         )}
       </View>
 
-      {isAdmin && (
-        <Pressable style={styles.reset} onPress={() => dispatch(resetDay())}>
-          <Feather name="refresh-ccw" size={15} color={COLORS.danger} />
-          <Text style={styles.resetText}>End of day — clear the board</Text>
-        </Pressable>
-      )}
+      {/* Ending the day is a session action now — see SessionCard above. */}
     </ScrollView>
   );
 }

@@ -1,11 +1,13 @@
 import type { ComponentProps } from "react";
 import { Feather } from "@expo/vector-icons";
-import { findGate, LABELS, ROLES, STATUS, type Role } from "../constants/domain";
+import { LABELS, ROLES, STATUS } from "../constants/domain";
+import { toViewer, worksGate, type Viewer } from "../src/domain/roles";
 import LiveBoardScreen from "../features/board/LiveBoardScreen";
 import BoardingScreen from "../features/boarding/BoardingScreen";
 import DashboardScreen from "../features/dashboard/DashboardScreen";
 import GateInScreen from "../features/gate/GateInScreen";
 import GateOutScreen from "../features/gate/GateOutScreen";
+import { gated } from "../features/session/gated";
 import MastersScreen from "../features/masters/MastersScreen";
 import ParentScreen from "../features/parent/ParentScreen";
 import ProfileScreen from "../features/profile/ProfileScreen";
@@ -13,9 +15,6 @@ import ReplaceScreen from "../features/replace/ReplaceScreen";
 import ReportsScreen from "../features/reports/ReportsScreen";
 import SettingsScreen from "../features/settings/SettingsScreen";
 import type { DrawerParamList } from "./types";
-
-/** Just enough of the session to decide what a person may see. */
-export type Viewer = { role: Role; gateKind: "in" | "out" | null };
 
 export type MenuItem = {
   name: keyof DrawerParamList;
@@ -28,8 +27,7 @@ export type MenuItem = {
 
 const isAdmin = (v: Viewer) => v.role === ROLES.admin;
 /** A guard only ever sees the one direction their gate is for. */
-const guardsGate = (kind: "in" | "out") => (v: Viewer) =>
-  isAdmin(v) || (v.role === ROLES.security && v.gateKind === kind);
+const guardsGate = (kind: "in" | "out") => (v: Viewer) => worksGate(v, kind);
 
 // Single place to add/remove a section. Order matters: the first item a
 // person can see becomes their home screen.
@@ -41,21 +39,21 @@ export const MENU: MenuItem[] = [
     name: "GateIn",
     title: LABELS.gateIn,
     icon: "log-in",
-    component: GateInScreen,
+    component: gated(GateInScreen),
     show: guardsGate("in"),
   },
   {
     name: "GateOut",
     title: LABELS.gateOut,
     icon: "log-out",
-    component: GateOutScreen,
+    component: gated(GateOutScreen),
     show: guardsGate("out"),
   },
   {
     name: "Boarding",
     title: STATUS.boarding,
     icon: "users",
-    component: BoardingScreen,
+    component: gated(BoardingScreen),
     show: (v) => v.role === ROLES.teacher || isAdmin(v),
   },
   {
@@ -77,7 +75,7 @@ export const MENU: MenuItem[] = [
     name: "Replace",
     title: "Reserve / Replace",
     icon: "repeat",
-    component: ReplaceScreen,
+    component: gated(ReplaceScreen),
     show: isAdmin,
   },
   {
@@ -92,9 +90,8 @@ export const MENU: MenuItem[] = [
   { name: "Settings", title: "Settings", icon: "settings", component: SettingsScreen, show: isAdmin },
 ];
 
-export const toViewer = (user: { role: Role; gateId: string | null } | null): Viewer => ({
-  role: user?.role ?? ROLES.security,
-  gateKind: findGate(user?.gateId)?.kind ?? null,
-});
+
 
 export const visibleMenu = (viewer: Viewer) => MENU.filter((m) => !m.show || m.show(viewer));
+
+export { toViewer, type Viewer };

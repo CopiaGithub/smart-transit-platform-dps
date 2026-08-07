@@ -1,23 +1,23 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import type { Role } from "../../constants/domain";
-import type { RootState } from ".";
+import { authApi } from "../api/auth.api";
+import { ApiError, NetworkError } from "../api/types";
+import { decodeToken, isExpired, type JwtClaims } from "../services/jwt";
+import { TOKEN_KEY } from "../services/apiClient";
 
-/** Security guards carry the gate they are posted at; nobody else needs one. */
-export type User = {
-  id: string;
-  name: string;
-  role: Role;
-  gateId: string | null;
-};
+/**
+ * Everything the app knows about the signed-in person comes from the token's
+ * claims — the login endpoint returns no user object. `roleName` is the string
+ * the server assigned; the menu maps it, nothing else interprets it.
+ */
+export type User = JwtClaims;
 
-export const TOKEN_KEY = "auth.token";
-const SESSION_KEY = "session.user";
+const EXPIRY_KEY = "auth.expiresAt";
 
 type AuthState = {
   token: string | null;
   user: User | null;
-  /** False until the stored session has been read — the app shows Splash. */
+  /** False until stored credentials have been read — the app shows Splash. */
   booted: boolean;
   status: "idle" | "loading" | "failed";
   error: string | null;
@@ -31,50 +31,55 @@ const initialState: AuthState = {
   error: null,
 };
 
-// Read once at startup. The role/gate has to come back with the token,
-// otherwise a restored guard lands on the wrong screen.
+/** Turns any thrown error into the sentence a user should read. */
+const messageFor = (error: unknown): string => {
+  if (error instanceof ApiError || error instanceof NetworkError) return error.message;
+  return "Sign-in failed. Please try again.";
+};
+
+// Read once at startup. An expired token is discarded here rather than waiting
+// for the first request to fail somewhere less convenient.
 export const restoreSession = createAsyncThunk("auth/restore", async () => {
-  const [token, raw] = await Promise.all([
-    AsyncStorage.getItem(TOKEN_KEY),
-    AsyncStorage.getItem(SESSION_KEY),
-  ]);
-  if (!token || !raw) return null;
-  return { token, user: JSON.parse(raw) as User };
+  const token = await AsyncStorage.getItem(TOKEN_KEY);
+  const claims = decodeToken(token);
+
+  if (!token || !claims || isExpired(claims)) {
+    await AsyncStorage.multiRemove([TOKEN_KEY, EXPIRY_KEY]);
+    return null;
+  }
+  return { token, user: claims };
 });
 
 export const login = createAsyncThunk<
   { token: string; user: User },
-  /** `identifier` is whichever the person finds easier — username or mobile. */
   { identifier: string; password: string },
-  { state: RootState; rejectValue: string }
->("auth/login", async (creds, { getState, rejectWithValue }) => {
-  // ponytail: resolved against the local user master until the backend
-  // contract exists. Swap the lookup for `apiClient.post("auth/login", creds)`
-  // — the response shape (role + gateId on the user) is already what we use.
-  const id = creds.identifier.trim().toLowerCase();
-  const found = getState().ops.users.find(
-    (u) => u.username.toLowerCase() === id || u.mobile === id,
-  );
-  if (!found) {
-    return rejectWithValue("No user with that username or mobile number");
-  }
+  { rejectValue: string }
+>("auth/login", async (creds, { rejectWithValue }) => {
+  try {
+    const result = await authApi.login({
+      username: creds.identifier.trim(),
+      password: creds.password,
+    });
 
-  const token = `demo-${found.id}`;
-  const user: User = {
-    id: found.id,
-    name: found.name,
-    role: found.role,
-    gateId: found.gateId,
-  };
-  await AsyncStorage.multiSet([
-    [TOKEN_KEY, token],
-    [SESSION_KEY, JSON.stringify(user)],
-  ]);
-  return { token, user };
+    const claims = decodeToken(result.Token);
+    if (!claims) {
+      return rejectWithValue("The server returned a token this app cannot read.");
+    }
+
+    await AsyncStorage.multiSet([
+      [TOKEN_KEY, result.Token],
+      [EXPIRY_KEY, result.TokenExpiresAt ?? ""],
+    ]);
+    return { token: result.Token, user: claims };
+  } catch (error) {
+    // The server's own wording — "Account is temporarily locked due to
+    // repeated failed logins." is more useful than anything we could write.
+    return rejectWithValue(messageFor(error));
+  }
 });
 
 export const logout = createAsyncThunk("auth/logout", async () => {
-  await AsyncStorage.multiRemove([TOKEN_KEY, SESSION_KEY]);
+  await AsyncStorage.multiRemove([TOKEN_KEY, EXPIRY_KEY]);
 });
 
 /** Signing out must strip the session even if storage misbehaves — leaving a
@@ -89,7 +94,10 @@ const clearSession = (s: AuthState) => {
 const authSlice = createSlice({
   name: "auth",
   initialState,
-  reducers: {},
+  reducers: {
+    /** Called by the api client when the server rejects the session. */
+    sessionExpired: clearSession,
+  },
   extraReducers: (builder) => {
     builder
       .addCase(restoreSession.fulfilled, (s, a) => {
@@ -113,11 +121,12 @@ const authSlice = createSlice({
       })
       .addCase(login.rejected, (s, a) => {
         s.status = "failed";
-        s.error = a.payload ?? a.error.message ?? "Login failed";
+        s.error = a.payload ?? "Sign-in failed. Please try again.";
       })
       .addCase(logout.fulfilled, clearSession)
       .addCase(logout.rejected, clearSession);
   },
 });
 
+export const { sessionExpired } = authSlice.actions;
 export default authSlice.reducer;

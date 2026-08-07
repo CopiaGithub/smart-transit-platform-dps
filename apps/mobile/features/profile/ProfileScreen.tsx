@@ -1,39 +1,35 @@
 import { Feather } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { findGate, LABELS, ROLE_LABEL, ROLES } from "../../constants/domain";
+import { LABELS, ROLES } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING } from "../../constants/theme";
-import { useAppSelector } from "../../src/store";
 import { useSignOut } from "../auth/useSignOut";
+import { useViewer } from "../auth/useViewer";
 
 /** Who am I, where am I posted, and how do I get out. Nothing else. */
 export default function ProfileScreen() {
   const signOut = useSignOut();
-  const user = useAppSelector((s) => s.auth.user);
-  const gate = findGate(user?.gateId);
+  const viewer = useViewer();
+  const gate = viewer.gate;
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
       <View style={styles.hero}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {(user?.name ?? "?").charAt(0).toUpperCase()}
+            {(viewer.name || "?").charAt(0).toUpperCase()}
           </Text>
         </View>
-        <Text style={styles.name}>{user?.name ?? "Guest"}</Text>
+        <Text style={styles.name}>{viewer.name || "Guest"}</Text>
         <Text style={styles.role}>
-          {user ? ROLE_LABEL[user.role] : "Not signed in"}
+          {viewer.name ? viewer.roleLabel : "Not signed in"}
         </Text>
       </View>
 
       <View style={styles.card}>
         <Row icon="home" label="School" value={LABELS.school} />
-        <Row
-          icon="shield"
-          label="Role"
-          value={user ? ROLE_LABEL[user.role] : "—"}
-        />
-        {user?.role === ROLES.security && (
+        <Row icon="shield" label="Role" value={viewer.name ? viewer.roleLabel : "—"} />
+        {viewer.role === ROLES.security && (
           <Row
             icon="map-pin"
             label="Posted at"
@@ -44,13 +40,13 @@ export default function ProfileScreen() {
           icon="check-square"
           label="You can mark"
           value={
-            user?.role === ROLES.security
+            viewer.role === ROLES.security
               ? gate?.kind === "out"
                 ? "Departed"
                 : "Arrived"
-              : user?.role === ROLES.teacher
+              : viewer.role === ROLES.teacher
                 ? "Boarding"
-                : user?.role === ROLES.parent
+                : viewer.role === ROLES.parent
                   ? "Nothing — view only"
                   : "Arrived · Boarding · Departed"
           }

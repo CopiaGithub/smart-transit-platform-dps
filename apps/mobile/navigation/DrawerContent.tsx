@@ -7,28 +7,28 @@ import {
 import Constants from "expo-constants";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { findGate, LABELS, ROLE_LABEL } from "../constants/domain";
+import { LABELS } from "../constants/domain";
 import { COLORS, RADIUS, SPACING } from "../constants/theme";
 import { useSignOut } from "../features/auth/useSignOut";
-import { useAppSelector } from "../src/store";
+import { useViewer } from "../features/auth/useViewer";
 
 export default function DrawerContent(props: DrawerContentComponentProps) {
   const insets = useSafeAreaInsets();
   const signOut = useSignOut();
-  const user = useAppSelector((s) => s.auth.user);
-  const gate = findGate(user?.gateId);
+  const viewer = useViewer();
+  const gate = viewer.gate;
 
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + SPACING.md }]}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {(user?.name ?? "?").charAt(0).toUpperCase()}
+            {(viewer.name || "?").charAt(0).toUpperCase()}
           </Text>
         </View>
-        <Text style={styles.name}>{user?.name ?? "Guest"}</Text>
+        <Text style={styles.name}>{viewer.name || "Guest"}</Text>
         <Text style={styles.role}>
-          {user ? ROLE_LABEL[user.role] : "not signed in"}
+          {viewer.name ? viewer.roleLabel : "not signed in"}
           {gate ? ` · ${gate.label}` : ""}
         </Text>
         <Text style={styles.school}>{LABELS.school}</Text>

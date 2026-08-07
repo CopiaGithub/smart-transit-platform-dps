@@ -1,15 +1,17 @@
 import { Feather } from "@expo/vector-icons";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import FlashBar, { useFlash } from "../../components/FlashBar";
 import SlotBadge from "../../components/SlotBadge";
-import { LABELS, STATUS, STATUS_COLOR } from "../../constants/domain";
+import { LABELS, STATUS, STATUS_COLOR, type Status } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING, TINT } from "../../constants/theme";
+import { usePolling } from "../../src/hooks/usePolling";
 import {
-  selectOnCampus,
-  selectStats,
+  fetchQueue,
+  selectOpsStats,
+  selectWaiting,
+  selectYard,
   startBoarding,
-  undoLast,
 } from "../../src/store/operations.slice";
 import { useAppDispatch, useAppSelector } from "../../src/store";
 
@@ -20,72 +22,95 @@ import { useAppDispatch, useAppSelector } from "../../src/store";
  */
 export default function BoardingScreen() {
   const dispatch = useAppDispatch();
-  const onCampus = useAppSelector(selectOnCampus);
-  const stats = useAppSelector(selectStats);
-  const { flash, show, clear } = useFlash();
+  const yard = useAppSelector(selectYard);
+  const waiting = useAppSelector(selectWaiting);
+  const stats = useAppSelector(selectOpsStats);
+  const submitting = useAppSelector((s) => s.ops.submitting);
+  const opsError = useAppSelector((s) => s.ops.error);
+  const loading = useAppSelector((s) => s.ops.loading);
+  const { flash, show } = useFlash();
 
-  // Buses still waiting rise to the top: those are the ones needing a tap.
-  const buses = useMemo(
-    () =>
-      [...onCampus].sort(
+  usePolling(useCallback(() => void dispatch(fetchQueue()), [dispatch]));
+
+  // Buses still to board rise to the top: those are the ones needing a tap.
+  // Waiting buses are shown last — they have no platform for students to walk
+  // to, so boarding cannot start on them (§5.4).
+  // Stable sort: only "not yet boarding" is lifted to the top, everything else
+  // keeps the server's platform order. QueueOrder is entry order, not display
+  // order, so using it as a tiebreak would scramble the list.
+  const rows = useMemo(
+    () => [
+      ...[...yard].sort(
         (a, z) =>
-          Number(a.status === STATUS.boarding) - Number(z.status === STATUS.boarding) ||
-          (a.slot ?? 0) - (z.slot ?? 0),
+          Number(a.Status === STATUS.boarding) - Number(z.Status === STATUS.boarding),
       ),
-    [onCampus],
+      ...waiting,
+    ],
+    [yard, waiting],
   );
 
-  const waiting = onCampus.filter((b) => b.status === STATUS.arrived).length;
+  const board = async (eventId: number, busNumber: string) => {
+    const result = await dispatch(startBoarding({ eventId, busNumber }));
+    if (startBoarding.fulfilled.match(result)) show(String(result.payload));
+  };
 
   return (
     <View style={styles.root}>
       <View style={styles.post}>
         <Feather name="users" size={16} color={COLORS.white} />
-        <Text style={styles.postText}>{waiting} waiting to board</Text>
+        <Text style={styles.postText}>{stats.arrived} waiting to board</Text>
         <View style={{ flex: 1 }} />
         <Text style={styles.postCount}>{stats.boarding} boarding now</Text>
       </View>
 
-      {!!flash && (
-        <FlashBar
-          text={flash}
-          onUndo={() => {
-            dispatch(undoLast());
-            clear();
-          }}
-        />
+      {!!flash && <FlashBar text={flash} />}
+
+      {!flash && !!opsError && (
+        <View style={styles.alert}>
+          <Feather name="alert-circle" size={16} color={COLORS.danger} />
+          <Text style={styles.alertText}>{opsError}</Text>
+        </View>
       )}
 
       <FlatList
-        data={buses}
-        keyExtractor={(b) => b.id}
+        data={rows}
+        keyExtractor={(r) => String(r.EventId)}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Feather name="clock" size={38} color={COLORS.textMuted} />
             <Text style={styles.emptyTitle}>
-              No {LABELS.vehiclePlural.toLowerCase()} on campus
+              {loading
+                ? "Loading…"
+                : `No ${LABELS.vehiclePlural.toLowerCase()} on campus`}
             </Text>
-            <Text style={styles.emptySub}>
-              They appear here the moment security lets them in
-            </Text>
+            {!loading && (
+              <Text style={styles.emptySub}>
+                They appear here the moment security lets them in
+              </Text>
+            )}
           </View>
         }
         renderItem={({ item }) => {
-          const boarding = item.status === STATUS.boarding;
+          const boarding = item.Status === STATUS.boarding;
+          const noPlatform = item.Status === STATUS.waiting;
           return (
             <View style={[styles.row, boarding && styles.rowDone]}>
-              <SlotBadge slot={item.slot} size="md" tone={boarding ? "solid" : "light"} />
+              <SlotBadge
+                slot={item.PlatformNumber}
+                size="md"
+                tone={boarding ? "solid" : "light"}
+              />
 
               <View style={{ flex: 1 }}>
                 <Text style={styles.no}>
-                  {LABELS.vehicle} {item.no}
+                  {LABELS.vehicle} {item.BusNumber}
                 </Text>
                 <Text style={styles.route} numberOfLines={1}>
-                  {item.route}
+                  {item.RouteName ?? "No route allocated"}
                 </Text>
-                <Text style={[styles.status, { color: STATUS_COLOR[item.status!] }]}>
-                  {item.status}
+                <Text style={[styles.status, { color: STATUS_COLOR[item.Status as Status] }]}>
+                  {item.Status}
                 </Text>
               </View>
 
@@ -94,13 +119,19 @@ export default function BoardingScreen() {
                   <Feather name="check" size={22} color={COLORS.warning} />
                   <Text style={styles.doneText}>DONE</Text>
                 </View>
+              ) : noPlatform ? (
+                <View style={styles.doneMark}>
+                  <Feather name="clock" size={20} color={COLORS.textMuted} />
+                  <Text style={styles.waitText}>NO{"\n"}PLATFORM</Text>
+                </View>
               ) : (
                 <Pressable
-                  style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
-                  onPress={() => {
-                    dispatch(startBoarding(item.id));
-                    show(`${LABELS.vehicle} ${item.no} boarding`);
-                  }}
+                  style={({ pressed }) => [
+                    styles.btn,
+                    (pressed || submitting) && styles.btnPressed,
+                  ]}
+                  disabled={submitting}
+                  onPress={() => board(item.EventId, item.BusNumber)}
                 >
                   <Feather name="users" size={17} color={COLORS.white} />
                   <Text style={styles.btnText}>MARK{"\n"}BOARDING</Text>
@@ -128,6 +159,19 @@ const styles = StyleSheet.create({
   },
   postText: { color: COLORS.white, fontWeight: "800", fontSize: 14 },
   postCount: { color: COLORS.white, opacity: 0.9, fontSize: 12, fontWeight: "700" },
+
+  alert: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    backgroundColor: TINT.danger,
+    borderWidth: 1,
+    borderColor: COLORS.danger + "44",
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 10,
+  },
+  alertText: { flex: 1, color: COLORS.danger, fontSize: 13, fontWeight: "600" },
 
   list: { gap: SPACING.sm, paddingBottom: SPACING.lg },
   row: {
@@ -169,6 +213,14 @@ const styles = StyleSheet.create({
 
   doneMark: { minWidth: 92, alignItems: "center", gap: 2 },
   doneText: { fontSize: 10, fontWeight: "900", letterSpacing: 1, color: COLORS.warning },
+  waitText: {
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+    color: COLORS.textMuted,
+    textAlign: "center",
+    lineHeight: 11,
+  },
 
   empty: { alignItems: "center", marginTop: SPACING.xl * 2, gap: SPACING.xs },
   emptyTitle: { fontSize: 17, fontWeight: "800", color: COLORS.text },

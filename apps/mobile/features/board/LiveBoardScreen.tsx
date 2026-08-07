@@ -1,18 +1,22 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
   FlatList,
   Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { LABELS, STATUS, STATUS_COLOR } from "../../constants/domain";
+import { LABELS, STATUS, STATUS_COLOR, type Status } from "../../constants/domain";
 import { BOARD, SPACING } from "../../constants/theme";
-import type { Bus } from "../../src/data/seed";
-import { selectBoard, selectStats } from "../../src/store/operations.slice";
-import { useAppSelector } from "../../src/store";
+import type { BoardRow } from "../../src/api/operations.api";
+import { usePolling } from "../../src/hooks/usePolling";
+import { fetchDisplays, selectDisplays } from "../../src/store/masters.slice";
+import { fetchBoard, selectBoardRows, selectOpsStats } from "../../src/store/operations.slice";
+import { useAppDispatch, useAppSelector } from "../../src/store";
 
 const MONO = Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" });
 
@@ -22,9 +26,23 @@ const MONO = Platform.select({ ios: "Menlo", android: "monospace", default: "mon
  * doubles as the layout reference for the real LED renderer.
  */
 export default function LiveBoardScreen() {
-  const rows = useAppSelector(selectBoard);
-  const stats = useAppSelector(selectStats);
+  const dispatch = useAppDispatch();
+  const rows = useAppSelector(selectBoardRows);
+  const stats = useAppSelector(selectOpsStats);
+  const displays = useAppSelector(selectDisplays);
+  const board = useAppSelector((s) => s.ops.board);
   const clock = useClock();
+
+  // Which wall this screen is mirroring. Undefined = the outdoor wall's view,
+  // every bus; a code scopes it to one indoor panel's own student exit (§5.9).
+  const [displayCode, setDisplayCode] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    dispatch(fetchDisplays());
+  }, [dispatch]);
+
+  // The panels poll continuously (§5.9); the app mirrors them the same way.
+  usePolling(useCallback(() => void dispatch(fetchBoard(displayCode)), [dispatch, displayCode]));
 
   return (
     <View style={styles.root}>
@@ -32,7 +50,9 @@ export default function LiveBoardScreen() {
         <View style={{ flex: 1 }}>
           <Text style={styles.brand}>{LABELS.school.toUpperCase()} — BUS BOARDING</Text>
           <Text style={styles.sub}>
-            {stats.arrived} arrived · {stats.boarding} boarding · {stats.departed} departed
+            {board?.FilteredByGateName
+              ? `${board.DisplayName} · ${board.FilteredByGateName}`
+              : `${stats.arrived} arrived · ${stats.boarding} boarding · ${stats.departed} departed`}
           </Text>
         </View>
         <View style={{ alignItems: "flex-end" }}>
@@ -40,6 +60,29 @@ export default function LiveBoardScreen() {
           <LiveDot />
         </View>
       </View>
+
+      {displays.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.wallStrip}
+        >
+          {[{ DisplayCode: undefined, DisplayName: "ALL BUSES" }, ...displays].map((d) => {
+            const on = displayCode === d.DisplayCode;
+            return (
+              <Pressable
+                key={d.DisplayCode ?? "all"}
+                style={[styles.wall, on && styles.wallOn]}
+                onPress={() => setDisplayCode(d.DisplayCode)}
+              >
+                <Text style={[styles.wallText, on && styles.wallTextOn]}>
+                  {d.DisplayName.toUpperCase()}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
       <View style={styles.colHead}>
         <Text style={[styles.col, styles.colBus]}>{LABELS.vehicleNo.toUpperCase()}</Text>
@@ -50,7 +93,7 @@ export default function LiveBoardScreen() {
 
       <FlatList
         data={rows}
-        keyExtractor={(b) => b.id}
+        keyExtractor={(b) => String(b.EventId)}
         renderItem={({ item, index }) => <Row bus={item} index={index} />}
         ListEmptyComponent={
           <Text style={styles.empty}>NO BUSES ON CAMPUS — AWAITING FIRST ARRIVAL</Text>
@@ -67,9 +110,9 @@ export default function LiveBoardScreen() {
   );
 }
 
-function Row({ bus, index }: { bus: Bus; index: number }) {
-  const color = STATUS_COLOR[bus.status!];
-  const gone = bus.status === STATUS.departed;
+function Row({ bus, index }: { bus: BoardRow; index: number }) {
+  const color = STATUS_COLOR[bus.Status as Status];
+  const gone = bus.Status === STATUS.departed || bus.Status === STATUS.replaced;
 
   // Boarding rows are deliberately static — the spec asks for no blinking, so
   // the amber STATUS text alone carries the "get in now" signal.
@@ -81,15 +124,15 @@ function Row({ bus, index }: { bus: Bus; index: number }) {
         gone && { opacity: 0.45 },
       ]}
     >
-      <Text style={[styles.cell, styles.colBus, styles.busNo]}>{bus.no}</Text>
+      <Text style={[styles.cell, styles.colBus, styles.busNo]}>{bus.BusNumber}</Text>
       <Text style={[styles.cell, styles.colRoute, styles.route]} numberOfLines={1}>
-        {bus.route}
+        {bus.LedDisplayName ?? bus.RouteName ?? "—"}
       </Text>
       <Text style={[styles.cell, styles.colSlot, styles.slot]}>
-        {bus.slot ?? "—"}
+        {bus.PlatformNumber ?? "—"}
       </Text>
       <View style={[styles.colStatus, { alignItems: "flex-end" }]}>
-        <Text style={[styles.status, { color }]}>{bus.status?.toUpperCase()}</Text>
+        <Text style={[styles.status, { color }]}>{bus.Status?.toUpperCase()}</Text>
       </View>
     </View>
   );
@@ -167,6 +210,18 @@ const styles = StyleSheet.create({
   liveWrap: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#22C55E" },
   liveText: { color: "#22C55E", fontSize: 10, fontWeight: "900", letterSpacing: 1 },
+
+  wallStrip: { gap: SPACING.sm, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
+  wall: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: BOARD.grid,
+  },
+  wallOn: { backgroundColor: BOARD.amber, borderColor: BOARD.amber },
+  wallText: { color: BOARD.dim, fontSize: 10, fontWeight: "900", letterSpacing: 1, fontFamily: MONO },
+  wallTextOn: { color: BOARD.bg },
 
   colHead: {
     flexDirection: "row",

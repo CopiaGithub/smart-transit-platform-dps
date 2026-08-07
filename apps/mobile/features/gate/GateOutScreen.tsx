@@ -1,29 +1,41 @@
 import { Feather } from "@expo/vector-icons";
+import { useCallback } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import FlashBar, { useFlash } from "../../components/FlashBar";
 import SlotBadge from "../../components/SlotBadge";
-import { findGate, LABELS, STATUS, STATUS_COLOR } from "../../constants/domain";
-import { COLORS, RADIUS, SHADOW, SPACING } from "../../constants/theme";
+import { LABELS, STATUS, STATUS_COLOR, type Status } from "../../constants/domain";
+import { COLORS, RADIUS, SHADOW, SPACING, TINT } from "../../constants/theme";
+import { usePolling } from "../../src/hooks/usePolling";
 import {
+  fetchQueue,
   gateOut,
+  selectOpsStats,
   selectReadyToLeave,
-  selectStats,
-  undoLast,
 } from "../../src/store/operations.slice";
 import { useAppDispatch, useAppSelector } from "../../src/store";
+import { useViewer } from "../auth/useViewer";
 
 /**
- * Exit gate. Same shape as the teacher's screen: the bus rolls up already
- * boarding, the guard finds its row and taps the button beside it. Boarding
- * ones sit on top because those are the only ones he can release.
+ * Exit gate. The bus rolls up already boarding, the guard finds its row and
+ * taps the button beside it. Boarding ones sit on top because those are the
+ * only ones he may release.
  */
 export default function GateOutScreen() {
   const dispatch = useAppDispatch();
-  const buses = useAppSelector(selectReadyToLeave);
-  const stats = useAppSelector(selectStats);
-  const user = useAppSelector((s) => s.auth.user);
-  const gate = findGate(user?.gateId);
-  const { flash, show, clear } = useFlash();
+  const gate = useViewer().gate;
+  const rows = useAppSelector(selectReadyToLeave);
+  const stats = useAppSelector(selectOpsStats);
+  const submitting = useAppSelector((s) => s.ops.submitting);
+  const opsError = useAppSelector((s) => s.ops.error);
+  const loading = useAppSelector((s) => s.ops.loading);
+  const { flash, show } = useFlash();
+
+  usePolling(useCallback(() => void dispatch(fetchQueue()), [dispatch]));
+
+  const release = async (busId: number, busNumber: string) => {
+    const result = await dispatch(gateOut({ busId, busNumber }));
+    if (gateOut.fulfilled.match(result)) show(String(result.payload));
+  };
 
   return (
     <View style={styles.root}>
@@ -36,56 +48,66 @@ export default function GateOutScreen() {
         </Text>
       </View>
 
-      {!!flash && (
-        <FlashBar
-          text={flash}
-          onUndo={() => {
-            dispatch(undoLast());
-            clear();
-          }}
-        />
+      {/* Departure cannot be undone from here (§5.7 undoes the last platform
+          assignment only), so the bar confirms without offering one. */}
+      {!!flash && <FlashBar text={flash} />}
+
+      {!flash && !!opsError && (
+        <View style={styles.alert}>
+          <Feather name="alert-circle" size={16} color={COLORS.danger} />
+          <Text style={styles.alertText}>{opsError}</Text>
+        </View>
       )}
 
       <FlatList
-        data={buses}
-        keyExtractor={(b) => b.id}
+        data={rows}
+        keyExtractor={(r) => String(r.EventId)}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Feather name="check-circle" size={38} color={COLORS.success} />
-            <Text style={styles.emptyTitle}>Campus clear</Text>
-            <Text style={styles.emptySub}>
-              Every {LABELS.vehicle.toLowerCase()} has departed
+            <Feather
+              name={loading ? "loader" : "check-circle"}
+              size={38}
+              color={loading ? COLORS.textMuted : COLORS.success}
+            />
+            <Text style={styles.emptyTitle}>
+              {loading ? "Loading the yard…" : "Campus clear"}
             </Text>
+            {!loading && (
+              <Text style={styles.emptySub}>
+                Every {LABELS.vehicle.toLowerCase()} has departed
+              </Text>
+            )}
           </View>
         }
         renderItem={({ item }) => {
           // Arrived but not boarding: students are still walking to it, so
-          // releasing it would strand them. Shown for context, not tappable.
-          const ready = item.status === STATUS.boarding;
+          // releasing it would strand them.
+          const ready = item.Status === STATUS.boarding;
           return (
             <View style={[styles.row, !ready && styles.rowWaiting]}>
-              <SlotBadge slot={item.slot} size="md" tone={ready ? "solid" : "light"} />
+              <SlotBadge slot={item.PlatformNumber} size="md" tone={ready ? "solid" : "light"} />
 
               <View style={{ flex: 1 }}>
                 <Text style={[styles.no, !ready && styles.dim]}>
-                  {LABELS.vehicle} {item.no}
+                  {LABELS.vehicle} {item.BusNumber}
                 </Text>
                 <Text style={styles.route} numberOfLines={1}>
-                  {item.route}
+                  {item.RouteName ?? "No route allocated"}
                 </Text>
-                <Text style={[styles.status, { color: STATUS_COLOR[item.status!] }]}>
-                  {item.status}
+                <Text style={[styles.status, { color: STATUS_COLOR[item.Status as Status] }]}>
+                  {item.Status}
                 </Text>
               </View>
 
               {ready ? (
                 <Pressable
-                  style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
-                  onPress={() => {
-                    dispatch(gateOut(item.id));
-                    show(`${LABELS.vehicle} ${item.no} departed`);
-                  }}
+                  style={({ pressed }) => [
+                    styles.btn,
+                    (pressed || submitting) && styles.btnPressed,
+                  ]}
+                  disabled={submitting}
+                  onPress={() => release(item.BusId, item.BusNumber)}
                 >
                   <Feather name="log-out" size={17} color={COLORS.white} />
                   <Text style={styles.btnText}>MARK{"\n"}GATE OUT</Text>
@@ -118,6 +140,19 @@ const styles = StyleSheet.create({
   },
   postText: { color: COLORS.white, fontWeight: "800", fontSize: 14 },
   postCount: { color: COLORS.white, opacity: 0.9, fontSize: 12, fontWeight: "700" },
+
+  alert: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    backgroundColor: TINT.danger,
+    borderWidth: 1,
+    borderColor: COLORS.danger + "44",
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 10,
+  },
+  alertText: { flex: 1, color: COLORS.danger, fontSize: 13, fontWeight: "600" },
 
   list: { gap: SPACING.sm, paddingBottom: SPACING.lg },
   row: {
