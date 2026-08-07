@@ -7,25 +7,31 @@ import {
 import Constants from "expo-constants";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LABELS } from "../constants/domain";
 import { COLORS, RADIUS, SPACING } from "../constants/theme";
-import { logout } from "../src/store/auth.slice";
-import { useAppDispatch, useAppSelector } from "../src/store";
+import { useSignOut } from "../features/auth/useSignOut";
+import { useViewer } from "../features/auth/useViewer";
 
 export default function DrawerContent(props: DrawerContentComponentProps) {
   const insets = useSafeAreaInsets();
-  const dispatch = useAppDispatch();
-  const user = useAppSelector((s) => s.auth.user);
+  const signOut = useSignOut();
+  const viewer = useViewer();
+  const gate = viewer.gate;
 
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + SPACING.md }]}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {(user?.name ?? "?").charAt(0).toUpperCase()}
+            {(viewer.name || "?").charAt(0).toUpperCase()}
           </Text>
         </View>
-        <Text style={styles.name}>{user?.name ?? "Guest"}</Text>
-        <Text style={styles.role}>{user?.role ?? "not signed in"}</Text>
+        <Text style={styles.name}>{viewer.name || "Guest"}</Text>
+        <Text style={styles.role}>
+          {viewer.name ? viewer.roleLabel : "not signed in"}
+          {gate ? ` · ${gate.label}` : ""}
+        </Text>
+        <Text style={styles.school}>{LABELS.school}</Text>
       </View>
 
       <DrawerContentScrollView {...props} contentContainerStyle={styles.list}>
@@ -35,10 +41,7 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
       <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
         <Pressable
           style={styles.logout}
-          onPress={() => {
-            props.navigation.closeDrawer();
-            dispatch(logout());
-          }}
+          onPress={() => signOut(() => props.navigation.closeDrawer())}
         >
           <Feather name="log-out" size={18} color={COLORS.danger} />
           <Text style={styles.logoutText}>Sign out</Text>
@@ -69,7 +72,8 @@ const styles = StyleSheet.create({
   },
   avatarText: { color: COLORS.primary, fontSize: 22, fontWeight: "700" },
   name: { color: COLORS.white, fontSize: 16, fontWeight: "700" },
-  role: { color: COLORS.white, opacity: 0.8, fontSize: 12, textTransform: "capitalize" },
+  role: { color: COLORS.white, opacity: 0.85, fontSize: 12, fontWeight: "600" },
+  school: { color: COLORS.white, opacity: 0.6, fontSize: 11, marginTop: 2 },
   list: { paddingTop: SPACING.sm },
   footer: {
     borderTopWidth: StyleSheet.hairlineWidth,

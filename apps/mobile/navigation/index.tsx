@@ -1,5 +1,6 @@
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useEffect } from "react";
 import { StatusBar, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OfflineBanner from "../components/OfflineBanner";
@@ -7,6 +8,8 @@ import { COLORS } from "../constants/theme";
 import LoginScreen from "../features/auth/LoginScreen";
 import SplashScreen from "../features/splash/SplashScreen";
 import { navigationRef } from "../src/services/navigationRef";
+import { restoreSession } from "../src/store/auth.slice";
+import { useAppDispatch, useAppSelector } from "../src/store";
 import AppDrawer from "./AppDrawer";
 import linking from "./linking";
 import type { RootStackParamList } from "./types";
@@ -52,10 +55,25 @@ function StatusBarUnderlay() {
   );
 }
 
+/**
+ * Auth decides which screens exist, rather than any screen pushing the user
+ * around. Dropping the token — Sign out, a 401, an expired session — unmounts
+ * the whole drawer and leaves Login as the only route, so there is no way to
+ * go back into the app on a dead session.
+ */
 function RootNavigator() {
+  const dispatch = useAppDispatch();
+  const token = useAppSelector((s) => s.auth.token);
+  const booted = useAppSelector((s) => s.auth.booted);
+
+  useEffect(() => {
+    dispatch(restoreSession());
+  }, [dispatch]);
+
+  if (!booted) return <SplashScreen />;
+
   return (
     <Stack.Navigator
-      initialRouteName="Splash"
       screenOptions={{
         headerStyle: { backgroundColor: COLORS.primary },
         headerTintColor: COLORS.white,
@@ -69,10 +87,12 @@ function RootNavigator() {
         animation: "slide_from_right",
       }}
     >
-      <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-      {/* Drawer brings its own header (with the hamburger). */}
-      <Stack.Screen name="Main" component={AppDrawer} options={{ headerShown: false }} />
+      {token ? (
+        // Drawer brings its own header (with the hamburger).
+        <Stack.Screen name="Main" component={AppDrawer} options={{ headerShown: false }} />
+      ) : (
+        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+      )}
     </Stack.Navigator>
   );
 }

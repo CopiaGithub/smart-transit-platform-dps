@@ -57,6 +57,7 @@ public class BusesMasterService : IBusesMasterService
             {
                 Id = b.Id,
                 BusNumber = b.BusNumber,
+                RegistrationNumber = b.RegistrationNumber,
                 RouteId = b.RouteId,
                 RouteName = b.Route != null ? b.Route.RouteName : null,
                 BusType = b.BusType,
@@ -133,6 +134,7 @@ public class BusesMasterService : IBusesMasterService
         var bus = new BusesMaster
         {
             BusNumber = model.BusNumber.Trim(),
+            RegistrationNumber = NullIfBlank(model.RegistrationNumber),
             RouteId = model.RouteId,
             BusType = busType,
             ServiceStatus = serviceStatus,
@@ -196,6 +198,8 @@ public class BusesMasterService : IBusesMasterService
             return FailBool("Capacity must be greater than zero.");
 
         if (model.BusNumber != null) bus.BusNumber = model.BusNumber.Trim();
+        // Sending "" deliberately clears the plate; omitting the field leaves it alone.
+        if (model.RegistrationNumber != null) bus.RegistrationNumber = NullIfBlank(model.RegistrationNumber);
         if (model.RouteId.HasValue) bus.RouteId = model.RouteId;
         if (model.BusType != null) bus.BusType = model.BusType.Trim();
         if (model.ServiceStatus != null) bus.ServiceStatus = model.ServiceStatus.Trim();
@@ -232,10 +236,14 @@ public class BusesMasterService : IBusesMasterService
         return new ServiceResponseDto<bool> { Data = true, Message = "Bus deleted successfully." };
     }
 
+    private static string? NullIfBlank(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private static BusesMasterListModel MapToListModel(BusesMaster b) => new()
     {
         Id = b.Id,
         BusNumber = b.BusNumber,
+        RegistrationNumber = b.RegistrationNumber,
         RouteId = b.RouteId,
         RouteName = b.Route?.RouteName,
         BusType = b.BusType,

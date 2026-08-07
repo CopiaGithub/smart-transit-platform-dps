@@ -1,135 +1,266 @@
-import { createSelector, createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { STATUS, STATUS_RANK } from "../../constants/domain";
-import { nextFreeSlot } from "../domain/allocation";
-import { SEED_FLEET, SEED_USERS, type Bus } from "../data/seed";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { STATUS } from "../../constants/domain";
+import {
+  operationsApi,
+  type Board,
+  type GateInRequest,
+  type OperatorQueue,
+} from "../api/operations.api";
+import { ApiError, NetworkError } from "../api/types";
+import { closeSession, resetSession } from "./session.slice";
 import type { RootState } from ".";
 
+/**
+ * Live bus movements. Every rule — which platform, when a waiting bus is
+ * promoted, whether a bus may enter at all — belongs to the server. This slice
+ * holds what it last told us and nothing more; it never computes a status.
+ *
+ * After every write the queue is re-fetched rather than patched locally: a
+ * gate-out promotes a *different* bus into the freed platform (§5.5), so the
+ * response for the bus we acted on is not the whole change.
+ */
 type OpsState = {
-  fleet: Bus[];
-  users: typeof SEED_USERS;
-  /** Supports a single-step undo of the last assignment, as the SOP requires. */
-  lastAssignedId: string | null;
+  queue: OperatorQueue | null;
+  board: Board | null;
+  /** First load only — a poll must not blank the screen. */
+  loading: boolean;
+  /** True while a gate action is in flight; blocks double-taps. */
+  submitting: boolean;
+  error: string | null;
+  /** Server's own confirmation of the last action, for the flash bar. */
+  lastAction: string | null;
 };
 
 const initialState: OpsState = {
-  fleet: SEED_FLEET,
-  users: SEED_USERS,
-  lastAssignedId: null,
+  queue: null,
+  board: null,
+  loading: false,
+  submitting: false,
+  error: null,
+  lastAction: null,
 };
 
-const inYard = (b: Bus) => b.status === STATUS.arrived || b.status === STATUS.boarding;
+const messageFor = (error: unknown): string => {
+  if (error instanceof ApiError || error instanceof NetworkError) return error.message;
+  return "Something went wrong. Please try again.";
+};
+
+/**
+ * A read failure the screen has to act on differently depending on who refused.
+ * `answered` = the server replied and said no (the session is closed, the role
+ * may not look) — the data we are holding is gone and must not stay on screen.
+ * A dropped poll answers nothing, so the last good list stays put.
+ */
+type ReadFailure = { message: string; answered: boolean };
+
+const failure = (error: unknown): ReadFailure => ({
+  message: messageFor(error),
+  answered: error instanceof ApiError,
+});
+
+export const fetchQueue = createAsyncThunk<OperatorQueue, void, { rejectValue: ReadFailure }>(
+  "ops/queue",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await operationsApi.getQueue();
+    } catch (error) {
+      return rejectWithValue(failure(error));
+    }
+  },
+);
+
+export const fetchBoard = createAsyncThunk<Board, string | undefined, { rejectValue: ReadFailure }>(
+  "ops/board",
+  async (displayCode, { rejectWithValue }) => {
+    try {
+      return await operationsApi.getBoard(displayCode);
+    } catch (error) {
+      return rejectWithValue(failure(error));
+    }
+  },
+);
+
+/** Every write ends the same way: tell the user, then re-read the truth. */
+function gateAction<Arg>(
+  name: string,
+  run: (arg: Arg) => Promise<string>,
+) {
+  return createAsyncThunk<string, Arg, { rejectValue: string }>(
+    `ops/${name}`,
+    async (arg, { dispatch, rejectWithValue }) => {
+      try {
+        const message = await run(arg);
+        await dispatch(fetchQueue());
+        return message;
+      } catch (error) {
+        // Refresh anyway: the refusal may be because somebody else already
+        // moved this bus, and the stale list is what caused the mistake.
+        dispatch(fetchQueue());
+        return rejectWithValue(messageFor(error));
+      }
+    },
+  );
+}
+
+export const gateIn = gateAction<GateInRequest & { busNumber: string }>(
+  "gateIn",
+  async ({ busNumber, ...body }) => {
+    const row = await operationsApi.gateIn(body);
+    // A full yard is a normal outcome, not a failure — say which it was.
+    return row?.PlatformNumber != null
+      ? `Bus ${busNumber} in · platform ${String(row.PlatformNumber).padStart(2, "0")}`
+      : `Bus ${busNumber} in · waiting for a platform`;
+  },
+);
+
+export const startBoarding = gateAction<{ eventId: number; busNumber: string }>(
+  "boarding",
+  async ({ eventId, busNumber }) => {
+    await operationsApi.startBoarding(eventId);
+    return `Bus ${busNumber} boarding`;
+  },
+);
+
+export const gateOut = gateAction<{ busId: number; busNumber: string }>(
+  "gateOut",
+  async ({ busId, busNumber }) => {
+    await operationsApi.gateOut(busId);
+    return `Bus ${busNumber} departed`;
+  },
+);
+
+export const replaceBus = gateAction<{
+  eventId: number;
+  reserveBusId: number;
+  reserveBusNumber: string;
+  reason?: string;
+}>("replace", async ({ eventId, reserveBusId, reserveBusNumber, reason }) => {
+  await operationsApi.replace(eventId, reserveBusId, reason);
+  return `Bus ${reserveBusNumber} took over the run`;
+});
+
+export const undoLast = gateAction<void>("undo", async () => {
+  await operationsApi.undoLast();
+  return "Last entry undone";
+});
 
 const opsSlice = createSlice({
   name: "ops",
   initialState,
   reducers: {
-    /** Gate In: assign the next free slot. No-op when the yard is full. */
-    assignSlot(state, action: PayloadAction<string>) {
-      const bus = state.fleet.find((b) => b.id === action.payload);
-      if (!bus || bus.status !== STATUS.waiting) return;
-
-      const slot = nextFreeSlot(state.fleet.filter(inYard).map((b) => ({ slot: b.slot! })));
-      if (slot === null) return;
-
-      bus.slot = slot;
-      bus.status = STATUS.arrived;
-      bus.arrivedAt = Date.now();
-      state.lastAssignedId = bus.id;
+    clearOpsFeedback(s) {
+      s.error = null;
+      s.lastAction = null;
     },
-
-    startBoarding(state, action: PayloadAction<string>) {
-      const bus = state.fleet.find((b) => b.id === action.payload);
-      if (bus?.status === STATUS.arrived) bus.status = STATUS.boarding;
-    },
-
-    /** Gate Out: departure frees the slot for the next arrival. */
-    markDeparted(state, action: PayloadAction<string>) {
-      const bus = state.fleet.find((b) => b.id === action.payload);
-      if (!bus || !inYard(bus)) return;
-      bus.status = STATUS.departed;
-      bus.departedAt = Date.now();
-      if (state.lastAssignedId === bus.id) state.lastAssignedId = null;
-    },
-
-    undoLastAssignment(state) {
-      const bus = state.fleet.find((b) => b.id === state.lastAssignedId);
-      if (!bus || !inYard(bus)) return;
-      bus.slot = null;
-      bus.status = STATUS.waiting;
-      bus.arrivedAt = null;
-      state.lastAssignedId = null;
-    },
-
-    /**
-     * Breakdown handling: the reserve bus inherits the route and the slot, so
-     * students keep watching the same station number on the board.
-     */
-    replaceBus(state, action: PayloadAction<{ originalId: string; reserveId: string }>) {
-      const original = state.fleet.find((b) => b.id === action.payload.originalId);
-      const reserve = state.fleet.find((b) => b.id === action.payload.reserveId);
-      if (!original || !reserve || reserve.status !== STATUS.waiting) return;
-
-      reserve.route = original.route;
-      reserve.slot = original.slot;
-      reserve.status = original.slot === null ? STATUS.waiting : STATUS.arrived;
-      reserve.arrivedAt = original.slot === null ? null : Date.now();
-
-      original.status = STATUS.replaced;
-      original.replacedByNo = reserve.no;
-      original.departedAt = Date.now();
-    },
-
-    /** End of day: clear the yard and put every bus back to Waiting. */
-    resetDay(state) {
-      state.fleet = SEED_FLEET.map((b) => ({ ...b }));
-      state.lastAssignedId = null;
-    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchQueue.pending, (s) => {
+        // Only the first load shows a spinner; a poll must not flicker.
+        if (!s.queue) s.loading = true;
+      })
+      .addCase(fetchQueue.fulfilled, (s, a) => {
+        s.loading = false;
+        s.queue = a.payload;
+      })
+      .addCase(fetchQueue.rejected, (s, a) => {
+        s.loading = false;
+        // Keep the last good queue on screen — a dropped poll is not a reason
+        // to empty a gate operator's list mid-dispersal. A refusal is: the
+        // session has ended (or was ended on another device) and holding the
+        // old rows would show buses that are no longer anybody's to move.
+        if (a.payload?.answered) s.queue = null;
+        s.error = a.payload?.message ?? "Could not read the queue.";
+      })
+      .addCase(fetchBoard.fulfilled, (s, a) => {
+        s.board = a.payload;
+      })
+      .addCase(fetchBoard.rejected, (s, a) => {
+        if (a.payload?.answered) s.board = null;
+        s.error = a.payload?.message ?? "Could not read the board.";
+      })
+      // Ending the day empties the yard by definition. Without this the tiles
+      // and the board table keep yesterday's numbers until the next poll tick.
+      .addMatcher(
+        (a) => a.type === closeSession.fulfilled.type || a.type === resetSession.fulfilled.type,
+        (s) => {
+          s.queue = null;
+          s.board = null;
+          s.error = null;
+          s.lastAction = null;
+        },
+      )
+      .addMatcher(
+        (a) => a.type.startsWith("ops/") && a.type.endsWith("/pending"),
+        (s, a: { type: string }) => {
+          if (a.type.includes("queue") || a.type.includes("board")) return;
+          s.submitting = true;
+          s.error = null;
+        },
+      )
+      .addMatcher(
+        (a) => a.type.startsWith("ops/") && a.type.endsWith("/fulfilled"),
+        (s, a: { type: string; payload: unknown }) => {
+          if (a.type.includes("queue") || a.type.includes("board")) return;
+          s.submitting = false;
+          s.lastAction = typeof a.payload === "string" ? a.payload : null;
+        },
+      )
+      .addMatcher(
+        (a) => a.type.startsWith("ops/") && a.type.endsWith("/rejected"),
+        (s, a: { type: string; payload?: unknown }) => {
+          if (a.type.includes("queue") || a.type.includes("board")) return;
+          s.submitting = false;
+          s.error = typeof a.payload === "string" ? a.payload : "The action was refused.";
+        },
+      );
   },
 });
 
-export const {
-  assignSlot,
-  startBoarding,
-  markDeparted,
-  undoLastAssignment,
-  replaceBus,
-  resetDay,
-} = opsSlice.actions;
-
+export const { clearOpsFeedback } = opsSlice.actions;
 export default opsSlice.reducer;
 
 // ── selectors ──────────────────────────────────────────────────────────────
-const selectFleet = (s: RootState) => s.ops.fleet;
+const empty: never[] = [];
 
-export const selectYard = createSelector([selectFleet], (fleet) =>
-  fleet.filter(inYard).sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0)),
-);
+export const selectQueue = (s: RootState) => s.ops.queue;
+export const selectBoardRows = (s: RootState) => s.ops.board?.Rows ?? empty;
 
-export const selectWaiting = createSelector([selectFleet], (fleet) =>
-  fleet.filter((b) => b.status === STATUS.waiting && !b.reserve),
-);
+/** Holding a platform — Arrived or Boarding. Server order, untouched. */
+export const selectYard = (s: RootState) => s.ops.queue?.Yard ?? empty;
+/** Inside with no platform, because every platform is occupied (§2.2). */
+export const selectWaiting = (s: RootState) => s.ops.queue?.Waiting ?? empty;
+export const selectAvailableBuses = (s: RootState) => s.ops.queue?.AvailableBuses ?? empty;
+export const selectAvailableReserves = (s: RootState) => s.ops.queue?.AvailableReserves ?? empty;
+export const selectUndoableEventId = (s: RootState) => s.ops.queue?.UndoableEventId ?? null;
 
-export const selectReserves = createSelector([selectFleet], (fleet) =>
-  fleet.filter((b) => b.reserve && b.status === STATUS.waiting),
-);
+/**
+ * Ready to leave first — those are the only ones the exit gate may release.
+ *
+ * The comparator only separates boarding from the rest. Array.sort is stable,
+ * so everything else keeps the server's order, which is already status rank
+ * then platform number (§5.9). `QueueOrder` is the order buses *entered*, not
+ * the order to display them — sorting by it scrambles the board.
+ */
+export const selectReadyToLeave = (s: RootState) => {
+  const yard = s.ops.queue?.Yard ?? empty;
+  const rank = (status: string) => (status === STATUS.boarding ? 0 : 1);
+  return [...yard].sort((a, z) => rank(a.Status) - rank(z.Status));
+};
 
-/** Board order: active work at the top, departures sink to the bottom. */
-export const selectBoard = createSelector([selectFleet], (fleet) =>
-  fleet
-    .filter((b) => b.status !== STATUS.waiting)
-    .sort(
-      (a, z) =>
-        STATUS_RANK[a.status] - STATUS_RANK[z.status] || (a.slot ?? 99) - (z.slot ?? 99),
-    ),
-);
-
-export const selectNextSlot = createSelector([selectYard], (yard) =>
-  nextFreeSlot(yard.map((b) => ({ slot: b.slot! }))),
-);
-
-export const selectStats = createSelector([selectFleet], (fleet) => ({
-  total: fleet.filter((b) => !b.reserve).length,
-  inYard: fleet.filter(inYard).length,
-  departed: fleet.filter((b) => b.status === STATUS.departed).length,
-  waiting: fleet.filter((b) => b.status === STATUS.waiting && !b.reserve).length,
-}));
+export const selectOpsStats = (s: RootState) => {
+  const q = s.ops.queue;
+  const rows = s.ops.board?.Rows ?? empty;
+  return {
+    onCampus: q?.OccupiedCount ?? 0,
+    platformCount: q?.PlatformCount ?? 0,
+    nextPlatform: q?.NextFreePlatformNumber ?? null,
+    yardFull: q?.YardFull ?? false,
+    waiting: q?.Waiting.length ?? 0,
+    awaited: q?.AvailableBuses.length ?? 0,
+    reserves: q?.AvailableReserves.length ?? 0,
+    arrived: rows.filter((r) => r.Status === STATUS.arrived).length,
+    boarding: rows.filter((r) => r.Status === STATUS.boarding).length,
+    departed: rows.filter((r) => r.Status === STATUS.departed).length,
+  };
+};

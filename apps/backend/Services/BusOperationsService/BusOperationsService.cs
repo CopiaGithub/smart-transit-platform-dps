@@ -229,8 +229,23 @@ public class BusOperationsService : IBusOperationsService
         };
     }
 
+    /// <summary>
+    /// Hands the platform a departure just freed to whoever has been waiting
+    /// longest (§5.5) — but only if that platform can still be used.
+    ///
+    /// A platform deactivated while a bus stood on it is the case that matters:
+    /// when that bus leaves, reusing its number would send children to a
+    /// standing position the school has taken out of service. Deactivating a
+    /// platform must keep it out of allocation from then on (§7.2), and that
+    /// has to hold for promotion too, not just for a fresh gate-in. The waiting
+    /// bus simply stays waiting, which is correct: no usable platform freed.
+    /// </summary>
     private async Task<BoardingEvents?> PromoteLongestWaiterAsync(int sessionId, int platformId)
     {
+        bool usable = await _context.PlatformsMasters
+            .AnyAsync(p => p.Id == platformId && p.IsActive && !p.IsDeleted);
+        if (!usable) return null;
+
         var waiter = await _context.BoardingEvents
             .Include(e => e.Bus)
             .Where(e => e.SessionId == sessionId && !e.IsDeleted
@@ -371,7 +386,20 @@ public class BusOperationsService : IBusOperationsService
             ? await PlatformLabelAsync(last.PlatformId.Value)
             : null;
 
+        var busNumber = last.Bus?.BusNumber;
+
+        // Undo means "that bus never came in" — the operator tapped the wrong
+        // one. Leaving the event behind as Waiting looked tidier but was wrong
+        // twice over: the bus stayed on the board as present when it was not,
+        // and it sat in the waiting queue with free platforms all around it,
+        // because promotion only fires on a departure. Clearing the event puts
+        // the bus back in the gate operator's available list, which is the only
+        // state that matches what actually happened.
+        //
+        // Soft-deleted, not erased: the audit row below still references it, so
+        // the day's trail shows the entry and the correction.
         var now = DateTime.UtcNow;
+        last.IsDeleted = true;
         last.Status = BoardingStatus.Waiting;
         last.PlatformId = null;
         last.AssignedAt = null;
@@ -380,13 +408,15 @@ public class BusOperationsService : IBusOperationsService
 
         await _context.SaveChangesAsync();
 
-        await AuditAsync(session.Id, last.Id, "Undo", previousPlatform, BoardingStatus.Waiting,
-            $"Assignment for bus {last.Bus?.BusNumber} was undone.");
+        await AuditAsync(session.Id, last.Id, "Undo", previousPlatform, "Removed",
+            $"Entry for bus {busNumber} was undone; the bus is available at the gate again.");
 
         return new ServiceResponseDto<BoardRowModel>
         {
-            Data = await BuildRowAsync(last.Id),
-            Message = $"Assignment for bus {last.Bus?.BusNumber} undone."
+            // The event is gone, so there is no row to return — the console
+            // re-reads the queue after every action anyway.
+            Data = null,
+            Message = $"Entry for bus {busNumber} undone. It can be recorded in again."
         };
     }
 
@@ -471,6 +501,10 @@ public class BusOperationsService : IBusOperationsService
         var events = await RowQuery().Where(e => e.SessionId == session.Id).ToListAsync();
 
         var platforms = await ActivePlatformsAsync();
+
+        // Every platform a live event is holding, including ones since
+        // deactivated — a bus parked on one still blocks it from being handed
+        // out again, so this is the right set for choosing the next free.
         var occupied = events
             .Where(e => BoardingStatus.Occupying.Contains(e.Status) && e.PlatformId.HasValue)
             .Select(e => e.PlatformId!.Value)
@@ -516,7 +550,12 @@ public class BusOperationsService : IBusOperationsService
         {
             SessionId = session.Id,
             PlatformCount = platforms.Count,
-            OccupiedCount = occupied.Count,
+            // Counted against the active platforms only, so this can never
+            // exceed PlatformCount. Counting every held platform instead would
+            // report an impossible "22 of 21" the moment a bus sat on a
+            // platform that was later deactivated — and it would disagree with
+            // /platforms/status, which counts the same way.
+            OccupiedCount = platforms.Count(p => occupied.Contains(p.Id)),
             NextFreePlatformNumber = nextFree?.PlatformNumber,
             YardFull = nextFree == null,
             Yard = events.Where(e => BoardingStatus.Occupying.Contains(e.Status))

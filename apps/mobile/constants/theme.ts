@@ -16,6 +16,15 @@ export const COLORS = {
   white: "#FFFFFF",
 };
 
+/**
+ * Brand gradient, deep navy -> mid blue -> bright blue. Used by the sign-in
+ * hero and the primary CTA so the two read as one surface.
+ */
+export const GRADIENT = {
+  brand: ["#0F4C81", "#2A6FD6"] as const,
+  brandWide: ["#0F4C81", "#2A6FD6", "#4F8EF7"] as const,
+};
+
 // Separate palette for the LED board mirror — it mimics a real departure
 // board, so it stays dark regardless of the rest of the app.
 export const BOARD = {
@@ -28,6 +37,19 @@ export const BOARD = {
   cyan: "#38BDF8",
   dim: "#64748B",
   text: "#E8EEF9",
+};
+
+/**
+ * Opaque status tints. Android paints an elevation shadow as a solid grey
+ * block behind a translucent background, so anything carrying SHADOW must
+ * tint itself from here instead of appending an alpha suffix to a colour.
+ * Same rule for `opacity` on an elevated view — dim the text, not the card.
+ */
+export const TINT = {
+  primary: "#EEF4FC",
+  success: "#EFF8F2",
+  warning: "#FFF8E7",
+  danger: "#FDF2F2",
 };
 
 export const SPACING = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };

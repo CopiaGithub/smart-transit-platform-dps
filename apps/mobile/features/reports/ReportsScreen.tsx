@@ -1,58 +1,66 @@
 import { Feather } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import StatusPill from "../../components/StatusPill";
-import { LABELS, STATUS } from "../../constants/domain";
+import { LABELS, STATUS, STATUS_COLOR, type Status } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING } from "../../constants/theme";
-import type { Bus } from "../../src/data/seed";
-import { useAppSelector } from "../../src/store";
+import type { BoardRow } from "../../src/api/operations.api";
+import { usePolling } from "../../src/hooks/usePolling";
+import { fetchBoard, selectBoardRows } from "../../src/store/operations.slice";
+import { useAppDispatch, useAppSelector } from "../../src/store";
 
-type Filter = "all" | "departed" | "inYard" | "replaced";
+type Filter = "all" | "departed" | "onCampus" | "replaced";
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "departed", label: "Departed" },
-  { key: "inYard", label: "In yard" },
+  { key: "onCampus", label: "On campus" },
   { key: "replaced", label: "Replaced" },
 ];
 
-/** Scope 6: station allocation, departure time and bus details in one place. */
+/**
+ * The day's log. Every row is a boarding event the server recorded, so the
+ * times are the moment a guard actually tapped — this is the audit trail, not
+ * a summary the app computed.
+ */
 export default function ReportsScreen() {
-  const fleet = useAppSelector((s) => s.ops.fleet);
+  const dispatch = useAppDispatch();
+  const rows = useAppSelector(selectBoardRows);
+  const session = useAppSelector((s) => s.session.current);
   const [filter, setFilter] = useState<Filter>("all");
 
-  const rows = useMemo(() => {
-    const logged = fleet.filter((b) => b.arrivedAt || b.status === STATUS.replaced);
-    const byFilter = {
-      all: logged,
-      departed: logged.filter((b) => b.status === STATUS.departed),
-      inYard: logged.filter(
-        (b) => b.status === STATUS.arrived || b.status === STATUS.boarding,
-      ),
-      replaced: logged.filter((b) => b.status === STATUS.replaced),
-    }[filter];
-    return [...byFilter].sort((a, z) => (a.arrivedAt ?? 0) - (z.arrivedAt ?? 0));
-  }, [fleet, filter]);
+  usePolling(useCallback(() => void dispatch(fetchBoard(undefined)), [dispatch]));
 
-  const turnarounds = fleet
-    .filter((b) => b.arrivedAt && b.departedAt && b.status === STATUS.departed)
-    .map((b) => b.departedAt! - b.arrivedAt!);
-  const avgMins = turnarounds.length
-    ? turnarounds.reduce((a, b) => a + b, 0) / turnarounds.length / 60000
-    : 0;
+  const shown = useMemo(() => {
+    const byFilter: Record<Filter, BoardRow[]> = {
+      all: rows,
+      departed: rows.filter((r) => r.Status === STATUS.departed),
+      onCampus: rows.filter((r) => r.Status === STATUS.arrived || r.Status === STATUS.boarding),
+      replaced: rows.filter((r) => r.Status === STATUS.replaced),
+    };
+    // Oldest first: a log reads forwards, unlike the board.
+    return [...byFilter[filter]].sort((a, z) => a.EnteredAt.localeCompare(z.EnteredAt));
+  }, [rows, filter]);
+
+  // Turnaround only means anything for buses that completed a run.
+  const dwells = rows
+    .filter((r) => r.Status === STATUS.departed && r.AssignedAt && r.DepartedAt)
+    .map((r) => new Date(r.DepartedAt!).getTime() - new Date(r.AssignedAt!).getTime());
+  const avgMins = dwells.length ? dwells.reduce((a, b) => a + b, 0) / dwells.length / 60000 : 0;
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
+      {!!session && (
+        <Text style={styles.sessionLine}>
+          {session.SessionDate}
+          {session.ShiftName ? ` · ${session.ShiftName}` : ""}
+        </Text>
+      )}
+
       <View style={styles.kpiRow}>
-        <Kpi
-          icon="log-in"
-          value={fleet.filter((b) => b.arrivedAt).length}
-          label="Allocated"
-          color={COLORS.primary}
-        />
+        <Kpi icon="log-in" value={rows.length} label="Recorded in" color={COLORS.primary} />
         <Kpi
           icon="log-out"
-          value={fleet.filter((b) => b.status === STATUS.departed).length}
+          value={rows.filter((r) => r.Status === STATUS.departed).length}
           label="Departed"
           color={COLORS.success}
         />
@@ -90,34 +98,36 @@ export default function ReportsScreen() {
           <Text style={[styles.th, styles.cTime]}>OUT</Text>
         </View>
 
-        {rows.length === 0 && (
+        {shown.length === 0 && (
           <Text style={styles.empty}>Nothing logged yet for this filter</Text>
         )}
 
-        {rows.map((bus, i) => (
-          <View key={bus.id} style={[styles.tr, i % 2 === 1 && styles.trAlt]}>
+        {shown.map((row, i) => (
+          <View key={row.EventId} style={[styles.tr, i % 2 === 1 && styles.trAlt]}>
             <View style={styles.cBus}>
-              <Text style={styles.busNo}>{bus.no}</Text>
+              <Text style={styles.busNo}>{row.BusNumber}</Text>
               <Text style={styles.route} numberOfLines={1}>
-                {bus.route}
+                {row.RouteName ?? "No route"}
               </Text>
-              <View style={{ marginTop: 5 }}>
-                <StatusPill status={bus.status} />
-              </View>
-              {!!bus.replacedByNo && (
-                <Text style={styles.replaced}>→ replaced by {bus.replacedByNo}</Text>
+              <Text style={[styles.status, { color: STATUS_COLOR[row.Status as Status] }]}>
+                {row.Status}
+              </Text>
+              {!!row.ReplacedByBusNumber && (
+                <Text style={styles.replaced}>→ replaced by {row.ReplacedByBusNumber}</Text>
               )}
             </View>
-            <Text style={[styles.td, styles.cSlot, styles.slot]}>{bus.slot ?? "—"}</Text>
-            <Text style={[styles.td, styles.cTime]}>{hhmm(bus.arrivedAt)}</Text>
-            <Text style={[styles.td, styles.cTime]}>{hhmm(bus.departedAt)}</Text>
+            <Text style={[styles.td, styles.cSlot, styles.slot]}>
+              {row.PlatformNumber ?? "—"}
+            </Text>
+            <Text style={[styles.td, styles.cTime]}>{hhmm(row.EnteredAt)}</Text>
+            <Text style={[styles.td, styles.cTime]}>{hhmm(row.DepartedAt)}</Text>
           </View>
         ))}
       </View>
 
       <Text style={styles.footnote}>
-        Times are captured the moment the guard taps, so the log is the audit trail for
-        the day's boarding.
+        Times are captured the moment the guard taps, so this log is the audit trail for the
+        day's boarding.
       </Text>
     </ScrollView>
   );
@@ -145,12 +155,13 @@ function Kpi({
   );
 }
 
-const hhmm = (t: number | null) =>
+const hhmm = (t: string | null) =>
   t ? new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—";
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.screenBg },
   content: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xl },
+  sessionLine: { fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },
 
   kpiRow: { flexDirection: "row", gap: SPACING.sm },
   kpi: {
@@ -217,8 +228,9 @@ const styles = StyleSheet.create({
   cTime: { width: 52, textAlign: "center" },
   busNo: { fontSize: 15, fontWeight: "900", color: COLORS.text },
   route: { fontSize: 11, color: COLORS.textMuted, marginTop: 1 },
+  status: { fontSize: 10, fontWeight: "900", letterSpacing: 0.4, marginTop: 3 },
   slot: { fontWeight: "900", color: COLORS.primary, fontSize: 16 },
-  replaced: { fontSize: 10, color: "#A855F7", marginTop: 3, fontWeight: "700" },
+  replaced: { fontSize: 10, color: COLORS.accent, marginTop: 3, fontWeight: "700" },
   empty: { textAlign: "center", color: COLORS.textMuted, padding: SPACING.lg, fontSize: 13 },
   footnote: { fontSize: 11, color: COLORS.textMuted, lineHeight: 16 },
 });

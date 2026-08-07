@@ -1,40 +1,58 @@
 import { Feather } from "@expo/vector-icons";
-import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import FlashBar, { useFlash } from "../../components/FlashBar";
 import SlotBadge from "../../components/SlotBadge";
 import { LABELS } from "../../constants/domain";
-import { COLORS, RADIUS, SHADOW, SPACING } from "../../constants/theme";
+import { COLORS, RADIUS, SHADOW, SPACING, TINT } from "../../constants/theme";
+import { usePolling } from "../../src/hooks/usePolling";
 import {
+  fetchQueue,
   replaceBus,
-  selectReserves,
-  selectWaiting,
+  selectAvailableReserves,
   selectYard,
 } from "../../src/store/operations.slice";
 import { useAppDispatch, useAppSelector } from "../../src/store";
 
 /**
- * Breakdown / late-substitution flow. The school flags these at the last hour,
- * so it is two taps: pick who is out, pick who covers. The reserve inherits the
- * route and station number, which is what students are already watching for.
+ * Breakdown handling. The reserve inherits the failed bus's route and its
+ * platform — deliberately, so students already told 'platform 4' keep walking
+ * to platform 4 and nothing has to be re-announced (§5.6).
  */
 export default function ReplaceScreen() {
   const dispatch = useAppDispatch();
   const yard = useAppSelector(selectYard);
-  const waiting = useAppSelector(selectWaiting);
-  const reserves = useAppSelector(selectReserves);
+  const reserves = useAppSelector(selectAvailableReserves);
+  const submitting = useAppSelector((s) => s.ops.submitting);
+  const opsError = useAppSelector((s) => s.ops.error);
+  const { flash, show } = useFlash();
 
-  const [outId, setOutId] = useState<string | null>(null);
-  const [inId, setInId] = useState<string | null>(null);
+  const [outEventId, setOutEventId] = useState<number | null>(null);
+  const [inBusId, setInBusId] = useState<number | null>(null);
+  const [reason, setReason] = useState("");
 
-  const candidates = [...yard, ...waiting];
-  const out = candidates.find((b) => b.id === outId);
-  const ready = outId && inId;
+  usePolling(useCallback(() => void dispatch(fetchQueue()), [dispatch]));
 
-  const swap = () => {
-    if (!outId || !inId) return;
-    dispatch(replaceBus({ originalId: outId, reserveId: inId }));
-    setOutId(null);
-    setInId(null);
+  const failed = yard.find((b) => b.EventId === outEventId) ?? null;
+  const reserve = reserves.find((r) => r.BusId === inBusId) ?? null;
+  const ready = !!failed && !!reserve && reason.trim().length > 0 && !submitting;
+
+  const swap = async () => {
+    if (!failed || !reserve || !ready) return;
+    const result = await dispatch(
+      replaceBus({
+        eventId: failed.EventId,
+        reserveBusId: reserve.BusId,
+        reserveBusNumber: reserve.BusNumber,
+        reason: reason.trim(),
+      }),
+    );
+    if (replaceBus.fulfilled.match(result)) {
+      show(String(result.payload));
+      setOutEventId(null);
+      setInBusId(null);
+      setReason("");
+    }
   };
 
   return (
@@ -43,34 +61,46 @@ export default function ReplaceScreen() {
         <Feather name="alert-triangle" size={16} color={COLORS.warning} />
         <Text style={styles.noticeText}>
           The reserve keeps the same {LABELS.route.toLowerCase()} and{" "}
-          {LABELS.slot.toLowerCase()}, so nothing changes for students already waiting.
+          {LABELS.slot.toLowerCase()}, so nothing changes for students already waiting. A
+          one-day allocation is written for the route, and reverts tomorrow on its own.
         </Text>
       </View>
 
+      {!!flash && <FlashBar text={flash} />}
+
+      {!flash && !!opsError && (
+        <View style={styles.alert}>
+          <Feather name="alert-circle" size={16} color={COLORS.danger} />
+          <Text style={styles.alertText}>{opsError}</Text>
+        </View>
+      )}
+
       <Text style={styles.cap}>1 · {LABELS.vehicle.toUpperCase()} GOING OUT OF SERVICE</Text>
-      {candidates.length === 0 ? (
-        <Text style={styles.empty}>No buses to replace yet</Text>
+      {yard.length === 0 ? (
+        <Text style={styles.empty}>
+          No {LABELS.vehiclePlural.toLowerCase()} on campus to replace
+        </Text>
       ) : (
         <View style={styles.list}>
-          {candidates.map((b) => (
+          {yard.map((b) => (
             <Pressable
-              key={b.id}
-              style={[styles.row, outId === b.id && styles.rowOn]}
-              onPress={() => setOutId(outId === b.id ? null : b.id)}
+              key={b.EventId}
+              style={[styles.row, outEventId === b.EventId && styles.rowOn]}
+              onPress={() => setOutEventId(outEventId === b.EventId ? null : b.EventId)}
             >
-              <SlotBadge slot={b.slot} size="sm" />
+              <SlotBadge slot={b.PlatformNumber} size="sm" />
               <View style={{ flex: 1 }}>
                 <Text style={styles.no}>
-                  {LABELS.vehicle} {b.no}
+                  {LABELS.vehicle} {b.BusNumber}
                 </Text>
                 <Text style={styles.route} numberOfLines={1}>
-                  {b.route}
+                  {b.RouteName ?? "No route allocated"}
                 </Text>
               </View>
               <Feather
-                name={outId === b.id ? "check-circle" : "circle"}
+                name={outEventId === b.EventId ? "check-circle" : "circle"}
                 size={20}
-                color={outId === b.id ? COLORS.danger : COLORS.border}
+                color={outEventId === b.EventId ? COLORS.danger : COLORS.border}
               />
             </Pressable>
           ))}
@@ -79,41 +109,49 @@ export default function ReplaceScreen() {
 
       <Text style={styles.cap}>2 · RESERVE TAKING OVER</Text>
       {reserves.length === 0 ? (
-        <Text style={styles.empty}>No reserve buses available</Text>
+        <Text style={styles.empty}>No reserve {LABELS.vehiclePlural.toLowerCase()} available</Text>
       ) : (
         <View style={styles.list}>
-          {reserves.map((b) => (
+          {reserves.map((r) => (
             <Pressable
-              key={b.id}
-              style={[styles.row, inId === b.id && styles.rowOn]}
-              onPress={() => setInId(inId === b.id ? null : b.id)}
+              key={r.BusId}
+              style={[styles.row, inBusId === r.BusId && styles.rowOn]}
+              onPress={() => setInBusId(inBusId === r.BusId ? null : r.BusId)}
             >
               <View style={styles.reserveTag}>
-                <Text style={styles.reserveTagText}>{b.no}</Text>
+                <Text style={styles.reserveTagText}>{r.BusNumber}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.no}>Reserve {b.no}</Text>
+                <Text style={styles.no}>Reserve {r.BusNumber}</Text>
                 <Text style={styles.route}>
-                  {out ? `Will run ${out.route}` : "Awaiting assignment"}
+                  {failed ? `Will run ${failed.RouteName ?? "the same route"}` : "Awaiting selection"}
                 </Text>
               </View>
               <Feather
-                name={inId === b.id ? "check-circle" : "circle"}
+                name={inBusId === r.BusId ? "check-circle" : "circle"}
                 size={20}
-                color={inId === b.id ? COLORS.success : COLORS.border}
+                color={inBusId === r.BusId ? COLORS.success : COLORS.border}
               />
             </Pressable>
           ))}
         </View>
       )}
 
-      <Pressable
-        style={[styles.cta, !ready && styles.ctaOff]}
-        disabled={!ready}
-        onPress={swap}
-      >
+      <Text style={styles.cap}>3 · REASON</Text>
+      {/* Required: this is what appears in the day's report (§5.6). */}
+      <TextInput
+        style={styles.input}
+        value={reason}
+        onChangeText={setReason}
+        placeholder="Breakdown at platform 4"
+        placeholderTextColor={COLORS.textMuted}
+      />
+
+      <Pressable style={[styles.cta, !ready && styles.ctaOff]} disabled={!ready} onPress={swap}>
         <Feather name="repeat" size={18} color={COLORS.white} />
-        <Text style={styles.ctaText}>Confirm replacement</Text>
+        <Text style={styles.ctaText}>
+          {submitting ? "Recording…" : "Confirm replacement"}
+        </Text>
       </Pressable>
     </ScrollView>
   );
@@ -126,13 +164,25 @@ const styles = StyleSheet.create({
   notice: {
     flexDirection: "row",
     gap: SPACING.sm,
-    backgroundColor: COLORS.warning + "14",
+    backgroundColor: TINT.warning,
     borderWidth: 1,
     borderColor: COLORS.warning + "44",
     borderRadius: RADIUS.md,
     padding: SPACING.md,
   },
   noticeText: { flex: 1, fontSize: 12, color: COLORS.text, lineHeight: 18 },
+
+  alert: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    backgroundColor: TINT.danger,
+    borderWidth: 1,
+    borderColor: COLORS.danger + "44",
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+  },
+  alertText: { flex: 1, color: COLORS.danger, fontSize: 13, fontWeight: "600" },
 
   cap: {
     fontSize: 10,
@@ -164,13 +214,24 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.accent + "22",
+    backgroundColor: TINT.warning,
     borderWidth: 1,
     borderColor: COLORS.accent,
     alignItems: "center",
     justifyContent: "center",
   },
   reserveTagText: { fontSize: 12, fontWeight: "900", color: COLORS.accent },
+
+  input: {
+    height: 52,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    fontSize: 15,
+    color: COLORS.text,
+    backgroundColor: COLORS.surface,
+  },
 
   empty: {
     color: COLORS.textMuted,
@@ -188,6 +249,6 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     marginTop: SPACING.sm,
   },
-  ctaOff: { opacity: 0.4 },
+  ctaOff: { backgroundColor: COLORS.textMuted, opacity: 0.4 },
   ctaText: { color: COLORS.white, fontWeight: "800", fontSize: 15 },
 });

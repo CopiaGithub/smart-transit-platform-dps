@@ -29,6 +29,8 @@ public static class DependencyInjection
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddHttpContextAccessor();
+        // Stateless and config-driven, so one instance serves every request.
+        services.AddSingleton<ISchoolClock, SchoolClock>();
         services.AddScoped<IJwtTokenUtility, JwtTokenUtility>();
         services.AddScoped<IUserMasterService, UserMasterService>();
         services.AddScoped<IRoleMasterService, RoleMasterService>();

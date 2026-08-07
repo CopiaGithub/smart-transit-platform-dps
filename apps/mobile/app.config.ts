@@ -8,7 +8,9 @@ const APP_ENV = (process.env.APP_ENV as AppEnv) || "dev";
 
 const ENV: Record<AppEnv, { apiUrl: string; appName: string; debug: boolean }> = {
   dev: {
-    apiUrl: "http://10.0.2.2:5000/api/",
+    // The API listens on 5199. 10.0.2.2 is the Android emulator's loopback to
+    // the host — on a physical device swap it for the dev machine's LAN IP.
+    apiUrl: "http://10.0.2.2:5199/api/",
     appName: "Transit Display (Dev)",
     debug: true,
   },

@@ -13,6 +13,16 @@ public partial class BusesMaster : BaseEntity
     [MaxLength(20)]
     public string BusNumber { get; set; } = string.Empty;
 
+    /// <summary>
+    /// RTO plate, e.g. MH-43-AB-1234. A fleet record only — contractor disputes,
+    /// insurance, police enquiries. Deliberately never used to identify a bus at
+    /// the gate: <see cref="BusNumber"/> is the single operational key, and a
+    /// second way to name the same bus is how an operator types one number and
+    /// the system acts on another. Nullable because existing rows predate it.
+    /// </summary>
+    [MaxLength(20)]
+    public string? RegistrationNumber { get; set; }
+
     public int? RouteId { get; set; }
 
     /// <summary>Active daily service or reserve substitute bus. See <see cref="BusKind"/>.</summary>

@@ -406,6 +406,10 @@ namespace transit_display_platform_api.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("RegistrationNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<int?>("RouteId")
                         .HasColumnType("int");
 

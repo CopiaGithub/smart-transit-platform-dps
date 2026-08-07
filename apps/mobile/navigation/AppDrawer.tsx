@@ -3,17 +3,20 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import { BOARD, COLORS, RADIUS } from "../constants/theme";
 import { useAppSelector } from "../src/store";
 import DrawerContent from "./DrawerContent";
-import { visibleMenu } from "./menu";
+import { toViewer, visibleMenu } from "./menu";
 import type { DrawerParamList } from "./types";
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
 export default function AppDrawer() {
-  const role = useAppSelector((s) => s.auth.user?.role);
-  const items = visibleMenu(role);
+  const roleName = useAppSelector((s) => s.auth.user?.roleName);
+  const items = visibleMenu(toViewer(roleName));
 
   return (
     <Drawer.Navigator
+      // First section a person can see is their home — a guard lands straight
+      // on their gate screen instead of a dashboard they cannot act on.
+      initialRouteName={items[0]?.name}
       drawerContent={(props) => <DrawerContent {...props} />}
       screenOptions={{
         headerStyle: { backgroundColor: COLORS.primary },

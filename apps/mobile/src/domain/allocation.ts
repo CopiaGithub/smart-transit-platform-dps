@@ -27,6 +27,29 @@ export function releaseSlot(occupied: Occupancy, slot: number): Occupancy {
   return occupied.filter((o) => o.slot !== slot);
 }
 
+/**
+ * Guards type on a keypad, so "5" has to find bus "05" and a stray leading
+ * zero must not miss. Matching is on the numeric value, not the string.
+ */
+export function findByNo<T extends { no: string }>(fleet: T[], typed: string): T | null {
+  const key = typed.replace(/^0+/, "");
+  if (!key) return null;
+  return fleet.find((b) => b.no.replace(/^0+/, "") === key) ?? null;
+}
+
+/**
+ * Two buses the keypad cannot tell apart (5 and 05) would make gate-in pick
+ * the wrong one, so the master form has to reject the duplicate on the same
+ * rule the lookup uses. `exceptId` lets a bus keep its own number when edited.
+ */
+export function isNoTaken<T extends { id: string; no: string }>(
+  fleet: T[],
+  no: string,
+  exceptId?: string,
+): boolean {
+  return findByNo(exceptId ? fleet.filter((b) => b.id !== exceptId) : fleet, no) !== null;
+}
+
 // ponytail: run with `npx tsx src/domain/allocation.ts` — no test framework.
 export function selfCheck() {
   const assert = (cond: boolean, msg: string) => {
@@ -48,6 +71,23 @@ export function selfCheck() {
   const full = Array.from({ length: SLOT_COUNT }, (_, i) => ({ slot: i + 1 }));
   assert(nextFreeSlot(full) === null, "full yard returns null");
   assert(nextFreeSlot(full.slice(1)) === 1, "one departure reopens slot 1");
+
+  // Keypad lookup: padded fleet numbers, unpadded typing, and no false hits.
+  const fleet = [{ no: "05" }, { no: "24" }, { no: "R1" }];
+  assert(findByNo(fleet, "5")?.no === "05", "unpadded input finds padded bus");
+  assert(findByNo(fleet, "05")?.no === "05", "padded input still matches");
+  assert(findByNo(fleet, "24")?.no === "24", "exact match works");
+  assert(findByNo(fleet, "2") === null, "prefix must not match");
+  assert(findByNo(fleet, "") === null, "empty input matches nothing");
+  assert(findByNo(fleet, "0") === null, "a lone zero is not a bus");
+
+  // Master form uniqueness runs on the same normalisation as the lookup.
+  const master = [{ id: "a", no: "05" }, { id: "b", no: "24" }];
+  assert(isNoTaken(master, "5"), "5 collides with existing 05");
+  assert(isNoTaken(master, "05"), "exact duplicate is taken");
+  assert(!isNoTaken(master, "7"), "a free number is not taken");
+  assert(!isNoTaken(master, "05", "a"), "a bus may keep its own number");
+  assert(isNoTaken(master, "24", "a"), "editing one bus still hits another");
 
   return "allocation: all checks passed";
 }

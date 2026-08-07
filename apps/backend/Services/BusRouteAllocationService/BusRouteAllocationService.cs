@@ -9,11 +9,14 @@ public class BusRouteAllocationService : IBusRouteAllocationService
 {
     private readonly ApplicationDbContext _context;
     private readonly IJwtTokenUtility _jwtTokenUtility;
+    private readonly ISchoolClock _clock;
 
-    public BusRouteAllocationService(ApplicationDbContext context, IJwtTokenUtility jwtTokenUtility)
+    public BusRouteAllocationService(
+        ApplicationDbContext context, IJwtTokenUtility jwtTokenUtility, ISchoolClock clock)
     {
         _context = context;
         _jwtTokenUtility = jwtTokenUtility;
+        _clock = clock;
     }
 
     // ------------------------------------------------------------------ queries
@@ -209,7 +212,8 @@ public class BusRouteAllocationService : IBusRouteAllocationService
     /// </summary>
     public async Task<ServiceResponseDto<BusRouteAllocationListModel>> SubstituteAsync(SubstituteBusModel model)
     {
-        var date = model.Date ?? DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        // "Today" means the school's calendar day, not UTC's — see SchoolClock.
+        var date = model.Date ?? _clock.Today;
 
         var referenceError = await ValidateReferencesAsync(model.RouteId, model.ReplacementBusId);
         if (referenceError != null)
