@@ -1,0 +1,10 @@
+<div class="checkbox-container mt-12">
+  <input
+    type="checkbox"
+    [checked]="checked"
+    (change)="toggleChecked()"
+    id="checkbox"
+    class="checkbox-input mr-2"
+  />
+  <label for="checkbox" class="checkbox-label">{{ label }}</label>
+</div>

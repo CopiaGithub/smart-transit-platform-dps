@@ -1,0 +1,266 @@
+<div class="edit-modal-overlay">
+  <div class="edit-modal-card" role="dialog" aria-modal="true">
+    <!-- Header -->
+    <div class="edit-modal-header">
+      <h2 class="edit-modal-title">{{ data.title }}</h2>
+
+      <button
+        type="button"
+        class="edit-modal-close"
+        (click)="onCancel()"
+        aria-label="Close modal"
+      >
+        <mat-icon aria-hidden="true">close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Form -->
+    <form
+      [formGroup]="form"
+      (ngSubmit)="onSave()"
+      class="flex flex-col flex-1 overflow-hidden"
+    >
+      <div class="edit-modal-body">
+        <div
+          class="edit-modal-grid grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5"
+        >
+          <ng-container *ngFor="let field of fields">
+            <div *ngIf="isFieldVisible(field)" class="space-y-1">
+              <!-- TEXT / PASSWORD / NUMBER / EMAIL -->
+              <cds-input
+                *ngIf="
+                  ['text', 'password', 'number', 'email'].includes(field.type)
+                "
+                [type]="field.type"
+                [formControlName]="field.name"
+                [label]="field.label"
+                [disabled]="field.disabled"
+                (input)="onFieldChange(field.name, $event)"
+                [isAstRequired]="field.required"
+                class="w-full"
+              ></cds-input>
+
+              <!-- TEXTAREA -->
+              <app-cds-textarea
+                *ngIf="field.type === 'textarea'"
+                [formControlName]="field.name"
+                [label]="field.label"
+                [disabled]="field.disabled"
+                (input)="onFieldChange(field.name, $event)"
+              ></app-cds-textarea>
+
+              <!-- DROPDOWN -->
+              <div *ngIf="field.type === 'dropdown'" class="space-y-1 relative">
+                <label class="edit-modal-field-label">
+                  {{ field.label }}
+                  <span *ngIf="field.required" class="text-red-500">*</span>
+                </label>
+
+                <!-- NORMAL SINGLE SELECT -->
+                <select
+                  *ngIf="!field.multiple"
+                  class="edit-modal-select"
+                  [formControlName]="field.name"
+                  (change)="onFieldChange(field.name, $event)"
+                >
+                  <option value="" disabled>Select {{ field.label }}</option>
+                  <option
+                    *ngFor="let option of field.optionsList"
+                    [value]="option.value"
+                  >
+                    {{ option.name }}
+                  </option>
+                </select>
+
+                <!-- CHECKBOX MULTI SELECT -->
+                <div
+                  *ngIf="field.multiple && field.ui === 'checkbox'"
+                  class="edit-modal-dropdown-wrapper relative"
+                  [class.edit-modal-dropdown-wrapper--open]="
+                    dropdownOpenMap[field.name]
+                  "
+                  #dropdownWrapper
+                >
+                  <div
+                    class="edit-modal-select-trigger"
+                    (click)="toggleDropdown(field.name, $event)"
+                  >
+                    <span class="truncate">
+                      {{ getMultiSelectDisplay(field) }}
+                    </span>
+                    <span>▾</span>
+                  </div>
+
+                  <div
+                    *ngIf="dropdownOpenMap[field.name]"
+                    class="edit-modal-dropdown"
+                    [class.edit-modal-dropdown--above]="
+                      dropdownPositionMap[field.name] === 'above'
+                    "
+                  >
+                    <div class="edit-modal-dropdown-item">
+                      <input
+                        type="checkbox"
+                        [checked]="isAllSelected(field)"
+                        (change)="onSelectAll(field, $event)"
+                        class="mr-2"
+                      />
+                      <label class="text-sm">Select All</label>
+                    </div>
+
+                    <div
+                      *ngFor="let option of field.optionsList"
+                      class="edit-modal-dropdown-item"
+                    >
+                      <input
+                        type="checkbox"
+                        [checked]="isOptionSelected(field.name, option.value)"
+                        (change)="
+                          onCheckboxChange(field.name, option.value, $event)
+                        "
+                        class="mr-2"
+                      />
+                      <label class="text-sm">{{ option.name }}</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!--AutoComplete-->
+              <cds-autocomplete-dropdown
+                *ngIf="field.type === 'autocomplete'"
+                [label]="field.label"
+                [placeholder]="field.placeholder || 'Select ' + field.label"
+                [options]="field.optionsList"
+                [required]="field.required"
+                [formControlName]="field.name"
+                (selectionChange)="onFieldChange(field.name, $event)"
+              ></cds-autocomplete-dropdown>
+
+              <!-- DATE -->
+              <app-datepicker
+                *ngIf="field.type === 'date'"
+                [formControlName]="field.name"
+                [label]="field.label"
+                (dateChange)="onFieldChange(field.name, $event)"
+              ></app-datepicker>
+
+              <!-- ERRORS -->
+              <div
+                class="edit-modal-error"
+                *ngIf="
+                  form.get(field.name)?.errors && form.get(field.name)?.touched
+                "
+              >
+                <!-- <span
+                *ngIf="
+                  form.get(field.name)?.errors?.['required'] &&
+                  !['text', 'password', 'number', 'email'].includes(field.type)
+                "
+              >
+                {{ field.label }} is required.
+              </span> -->
+                <span
+                  *ngIf="
+                    form.get(field.name)?.errors?.['pattern'] &&
+                    field.name.toLowerCase().includes('pincode')
+                  "
+                >
+                  {{ field.label }} must be exactly 6 digits and numbers only.
+                </span>
+                <span *ngIf="form.get(field.name)?.errors?.['duplicate']">
+                  {{ field.label }} already exists.
+                </span>
+                <span *ngIf="form.get(field.name)?.errors?.['InValidPhoneNo']">
+                  {{ field.label }} must be a valid 10-digit number.
+                </span>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- PROFILE IMAGE SECTION -->
+          <div
+            *ngIf="displayUserProfileSection"
+            class="col-span-1 md:col-span-2 mt-4"
+          >
+            <div class="edit-modal-profile">
+              <h3 class="edit-modal-profile-title">Profile Picture</h3>
+
+              <div class="grid md:grid-cols-2 gap-6 items-start">
+                <!-- Upload -->
+                <div class="edit-modal-upload">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    (change)="onChangeFile($event)"
+                    class="hidden"
+                    #fileInput
+                  />
+                  <button
+                    type="button"
+                    class="edit-modal-upload-btn"
+                    (click)="fileInput.click()"
+                  >
+                    Choose Image
+                  </button>
+                  <p class="text-xs text-gray-500 mt-2">Max 2MB • JPG, PNG</p>
+                  <p *ngIf="errorMsg" class="text-xs text-red-500 mt-1">
+                    {{ errorMsg }}
+                  </p>
+                </div>
+
+                <!-- Preview -->
+                <div class="flex flex-col items-start gap-2">
+                  <span class="text-xs text-gray-500">Preview</span>
+                  <div
+                    *ngIf="previewUrl"
+                    (click)="openImageModal()"
+                    class="edit-modal-preview hover:shadow-md transition"
+                  >
+                    <img
+                      [src]="previewUrl"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        @if (showImageModal) {
+          <div class="edit-modal-image-overlay" (click)="closeImageModal()">
+            <div
+              class="edit-modal-image-panel"
+              (click)="$event.stopPropagation()"
+            >
+              <button
+                type="button"
+                class="edit-modal-image-close"
+                (click)="closeImageModal()"
+              >
+                ✕
+              </button>
+              <img
+                [src]="previewUrl"
+                [alt]="'No Image Uploaded'"
+                class="max-w-full max-h-[80vh] object-contain"
+              />
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- FOOTER -->
+      <div
+        class="edit-modal-footer"
+        *ngIf="!disableSaveButton && !data.viewMode"
+      >
+        <cds-button [variant]="'primary'" [buttonType]="'submit'">
+          {{ data.saveButtonText || "Save" }}
+        </cds-button>
+        <cds-button [variant]="'clear'" (click)="onCancel()">
+          Cancel
+        </cds-button>
+      </div>
+    </form>
+  </div>
+</div>

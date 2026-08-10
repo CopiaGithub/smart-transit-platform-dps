@@ -1,0 +1,28 @@
+@if (control) {
+  <div class="dvs-form-control">
+    <!-- Label -->
+    <div class="mb-[6px] mt-[2px]">
+      <cds-label [isAstRequired]="isRequired" [label]="label" />
+    </div>
+
+    <!-- Textarea -->
+    <textarea
+      [placeholder]="placeholder"
+      [id]="inputId"
+      [disabled]="isDisabled"
+      [rows]="rows"
+      [formControl]="control"
+      [ngClass]="isDisabled ? 'bg-slate-200' : ''"
+      class="block w-full px-4 py-2 h-[43px] text-black bg-white border border-gray-300 rounded-md outline-none resize-y"
+    ></textarea>
+
+    <!-- Validation Errors -->
+    <cds-validation-errors
+      [control]="control"
+      [customErrorMessages]="customErrorMessages"
+      [errors]="control.errors"
+      [isSubmitted]="isSubmitted"
+      class="text-red-400"
+    />
+  </div>
+}

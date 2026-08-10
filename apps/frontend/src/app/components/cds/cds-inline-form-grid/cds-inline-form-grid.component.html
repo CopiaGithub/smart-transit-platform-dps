@@ -1,0 +1,122 @@
+<div class="inline-form-grid-wrap">
+  <div class="grid-toolbar" *ngIf="showToolbar">
+    <div class="grid-toolbar-left">
+      <ng-content select="[toolbar-left]"></ng-content>
+    </div>
+    <div class="flex gap-2">
+      <ng-content select="[toolbar-right]"></ng-content>
+      <button
+        *ngIf="allowAdd"
+        type="button"
+        class="btn-add"
+        (click)="onAddRow()"
+      >
+        <mat-icon class="!text-base !w-4 !h-4">add</mat-icon>
+        {{ addRowLabel }}
+      </button>
+    </div>
+  </div>
+
+  <div
+    class="inline-form-grid-scroll"
+    *ngIf="formArray.length; else emptyState"
+  >
+  <div
+    class="inline-form-grid"
+    [style.grid-template-columns]="gridTemplateColumns"
+    [style.min-width]="gridMinWidth"
+  >
+    <div class="grid-cell grid-header" *ngFor="let col of columns">
+      {{ col.label }}
+    </div>
+    <div class="grid-cell grid-header" *ngIf="showActions">Actions</div>
+
+    <ng-container
+      *ngFor="let row of rowControls(); let i = index; trackBy: trackByIndex"
+      [formGroup]="row"
+    >
+      <div
+        class="grid-cell"
+        *ngFor="let col of columns"
+        [class.cell-highlight]="col.highlight"
+        [class.cell-master]="
+          col.type === 'masterSelect' || col.type === 'masterAutocomplete'
+        "
+        [class.is-dirty]="isRowDirty(row)"
+      >
+        <ng-container [ngSwitch]="col.type ?? 'text'">
+          <span *ngSwitchCase="'readonly'" class="cell-readonly">
+            {{
+              row.get(col.key)?.value != null && row.get(col.key)?.value !== ''
+                ? row.get(col.key)?.value
+                : '—'
+            }}
+          </span>
+
+          <input
+            *ngSwitchCase="'number'"
+            type="number"
+            class="cell-input"
+            [formControlName]="col.key"
+            [placeholder]="col.placeholder ?? ''"
+          />
+
+          <input
+            *ngSwitchCase="'date'"
+            type="date"
+            class="cell-input"
+            [formControlName]="col.key"
+          />
+
+          <div *ngSwitchCase="'masterSelect'" class="grid-master-cell">
+            <cds-select
+              [label]="' '"
+              [isAstRequired]="false"
+              [optionsList]="getMasterOptions(col)"
+              [formControlName]="col.key"
+              [placeholder]="col.placeholder ?? 'Select'"
+            ></cds-select>
+          </div>
+
+          <div *ngSwitchCase="'masterAutocomplete'" class="grid-master-cell">
+            <cds-autocomplete-dropdown
+              [label]="' '"
+              [required]="false"
+              [options]="getMasterOptions(col)"
+              [formControlName]="col.key"
+              [placeholder]="col.placeholder ?? 'Search…'"
+            ></cds-autocomplete-dropdown>
+          </div>
+
+          <input
+            *ngSwitchDefault
+            type="text"
+            class="cell-input"
+            [formControlName]="col.key"
+            [placeholder]="col.placeholder ?? ''"
+          />
+        </ng-container>
+      </div>
+
+      <div
+        class="grid-cell actions-cell"
+        *ngIf="showActions"
+        [class.is-dirty]="isRowDirty(row)"
+      >
+        <button
+          type="button"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-500 hover:bg-red-50"
+          title="Delete row"
+          (click)="onRemoveRow(i)"
+        >
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    </ng-container>
+  </div>
+  </div>
+
+  <ng-template #emptyState>
+    <div class="grid-empty">{{ emptyMessage }}</div>
+  </ng-template>
+</div>

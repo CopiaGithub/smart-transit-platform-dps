@@ -1,0 +1,13 @@
+@if (control) {
+<div [class]="containerClass">
+  <cds-label [isAstRequired]="isAstRequired" [label]="label" />
+  <input [type]="pickerMode === 'month' ? 'month' : 'date'" class="block w-full px-3 py-1.5 text-sm text-black bg-white border border-gray-300 rounded-md outline-none placeholder-gray-400" [class]="inputClass" [placeholder]="placeholder" [value]="rawValue" (change)="onDateChange($event)"
+    [required]="isAstRequired" [disabled]="control.disabled" [attr.min]="minDate" [attr.max]="maxDate" [ngClass]="{
+      'bg-gray-200 cursor-not-allowed': control.disabled,
+      'bg-white text-black': !control.disabled
+    }" />
+
+  <cds-validation-errors [control]="control" [customErrorMessages]="customErrorMessages" [errors]="control.errors"
+    [isSubmitted]="isSubmitted" class="text-red-400" />
+</div>
+}

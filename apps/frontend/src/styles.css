@@ -1,0 +1,240 @@
+/* You can add global styles to this file, and also import other style files */
+
+:root {
+  --app-shell-header-height: 4.25rem;
+  /* Fallback until JS sets the real visible height (Chrome mobile). Prefer svh over dvh. */
+  --app-height: 100svh;
+}
+
+html,
+body,
+app-root {
+  height: var(--app-height, 100svh);
+  max-height: var(--app-height, 100svh);
+  overflow: hidden; /* prevent page-level scroll so main area can scroll independently */
+}
+
+body {
+  margin: 0;
+  font-family: var(--argon-font-family, "Open Sans", sans-serif);
+  color: var(--argon-body-color, #525f7f);
+  background-color: var(--argon-body-bg, #f8f9fe);
+}
+/* Pricing details dialog — keep content within viewport so final price stays visible */
+.pricing-details-dialog {
+  max-width: 96vw !important;
+}
+
+.pricing-details-dialog .mat-mdc-dialog-container,
+.pricing-details-dialog .mdc-dialog__surface {
+  padding: 0 !important;
+  overflow: hidden !important;
+  max-height: 92vh !important;
+  height: 100% !important;
+  border-radius: 0.9rem !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.pricing-details-dialog app-pricing-details {
+  display: block;
+  height: 100%;
+  max-height: 92vh;
+}
+
+/* Remove white dialog surface */
+.loader-dialog-panel .mat-mdc-dialog-container {
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+/* Full screen dark overlay */
+.loader-backdrop-dark {
+  background: rgba(0, 0, 0, 0.5) !important;
+  /* 50% dim */
+  backdrop-filter: blur(2px);
+  /* optional premium blur */
+}
+
+.loader-dialog-panel {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Edit model dialog — full viewport overlay, transparent Material shell */
+.cdk-overlay-container:has(app-edit-model) .cdk-overlay-backdrop {
+  display: none;
+}
+
+.cdk-overlay-pane:has(app-edit-model) .mat-mdc-dialog-container,
+.cdk-overlay-pane:has(app-edit-model) .mdc-dialog__surface {
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  max-width: 100vw !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+.cdk-overlay-pane:has(app-edit-model),
+.cdk-overlay-pane:has(app-confirmation-dialog) {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+.cdk-overlay-pane:has(app-edit-model) .mat-mdc-dialog-container,
+.cdk-overlay-pane:has(app-confirmation-dialog) .mat-mdc-dialog-container,
+.cdk-overlay-pane:has(app-confirmation-dialog) .mdc-dialog__surface {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+/* Message popup — no open/close motion */
+app-popup .popup-overlay,
+app-popup .popup-card {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+/* Edit modal card — no open/close motion */
+app-edit-model .edit-modal-overlay,
+app-edit-model .edit-modal-card {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+/* Argon-styled edit modal buttons */
+app-edit-model .edit-modal-footer cds-button button {
+  min-width: 5.5rem;
+  padding: 0.5rem 1.25rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  border-radius: 0.375rem !important;
+}
+
+app-edit-model .edit-modal-footer cds-button:first-child button {
+  background: var(--argon-gradient-primary) !important;
+  border: 0 !important;
+  box-shadow: var(--argon-btn-shadow) !important;
+  color: var(--argon-white) !important;
+}
+
+app-edit-model .edit-modal-footer cds-button:first-child button:hover {
+  filter: brightness(0.95);
+}
+
+/* Argon-styled message popup buttons */
+app-popup .popup-footer cds-button button {
+  min-width: 5rem;
+  padding: 0.5rem 1.25rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  border-radius: 0.375rem !important;
+}
+
+app-popup .popup-footer cds-button button.bg-blue-500 {
+  background: var(--argon-gradient-primary) !important;
+  border: 0 !important;
+  box-shadow: var(--argon-btn-shadow) !important;
+  color: var(--argon-white) !important;
+}
+
+app-popup .popup-footer cds-button button.bg-blue-500:hover {
+  filter: brightness(0.95);
+}
+
+app-popup .popup-footer cds-button button.bg-green-500 {
+  background: var(--argon-gradient-success) !important;
+  border: 0 !important;
+  box-shadow: var(--argon-btn-shadow) !important;
+  color: var(--argon-white) !important;
+}
+
+app-popup .popup-footer cds-button button.bg-green-500:hover {
+  filter: brightness(0.95);
+}
+
+app-popup .popup-footer cds-button button.text-red-600 {
+  background: var(--argon-gradient-danger) !important;
+  border: 0 !important;
+  box-shadow: var(--argon-btn-shadow) !important;
+  color: var(--argon-white) !important;
+}
+
+app-popup .popup-footer cds-button button.text-red-600:hover {
+  filter: brightness(0.95);
+}
+
+.industry-type-dialog {
+  .mat-mdc-dialog-container,
+  .mdc-dialog__container,
+  .mdc-dialog__surface {
+    min-height: 220px !important;
+    height: auto !important;
+  }
+
+  .edit-modal-card {
+    min-height: 220px !important;
+  }
+
+  .edit-modal-body {
+    min-height: 180px !important;
+  }
+}
+
+/*
+ * Mobile-first responsive safety net for form grids.
+ *
+ * Pages use Tailwind grid utilities for their form/filter layouts. Many older
+ * templates still use bare, non-responsive utilities (e.g. `grid grid-cols-4`)
+ * which keep 4 columns even on a phone and overflow horizontally.
+ *
+ * These rules ONLY target the bare utilities (`.grid-cols-N`). Templates that
+ * opt into responsiveness use prefixed classes (`sm:grid-cols-*`,
+ * `lg:grid-cols-*`), which are distinct class names and are NOT matched here,
+ * so this never overrides an intentionally responsive layout.
+ *
+ * Phones (<768px): stack everything into a single column.
+ * Tablets (768-959px): cap dense grids at two columns.
+ */
+@media (max-width: 767.98px) {
+  .page-content .grid-cols-2,
+  .page-content .grid-cols-3,
+  .page-content .grid-cols-4,
+  .page-content .grid-cols-5,
+  .page-content .grid-cols-6,
+  .page-content .grid-cols-7,
+  .page-content .grid-cols-8,
+  .mat-mdc-dialog-container .grid-cols-2,
+  .mat-mdc-dialog-container .grid-cols-3,
+  .mat-mdc-dialog-container .grid-cols-4,
+  .mat-mdc-dialog-container .grid-cols-5,
+  .mat-mdc-dialog-container .grid-cols-6 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 959.98px) {
+  .page-content .grid-cols-3,
+  .page-content .grid-cols-4,
+  .page-content .grid-cols-5,
+  .page-content .grid-cols-6,
+  .page-content .grid-cols-7,
+  .page-content .grid-cols-8 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

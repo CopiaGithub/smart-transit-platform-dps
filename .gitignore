@@ -3,10 +3,12 @@
 **/obj/
 **/publish/
 **/dist/
+**/out-tsc/
 
 # IDE / OS
 .vs/
 .vscode/
+.idea/
 *.user
 *.suo
 *.slnx.sqlite
@@ -25,7 +27,12 @@ Thumbs.db
 # Test / coverage
 **/coverage/
 **/test-results/
+**/playwright-report/
+**/blob-report/
 
-# Dependencies (frontend later)
+# Frontend (Angular)
 **/node_modules/
 **/.angular/
+**/.sass-cache/
+**/typings/
+**/__screenshots__/

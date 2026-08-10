@@ -1,0 +1,54 @@
+@if (control) {
+<div
+  class="relative w-full"
+  (document:click)="closeDropdownOnOutsideClick($event)"
+  [class]="customclasses"
+>
+  <app-cds-label ="isRequired" [label]="label" />
+  <button
+    class="w-full px-4 py-2 mt-2 text-gray-700 rounded-md flex justify-between items-center focus:outline-none border border-gray-300"
+    (click)="toggleDropdown($event)"
+    [class]="
+      isDataLoading() ? 'bg-indigo-300 ' + ddstyle : 'bg-white ' + ddstyle
+    "
+    [disabled]="isDataLoading()"
+  >
+    @if (control.value) {
+    {{ control.value["name"] }}
+    } @if(!control.value) { @if(isDataLoading()) {
+    <div class="place-content-center"></div>
+    } @else {
+    <span class="font-normal text-[#ccc]">
+      {{ placeholder || "Select a value" }}
+    </span>
+    } }
+    <span
+      class="transform transition-transform"
+      [class.rotate-180]="dropdownOpen"
+    >
+      ▼
+    </span>
+  </button>
+  @if (dropdownOpen) {
+  <ul
+    class="absolute w-full mt-1 bg-white border border-gray-300 rounded-md shadow-md z-10 max-h-40 overflow-auto"
+  >
+    @for (option of optionsList(); track $index) {
+    <li
+      (click)="selectOption(option)"
+      class="cds-select-option px-4 py-2 cursor-pointer"
+      [class.cds-select-option--selected]="control.value?.['name'] === option.name"
+    >
+      {{ option.name }}
+    </li>
+    }
+  </ul>
+  }
+</div>
+<app-validation-errors
+  [control]="control"
+  [customErrorMessages]="customErrorMessages"
+  [errors]="control.errors"
+  [isSubmitted]="isSubmitted"
+/>
+}

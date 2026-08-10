@@ -1,0 +1,82 @@
+@if (control) {
+  <div class="dvs-form-control">
+    <div class="mb-[6px] mt-[2px]">
+      <cds-label [isAstRequired]="required || isRequired" [label]="label" />
+    </div>
+
+    <div
+      #dropdownAnchor
+      class="cds-autocomplete-anchor relative w-full"
+      [class.cds-autocomplete-anchor--open]="showDropdown"
+    >
+      <input
+        type="text"
+        autocomplete="off"
+        class="block w-full px-3 py-1.5 text-black bg-white border border-gray-200 rounded-md outline-none placeholder-gray-400"
+        [ngClass]="{
+          'bg-gray-200 text-gray-700 cursor-not-allowed': isDisabled,
+          'bg-white text-black': !isDisabled,
+        }"
+        [placeholder]="placeholder"
+        [title]="searchText || placeholder"
+        [(ngModel)]="searchText"
+        [disabled]="isDisabled"
+        (focus)="onFocus()"
+        (click)="onClick()"
+        (input)="onInput($any($event.target).value)"
+        (blur)="onBlur()"
+      />
+
+      @if (showDropdown && filteredOptions.length) {
+        <ul
+          class="cds-autocomplete-panel"
+          [class.cds-autocomplete-panel--above]="dropdownPosition === 'above' && !panelFixed"
+          [class.cds-autocomplete-panel--fixed]="panelFixed"
+          [style.top.px]="panelFixed ? panelTop : null"
+          [style.left.px]="panelFixed ? panelLeft : null"
+          [style.width.px]="panelFixed ? panelWidth : null"
+          [style.max-height.px]="panelFixed ? panelMaxHeight : null"
+        >
+          @for (option of filteredOptions; track option.value) {
+            <li
+              class="cds-select-option px-3 py-1.5 cursor-pointer"
+              [class.cds-select-option--selected]="isSelected(option)"
+              (mousedown)="selectOption(option)"
+            >
+              {{ displayLabel(option) }}
+            </li>
+          }
+          @if (hiddenMatchCount > 0) {
+            <li class="px-3 py-1.5 text-gray-400 text-sm italic">
+              +{{ hiddenMatchCount }} more — keep typing to narrow down
+            </li>
+          }
+        </ul>
+      }
+
+      @if (showDropdown && !filteredOptions.length && showNoRecords) {
+        <div
+          class="cds-autocomplete-panel"
+          [class.cds-autocomplete-panel--above]="dropdownPosition === 'above' && !panelFixed"
+          [class.cds-autocomplete-panel--fixed]="panelFixed"
+          [style.top.px]="panelFixed ? panelTop : null"
+          [style.left.px]="panelFixed ? panelLeft : null"
+          [style.width.px]="panelFixed ? panelWidth : null"
+          [style.max-height.px]="panelFixed ? panelMaxHeight : null"
+        >
+          <ng-content select="[no-records]">
+            <div class="px-3 py-1.5 text-gray-500">No records found</div>
+          </ng-content>
+        </div>
+      }
+    </div>
+
+    <cds-validation-errors
+      [control]="control"
+      [customErrorMessages]="customErrorMessages"
+      [errors]="control.errors"
+      [isSubmitted]="isSubmitted"
+      class="text-red-400"
+    />
+  </div>
+}

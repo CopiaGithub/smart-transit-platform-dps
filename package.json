@@ -1,0 +1,15 @@
+{
+  "name": "transit-display-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Transit Display Platform monorepo — frontend, backend, mobile",
+  "scripts": {
+    "frontend:install": "cd apps/frontend && npm install",
+    "frontend:start": "cd apps/frontend && npm start",
+    "frontend:build": "cd apps/frontend && ng build --configuration=production",
+    "frontend:build:dev": "cd apps/frontend && ng build --configuration=development",
+    "backend:run": "cd apps/backend && dotnet run",
+    "backend:publish": "dotnet publish apps/backend/transit-display-platform-api.csproj -c Release -o publish/api",
+    "mobile:start": "cd apps/mobile && npm start"
+  }
+}

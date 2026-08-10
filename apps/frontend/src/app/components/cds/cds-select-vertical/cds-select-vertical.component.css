@@ -1,0 +1,49 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+/* Default horizontal layout: fixed label column + flexible control */
+.cds-select-vertical-row:not(.flex-col) {
+  align-items: center;
+}
+
+.cds-select-vertical-row:not(.flex-col) .cds-select-vertical-label {
+  flex: 0 0 7.5rem;
+  text-align: right;
+  line-height: 1.2;
+}
+
+.cds-select-vertical-row:not(.flex-col) .cds-select-vertical-label cds-label label {
+  text-align: right;
+}
+
+.cds-select-vertical-row:not(.flex-col) .cds-select-vertical-control {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* Vertical layout override (customclasses="flex-col items-start") */
+.cds-select-vertical-row.flex-col {
+  align-items: stretch;
+  gap: 0.375rem;
+}
+
+.cds-select-vertical-row.flex-col .cds-select-vertical-label {
+  width: 100%;
+  text-align: left;
+}
+
+.cds-select-vertical-row.flex-col .cds-select-vertical-label cds-label label {
+  text-align: left;
+}
+
+.cds-select-vertical-row.flex-col .cds-select-vertical-control {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .cds-select-vertical-row:not(.flex-col) .cds-select-vertical-label {
+    flex-basis: 6.25rem;
+  }
+}

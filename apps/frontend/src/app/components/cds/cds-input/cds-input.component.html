@@ -1,0 +1,38 @@
+<!-- <pre>{{ isDisabled }}</pre> -->
+@if (control) {
+<div class="dvs-form-control" [class]="inputstyleClass">
+  <div class="mb-[6px] mt-[2px]">
+    <cds-label
+      [isAstRequired]="isAstRequired"
+      [label]="label"
+      [customLabel]="customLabel"
+    />
+  </div>
+  <input
+    [placeholder]="placeholder"
+    [required]="isAstRequired"
+    [type]="type"
+    [id]="inputId"
+    [formControl]="control"
+    [value]="displayValue"
+    (input)="onInputChange($event)"
+    autocomplete="off"
+    [disabled]="control.disabled || isDisabled"
+    [ngClass]="{
+      'bg-gray-200 text-gray-700 cursor-not-allowed': control.disabled,
+      'bg-white text-black': !control.disabled
+    }"
+    class="block w-full px-3 py-1.5 text-black bg-white border border-gray-300 rounded-md outline-none placeholder-gray-400"
+    [attr.data-testid]="'txt-' + inputId"
+  />
+
+  <cds-validation-errors
+    [control]="control"
+    [customErrorMessages]="customErrorMessages"
+    [errors]="control.errors"
+    [isSubmitted]="isSubmitted"
+    class="text-red-400"
+    [attr.data-testid]="'validation-errors-' + inputId"
+  />
+</div>
+}

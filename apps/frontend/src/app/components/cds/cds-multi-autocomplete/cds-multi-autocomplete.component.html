@@ -1,0 +1,63 @@
+<label class="ac-label" *ngIf="label">
+  {{ label }} <span class="ac-req" *ngIf="required">*</span>
+</label>
+
+<div class="ac-control" [class.disabled]="disabled()" [class.open]="open()">
+  <div class="ac-field" (click)="openPanel()">
+    <div class="ac-chips">
+      <span class="ac-chip" *ngFor="let opt of selectedOptions">
+        {{ opt.name }}
+        <button
+          type="button"
+          class="ac-chip-x"
+          *ngIf="!disabled()"
+          (click)="removeChip(opt.value, $event)"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      </span>
+
+      <input
+        type="text"
+        class="ac-input"
+        [placeholder]="selectedOptions.length ? '' : placeholder"
+        [value]="query()"
+        [disabled]="disabled()"
+        (input)="onQueryInput($any($event.target).value)"
+        (focus)="openPanel()"
+      />
+    </div>
+
+    <div class="ac-tools">
+      <button
+        type="button"
+        class="ac-icon"
+        *ngIf="selectedOptions.length && !disabled()"
+        title="Clear all"
+        (click)="clearAll($event)"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+      <mat-icon class="ac-caret" (click)="togglePanel(); $event.stopPropagation()">
+        {{ open() ? 'expand_less' : 'expand_more' }}
+      </mat-icon>
+    </div>
+  </div>
+
+  <div class="ac-panel" *ngIf="open()">
+    <button
+      type="button"
+      class="ac-option"
+      *ngFor="let opt of filteredOptions"
+      [class.selected]="isSelected(opt.value)"
+      (click)="toggleOption(opt.value, $event)"
+    >
+      <mat-icon class="ac-check">{{
+        isSelected(opt.value) ? 'check_box' : 'check_box_outline_blank'
+      }}</mat-icon>
+      <span>{{ opt.name }}</span>
+    </button>
+
+    <p class="ac-empty" *ngIf="!filteredOptions.length">No matches.</p>
+  </div>
+</div>

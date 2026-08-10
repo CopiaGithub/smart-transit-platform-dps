@@ -1,0 +1,45 @@
+<div
+  class="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-start z-50 p-2"
+>
+  <div
+    class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-gray-200 flex flex-col"
+    role="dialog"
+    aria-modal="true"
+  >
+    <!-- Header (Same style as edit modal) -->
+    <div
+      class="bg-blue-50 flex justify-between items-center px-6 py-4 rounded-t-2xl border-b border-blue-100"
+    >
+      <h2 class="text-[20px] font-semibold font-heading text-gray-700">
+        {{ data.title }}
+      </h2>
+
+      <button
+        class="w-9 h-9 flex items-center justify-center rounded-full font-semibold text-gray-700 hover:bg-blue-100 transition"
+        (click)="closeModal()"
+        aria-label="Close"
+      >
+        ✕
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="px-6 py-6 text-lg font-heading text-gray-700 leading-relaxed">
+      {{ data.message }}
+    </div>
+
+    <!-- Footer (Matches edit modal footer) -->
+    <div
+      class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl"
+    >
+      <cds-button [variant]="'primary'" (click)="onConfirmClick()">
+        {{ data.confirmText || 'Confirm' }}
+      </cds-button>
+      @if (!data.hideCancel) {
+      <cds-button [variant]="'danger'" (click)="closeModal()">
+        {{ data.cancelText || 'Cancel' }}
+      </cds-button>
+      }
+    </div>
+  </div>
+</div>

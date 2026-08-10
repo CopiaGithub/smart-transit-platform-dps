@@ -1,0 +1,24 @@
+<header
+  class="flex sticky top-0 z-50 justify-between items-center pl-[18px] pr-6 py-2 bg-white border-b border-gray-200">
+  <!-- Left: User Info -->
+  <div class="flex flex-col text-base text-gray-800 leading-snug">
+    <span class="font-semibold text-[18px]">Welcome, {{ userName }}</span>
+    <span class="text-[14px] text-gray-500">{{ currentDate }}</span>
+  </div>
+
+  <!-- Right: Logout Button and Profile Avatar -->
+  <div class="flex items-center gap-4">
+    <!-- Logout Button -->
+    <button mat-icon-button (click)="logout()" title="Logout" class="text-red-600 hover:bg-red-50">
+      <mat-icon>logout</mat-icon>
+    </button>
+
+    <!-- Profile Image Avatar -->
+    <div
+      class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-base overflow-hidden flex-shrink-0"
+      title="{{ userName }}">
+      <img *ngIf="previewUrl" [src]="previewUrl" alt="{{ userName }}" class="w-full h-full object-cover" />
+      <span *ngIf="!previewUrl">{{ userName[0].toUpperCase() }}</span>
+    </div>
+  </div>
+</header>

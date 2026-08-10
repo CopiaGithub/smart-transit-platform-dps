@@ -1,0 +1,205 @@
+<div class="sidebar-container">
+  <aside
+    class="sidebar"
+    [ngClass]="{
+      collapsed: isCollapsed,
+      open: isTablet && !isCollapsed,
+    }"
+  >
+    <div class="sidebar-header">
+      <div class="avatar-wrapper">
+        <div
+          class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium text-2xl overflow-hidden flex-shrink-0"
+          title="{{ userName }}"
+        >
+          <img
+            *ngIf="previewUrl"
+            [src]="previewUrl"
+            alt="{{ userName }}"
+            class="w-full h-full object-cover"
+          />
+          <span *ngIf="!previewUrl">{{ userName[0]?.toUpperCase() }}</span>
+        </div>
+      </div>
+      <div *ngIf="!isCollapsed" class="sidebar-header-text flex flex-col min-w-0 flex-1">
+        <div class="brand-title underline underline-offset-4 truncate">
+          {{ appTitle }}
+        </div>
+        <div class="flex items-center gap-1 min-w-0">
+          <span class="font-semibold text-[14px] text-gray-600 truncate">{{
+            userName
+          }}</span>
+          <mat-icon
+            class="pl-1 text-[20px] text-blue-600 cursor-pointer"
+            (click)="redirectToProfile()"
+            >person</mat-icon
+          >
+        </div>
+      </div>
+
+      <button
+        *ngIf="isTablet && !isCollapsed"
+        type="button"
+        class="sidebar-close-btn"
+        (click)="toggleCollapse()"
+        aria-label="Close menu"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <nav class="sidebar-menu" role="navigation">
+      <ul>
+        <li
+          *ngFor="let item of menuItems; let i = index"
+          class="menu-item"
+          [class.active]="isMenuItemActive(item)"
+          [class.parent-active]="isImmediateParentOfActiveRoute(item)"
+          (click)="
+            item.children?.length
+              ? toggleLevel(item, menuItems)
+              : navigateToRoute(item.route)
+          "
+          (mouseenter)="showSubmenuOnHover(i)"
+          (mouseleave)="hideSubmenuOnLeave()"
+        >
+          <div class="menu-item-inner">
+            <div class="left">
+              <div class="icon-circle">
+                <mat-icon [style.color]="menuIconColor(item)">{{
+                  item.icon
+                }}</mat-icon>
+              </div>
+              <span class="label">{{ item.name }}</span>
+            </div>
+
+            <div class="right" *ngIf="item.children?.length">
+              <mat-icon class="chev" [ngClass]="{ rotated: item.expanded }"
+                >chevron_right</mat-icon
+              >
+            </div>
+          </div>
+
+          <ng-container *ngIf="item.children?.length">
+            <ul
+              class="submenu"
+              *ngIf="!isCollapsed && item.expanded"
+              [@submenuAnimation]="item.expanded ? 'visible' : 'hidden'"
+              (click)="$event.stopPropagation()"
+            >
+              <li
+                *ngFor="let child of item.children"
+                class="submenu-item second-level-menu-item"
+                [class.active]="isMenuItemActive(child)"
+                [class.parent-active]="isImmediateParentOfActiveRoute(child)"
+                [class.route-active]="isRouteHighlighted(child)"
+                (click)="
+                  $event.stopPropagation();
+                  child.children?.length
+                    ? toggleLevel(child, item.children)
+                    : navigateToRoute(child.route)
+                "
+              >
+                <div class="submenu-item-inner">
+                  <div class="submenu-label-wrap">
+                    <span class="submenu-label second-level-menu-label">{{
+                      child.name
+                    }}</span>
+                  </div>
+                  <mat-icon
+                    *ngIf="child.children?.length"
+                    class="chev"
+                    [ngClass]="{ rotated: child.expanded }"
+                    >chevron_right</mat-icon
+                  >
+                </div>
+                <ul
+                  class="submenu nested"
+                  *ngIf="child.children?.length && child.expanded"
+                  [@submenuAnimation]="child.expanded ? 'visible' : 'hidden'"
+                >
+                  <li
+                    *ngFor="let gc of child.children"
+                    (click)="
+                      $event.stopPropagation(); navigateToRoute(gc.route)
+                    "
+                    class="submenu-item"
+                    [class.active]="isMenuItemActive(gc)"
+                    [class.route-active]="isRouteHighlighted(gc)"
+                  >
+                    <div class="submenu-item-inner">
+                      <div class="submenu-label-wrap">
+                        <mat-icon
+                          class="submenu-item-icon"
+                          [style.color]="submenuIconColor(gc)"
+                          >{{ gc.icon }}</mat-icon
+                        >
+                        <span class="submenu-label">{{ gc.name }}</span>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+
+            <div class="group" *ngIf="isCollapsed">
+              <div
+                class="submenu-flyout"
+                *ngIf="isSubmenuOpen(i) || item.expanded"
+                [@submenuAnimation]="
+                  isSubmenuOpen(i) || item.expanded ? 'visible' : 'hidden'
+                "
+                (click)="$event.stopPropagation()"
+              >
+                <ul>
+                  <li
+                    *ngFor="let child of item.children"
+                    (click)="
+                      $event.stopPropagation();
+                      child.children?.length
+                        ? toggleLevel(child, item.children)
+                        : navigateToRoute(child.route)
+                    "
+                    class="submenu-item second-level-menu-item"
+                  >
+                    <div class="submenu-item-inner">
+                      <div class="submenu-label-wrap">
+                        <span class="submenu-label second-level-menu-label">{{
+                          child.name
+                        }}</span>
+                      </div>
+                      <mat-icon
+                        *ngIf="child.children?.length"
+                        class="chev"
+                        [ngClass]="{ rotated: child.expanded }"
+                        >chevron_right</mat-icon
+                      >
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </ng-container>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button
+        type="button"
+        class="sidebar-logout"
+        (click)="logout()"
+        title="Log out"
+        [attr.aria-label]="'Log out'"
+      >
+        <mat-icon class="sidebar-logout-icon">logout</mat-icon>
+        <span *ngIf="!isCollapsed" class="sidebar-logout-label">Log out</span>
+      </button>
+    </div>
+  </aside>
+  <div
+    class="sidebar-backdrop"
+    *ngIf="isTablet && !isCollapsed"
+    (click)="toggleCollapse()"
+  ></div>
+</div>
