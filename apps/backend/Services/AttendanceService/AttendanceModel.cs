@@ -20,6 +20,58 @@ public class AttendanceStudentModel
     /// absent, and the app shows it differently.
     /// </summary>
     public bool? IsPresent { get; set; }
+
+    /// <summary>
+    /// The bus this child rides home, null for one who is not on transport. Carried
+    /// on the roster so a teacher marking the class can already see which buses the
+    /// morning's absences are going to affect.
+    /// </summary>
+    public string? BusNumber { get; set; }
+
+    public string? RouteName { get; set; }
+}
+
+/// <summary>
+/// A child on a bus's roll. Only ever sent for children who are NOT coming — see
+/// <see cref="BusRollCallModel.Absentees"/>.
+/// </summary>
+public class BusRollCallStudentModel
+{
+    public int StudentId { get; set; }
+    public string AdmissionNumber { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    /// <summary>Already formatted, e.g. "5-A".</summary>
+    public string Class { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// One bus's roll for a date: how many children it is expecting, and which of them
+/// did not come to school.
+///
+/// Deliberately counts plus the absentees only, never the full roll. This is read
+/// repeatedly while a dispersal runs, and a teacher standing at a platform with a
+/// bus in front of them cannot read thirty names — the number says whether anything
+/// is wrong, and the short list says who not to wait for.
+/// </summary>
+public class BusRollCallModel
+{
+    public int BusId { get; set; }
+    public string BusNumber { get; set; } = string.Empty;
+    public string? RouteName { get; set; }
+
+    /// <summary>Children whose record puts them on this bus, present or not.</summary>
+    public int TotalStudents { get; set; }
+    public int PresentCount { get; set; }
+    public int AbsentCount { get; set; }
+
+    /// <summary>
+    /// On this bus but their class has not been marked today. Counted apart from
+    /// present on purpose: nobody has said these children are in school, and
+    /// folding them into present would be the app inventing an answer.
+    /// </summary>
+    public int UnmarkedCount { get; set; }
+
+    public List<BusRollCallStudentModel> Absentees { get; set; } = new();
 }
 
 /// <summary>A class on a date: who is in it and what has been recorded.</summary>

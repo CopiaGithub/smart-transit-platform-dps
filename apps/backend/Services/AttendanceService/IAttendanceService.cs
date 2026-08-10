@@ -13,4 +13,12 @@ public interface IAttendanceService
 
     /// <summary>Records the marks, replacing anything already saved for that day.</summary>
     Task<ServiceResponseDto<AttendanceRosterModel>> SaveAsync(SaveAttendanceModel model);
+
+    /// <summary>
+    /// The day's attendance turned round the other way: per bus rather than per
+    /// class, so the boarding screen can say how many children a bus is waiting for
+    /// and which of them never came to school.
+    /// </summary>
+    Task<ServiceResponseDto<List<BusRollCallModel>>> GetByBusAsync(
+        DateOnly? date = null, int? academicYearId = null);
 }

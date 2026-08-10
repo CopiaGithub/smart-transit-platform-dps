@@ -5,6 +5,17 @@ using transit_display_platform_api.Services.GateMasterService;
 
 namespace transit_display_platform_api.Controllers;
 
+/// <summary>
+/// Readable by anyone signed in, changeable only by an admin.
+///
+/// The app cannot work out which post a guard is on without this list — the user
+/// record has no gate field, so the gate is matched out of the role name against
+/// these rows. Gate names are painted on the walls of the compound; there is
+/// nothing here to keep from a signed-in member of staff.
+///
+/// Roles widen on the class and narrow on each write: ASP.NET Core ANDs the two
+/// levels, so a class restricted to Admin could never be reopened by a method.
+/// </summary>
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
@@ -41,6 +52,7 @@ public class GateMasterController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> PostGateMaster([FromBody] GateMasterCreateModel model)
     {
         if (!ModelState.IsValid)
@@ -54,6 +66,7 @@ public class GateMasterController : ControllerBase
     }
 
     [HttpPatch("{id}")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> PatchGateMaster(int id, [FromBody] GateMasterUpdateModel model)
     {
         var response = await _service.UpdateAsync(id, model);
@@ -64,6 +77,7 @@ public class GateMasterController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = RoleNames.Admin)]
     public async Task<IActionResult> DeleteGateMaster(int id)
     {
         var response = await _service.DeleteAsync(id);
