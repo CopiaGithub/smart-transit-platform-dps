@@ -248,6 +248,21 @@ export const selectReadyToLeave = (s: RootState) => {
   return [...yard].sort((a, z) => rank(a.Status) - rank(z.Status));
 };
 
+/**
+ * Everything recorded in through the entry gate this session, newest first.
+ *
+ * Yard and Waiting are one list to a guard checking their own work — whether a
+ * platform happened to be free is the server's business, not a reason to file
+ * the bus somewhere else. `QueueOrder` is the order they entered, so reversing
+ * it puts the last bus recorded on top: the one most likely to be a mistake,
+ * and the only one `undo-last` can still take back.
+ */
+export const selectRecordedIn = (s: RootState) => {
+  const q = s.ops.queue;
+  if (!q) return empty;
+  return [...q.Yard, ...q.Waiting].sort((a, z) => z.QueueOrder - a.QueueOrder);
+};
+
 export const selectOpsStats = (s: RootState) => {
   const q = s.ops.queue;
   const rows = s.ops.board?.Rows ?? empty;

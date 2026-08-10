@@ -142,6 +142,7 @@ public class ParentMasterService : IParentMasterService
                 AdmissionNumber = m.Student!.AdmissionNumber,
                 StudentName = m.Student.FirstName + " " + m.Student.LastName,
                 Class = m.Student.Grade + "-" + m.Student.Division,
+                PhotoUrl = m.Student.PhotoUrl,
                 Relation = m.Relation,
                 IsPrimaryContact = m.IsPrimaryContact,
                 IsAuthorisedForPickup = m.IsAuthorisedForPickup,

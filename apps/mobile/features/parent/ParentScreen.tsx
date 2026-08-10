@@ -1,11 +1,13 @@
 import { Feather } from "@expo/vector-icons";
 import { useCallback, useEffect } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import Avatar from "../../components/Avatar";
 import { LABELS, STATUS, STATUS_COLOR } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING, TINT } from "../../constants/theme";
 import type { BoardRow } from "../../src/api/operations.api";
 import type { ParentChild } from "../../src/api/people.api";
 import { usePolling } from "../../src/hooks/usePolling";
+import { formatTime } from "../../src/services/time";
 import { fetchBoard, selectBoardRows } from "../../src/store/operations.slice";
 import { fetchMyChildren, selectMyChildren } from "../../src/store/parent.slice";
 import { useAppDispatch, useAppSelector } from "../../src/store";
@@ -20,6 +22,7 @@ export default function ParentScreen() {
   const viewer = useViewer();
   const children = useAppSelector(selectMyChildren);
   const rows = useAppSelector(selectBoardRows);
+  const board = useAppSelector((s) => s.ops.board);
   const { loading, loaded, error } = useAppSelector((s) => s.parent);
 
   // Who the children are changes at most once a term; where their bus is
@@ -76,6 +79,7 @@ export default function ParentScreen() {
       <Text style={styles.footnote}>
         This screen updates on its own as security and the class teacher mark the
         {" "}{LABELS.vehicle.toLowerCase()}. Nothing here can be changed from your side.
+        {board?.GeneratedAt ? `\nLast updated ${atTime(board.GeneratedAt)}.` : ""}
       </Text>
     </ScrollView>
   );
@@ -86,133 +90,152 @@ function ChildCard({ child, live }: { child: ParentChild; live: BoardRow | null 
 
   return (
     <View style={styles.card}>
-      <View style={styles.childRow}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{child.StudentName.charAt(0).toUpperCase()}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.childName}>{child.StudentName}</Text>
-          <Text style={styles.childClass}>
-            Class {child.Class} · {child.AdmissionNumber}
-          </Text>
-        </View>
-      </View>
+      {/* A thin band of the status colour along the top: on a screen a parent
+          checks in a hurry, the state should register before any reading. */}
+      <View style={[styles.stripe, { backgroundColor: tone.color }]} />
 
-      <View style={[styles.statusBox, { backgroundColor: tone.bg, borderColor: tone.color }]}>
-        <View style={[styles.statusDot, { backgroundColor: tone.color }]} />
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.statusLabel, { color: tone.color }]}>{tone.label}</Text>
-          <Text style={styles.statusHint}>{tone.hint}</Text>
+      <View style={styles.cardBody}>
+        <View style={styles.childRow}>
+          {/* The child's face when the school has one, their initials when it
+              does not — a parent picks their own child out by the picture. */}
+          <Avatar name={child.StudentName} uri={child.PhotoUrl} size={46} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.childName}>{child.StudentName}</Text>
+            <Text style={styles.childClass}>
+              Class {child.Class} · {child.AdmissionNumber}
+            </Text>
+          </View>
         </View>
-      </View>
 
-      <Section title={LABELS.vehicle.toUpperCase()}>
         {child.BusNumber ? (
-          <>
-            <Row label={LABELS.vehicleNo} value={child.BusNumber} strong />
-            <Row label={LABELS.route} value={live?.RouteName ?? child.RouteName ?? "—"} />
-            <Row
-              label={LABELS.slot}
-              value={
-                live?.PlatformNumber == null
-                  ? "Not allocated yet"
-                  : String(live.PlatformNumber).padStart(2, "0")
-              }
-            />
-          </>
+          <View style={styles.facts}>
+            {/* The station number is what the child is told to walk to, so it
+                is the one thing on this card sized to be read across a room. */}
+            <View style={styles.stationBox}>
+              <Text style={styles.stationCap}>{LABELS.slot.toUpperCase()}</Text>
+              <Text style={styles.stationNo}>
+                {live?.PlatformNumber == null
+                  ? "—"
+                  : String(live.PlatformNumber).padStart(2, "0")}
+              </Text>
+            </View>
+
+            <View style={{ flex: 1, gap: SPACING.sm }}>
+              {/* The state sits on the bus line rather than beside the name:
+                  what a parent is checking is the bus, not the child. */}
+              <Fact
+                label={LABELS.vehicleNo}
+                value={child.BusNumber}
+                strong
+                trailing={
+                  <View style={[styles.pill, { backgroundColor: tone.bg, borderColor: tone.color }]}>
+                    <View style={[styles.pillDot, { backgroundColor: tone.color }]} />
+                    <Text style={[styles.pillText, { color: tone.color }]} numberOfLines={1}>
+                      {tone.label}
+                    </Text>
+                  </View>
+                }
+              />
+              <Fact label={LABELS.route} value={live?.RouteName ?? child.RouteName ?? "—"} />
+              {/* Whichever timestamp belongs to the state now showing — a
+                  departure time under "Boarding" would be a different bus. */}
+              <Fact label="Time" value={tone.at ?? "—"} />
+              {/* Hidden on request — the exit gate ("School Building Exit 1")
+                  is not something a parent needs. The field still arrives on
+                  ParentChild, so putting this line back is all it takes.
+              {!!child.ExitGateName && <Fact label="Exit" value={child.ExitGateName} />} */}
+            </View>
+          </View>
         ) : (
-          <Text style={styles.missing}>
-            Not a transport user — no {LABELS.vehicle.toLowerCase()} assigned
-          </Text>
+          <View style={styles.noBus}>
+            <Feather name="slash" size={14} color={COLORS.textMuted} />
+            <Text style={styles.missing}>
+              Not a transport user — no {LABELS.vehicle.toLowerCase()} assigned
+            </Text>
+          </View>
         )}
-      </Section>
-
-      {!!child.ExitGateName && (
-        <Section title="EXIT">
-          <Row label="Leaves from" value={child.ExitGateName} />
-        </Section>
-      )}
+      </View>
     </View>
   );
 }
 
-/** What each status means to a parent, in their words rather than the guard's. */
-function statusTone(live: BoardRow | null) {
-  const platform =
-    live?.PlatformNumber == null ? null : String(live.PlatformNumber).padStart(2, "0");
-
-  switch (live?.Status) {
-    case STATUS.arrived:
-      return {
-        label: "At school",
-        color: STATUS_COLOR.Arrived,
-        bg: TINT.primary,
-        hint: `Waiting at ${LABELS.slot.toLowerCase()} ${platform} — students are walking to it.`,
-      };
-    case STATUS.boarding:
-      return {
-        label: "Boarding now",
-        color: STATUS_COLOR.Boarding,
-        bg: TINT.warning,
-        hint: `Children are getting in at ${LABELS.slot.toLowerCase()} ${platform}.`,
-      };
-    case STATUS.waiting:
-      return {
-        label: "Inside, holding",
-        color: STATUS_COLOR.Waiting,
-        bg: COLORS.surfaceAlt,
-        hint: "In the compound but every station is occupied. It gets the next one that frees.",
-      };
-    case STATUS.departed:
-      return {
-        label: "Left school",
-        color: STATUS_COLOR.Departed,
-        bg: TINT.success,
-        hint: live?.DepartedAt
-          ? `Departed at ${new Date(live.DepartedAt).toLocaleTimeString("en-IN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}.`
-          : "The bus has left the school gate.",
-      };
-    case STATUS.replaced:
-      return {
-        label: "Replaced by a reserve",
-        color: STATUS_COLOR.Replaced,
-        bg: COLORS.surfaceAlt,
-        hint: live?.ReplacedByBusNumber
-          ? `${LABELS.vehicle} ${live.ReplacedByBusNumber} is running this service today, from the same station.`
-          : "A reserve bus is running this service today.",
-      };
-    default:
-      return {
-        label: "Not reached school yet",
-        color: COLORS.textMuted,
-        bg: COLORS.surfaceAlt,
-        hint: `You will see the ${LABELS.slot.toLowerCase()} here the moment it enters the gate.`,
-      };
-  }
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Fact({
+  label,
+  value,
+  strong,
+  trailing,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  trailing?: React.ReactNode;
+}) {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionCap}>{title}</Text>
-      {children}
-    </View>
-  );
-}
-
-function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={[styles.rowValue, strong && styles.rowValueStrong]} numberOfLines={2}>
+    <View style={styles.fact}>
+      <Text style={styles.factLabel}>{label}</Text>
+      <Text style={[styles.factValue, strong && styles.factValueStrong]} numberOfLines={1}>
         {value}
       </Text>
+      {trailing}
     </View>
   );
 }
+
+
+// Through formatTime, never `new Date` — the server's timestamps are UTC with
+// no marker on them, so a raw parse puts a parent's bus five and a half hours
+// out. See src/services/time.ts.
+const atTime = (iso: string | null | undefined) => formatTime(iso);
+
+/**
+ * A parent is answering two questions and no others: has the bus come, and has
+ * it gone. So the board's five operating states collapse to two here.
+ *
+ * Boarding, Waiting and Replaced are the school's own business — a parent
+ * cannot act on any of them, and "Inside, holding" only reads as something
+ * being wrong. All three mean the bus is at the school, which is what Arrived
+ * says. The board and the gate screens keep the full set; this is the only
+ * place it is narrowed.
+ *
+ * `at` is per-state: a bus that has left is timed by its departure, one still
+ * here by when it took its station. A single "the time" would otherwise mean a
+ * different thing on each card.
+ */
+function statusTone(live: BoardRow | null) {
+  if (live?.Status === STATUS.departed) {
+    return {
+      label: "Departed",
+      color: STATUS_COLOR.Departed,
+      bg: TINT.success,
+      at: atTime(live?.DepartedAt),
+    };
+  }
+
+  if (
+    live?.Status === STATUS.arrived ||
+    live?.Status === STATUS.boarding ||
+    live?.Status === STATUS.waiting
+  ) {
+    return {
+      label: "Arrived",
+      color: STATUS_COLOR.Arrived,
+      bg: TINT.primary,
+      // A holding bus has no station yet, so it is timed by the gate instead.
+      at: atTime(live.Status === STATUS.waiting ? live.EnteredAt : live.AssignedAt),
+    };
+  }
+
+  // Nothing on the board yet, or the service was handed to a reserve — either
+  // way this bus has not arrived. Deliberately not a third coloured state.
+  return {
+    label: "Not arrived yet",
+    color: COLORS.textMuted,
+    bg: COLORS.surfaceAlt,
+    at: null,
+  };
+}
+
+
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.screenBg },
@@ -227,54 +250,58 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.xl,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: SPACING.md,
-    gap: SPACING.md,
+    overflow: "hidden",
     ...SHADOW.card,
   },
+  stripe: { height: 4 },
+  cardBody: { padding: SPACING.md, gap: SPACING.md },
 
-  childRow: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: { color: COLORS.white, fontSize: 20, fontWeight: "900" },
-  childName: { fontSize: 18, fontWeight: "900", color: COLORS.text },
+  childRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm + 4 },
+  childName: { fontSize: 17, fontWeight: "900", color: COLORS.text, letterSpacing: -0.2 },
   childClass: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
 
-  statusBox: {
+  pill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.sm,
+    gap: 5,
     borderWidth: 1,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
+    borderRadius: 20,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
   },
-  statusDot: { width: 10, height: 10, borderRadius: 5 },
-  statusLabel: { fontSize: 15, fontWeight: "900" },
-  statusHint: { fontSize: 12, color: COLORS.textMuted, marginTop: 2, lineHeight: 17 },
+  pillDot: { width: 7, height: 7, borderRadius: 4 },
+  pillText: { fontSize: 10, fontWeight: "900", letterSpacing: 0.3 },
 
-  section: {
+  facts: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: COLORS.border,
-    paddingTop: SPACING.sm,
-    gap: 4,
+    paddingTop: SPACING.md,
   },
-  sectionCap: {
-    fontSize: 9,
+  stationBox: {
+    width: 66,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.md,
+    backgroundColor: TINT.primary,
+    alignItems: "center",
+  },
+  stationCap: {
+    fontSize: 8,
     fontWeight: "900",
-    letterSpacing: 1.2,
+    letterSpacing: 1,
     color: COLORS.textMuted,
-    marginBottom: 2,
   },
-  row: { flexDirection: "row", alignItems: "flex-start", gap: SPACING.md },
-  rowLabel: { width: 78, fontSize: 12, color: COLORS.textMuted },
-  rowValue: { flex: 1, fontSize: 13, color: COLORS.text, textAlign: "right" },
-  rowValueStrong: { fontWeight: "800" },
-  missing: { fontSize: 12, color: COLORS.textMuted, fontStyle: "italic" },
+  stationNo: { fontSize: 28, fontWeight: "900", color: COLORS.primary, lineHeight: 32 },
+
+  fact: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  factLabel: { width: 62, fontSize: 11, color: COLORS.textMuted, fontWeight: "600" },
+  factValue: { flex: 1, fontSize: 13, color: COLORS.text },
+  factValueStrong: { fontWeight: "900", fontSize: 15 },
+
+  noBus: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  missing: { flex: 1, fontSize: 12, color: COLORS.textMuted, fontStyle: "italic" },
 
   emptyCard: {
     alignItems: "center",

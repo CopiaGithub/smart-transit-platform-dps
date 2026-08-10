@@ -6,25 +6,20 @@ import SlotBadge from "../../components/SlotBadge";
 import { LABELS, STATUS, STATUS_COLOR, type Status } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING, TINT } from "../../constants/theme";
 import { usePolling } from "../../src/hooks/usePolling";
-import {
-  fetchQueue,
-  gateOut,
-  selectOpsStats,
-  selectReadyToLeave,
-} from "../../src/store/operations.slice";
+import { fetchQueue, gateOut, selectReadyToLeave } from "../../src/store/operations.slice";
 import { useAppDispatch, useAppSelector } from "../../src/store";
-import { useViewer } from "../auth/useViewer";
 
 /**
  * Exit gate. The bus rolls up already boarding, the guard finds its row and
  * taps the button beside it. Boarding ones sit on top because those are the
  * only ones he may release.
+ *
+ * The post header lives in GateScreen, which is also what decides this body is
+ * the one to show.
  */
 export default function GateOutScreen() {
   const dispatch = useAppDispatch();
-  const gate = useViewer().gate;
   const rows = useAppSelector(selectReadyToLeave);
-  const stats = useAppSelector(selectOpsStats);
   const submitting = useAppSelector((s) => s.ops.submitting);
   const opsError = useAppSelector((s) => s.ops.error);
   const loading = useAppSelector((s) => s.ops.loading);
@@ -39,15 +34,6 @@ export default function GateOutScreen() {
 
   return (
     <View style={styles.root}>
-      <View style={styles.post}>
-        <Feather name="log-out" size={16} color={COLORS.white} />
-        <Text style={styles.postText}>{gate?.label ?? "Exit gate"} · Exit</Text>
-        <View style={{ flex: 1 }} />
-        <Text style={styles.postCount}>
-          {stats.boarding} ready · {stats.onCampus} inside
-        </Text>
-      </View>
-
       {/* Departure cannot be undone from here (§5.7 undoes the last platform
           assignment only), so the bar confirms without offering one. */}
       {!!flash && <FlashBar text={flash} />}
@@ -127,19 +113,7 @@ export default function GateOutScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.screenBg, padding: SPACING.md, gap: SPACING.sm },
-
-  post: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    backgroundColor: COLORS.success,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 10,
-  },
-  postText: { color: COLORS.white, fontWeight: "800", fontSize: 14 },
-  postCount: { color: COLORS.white, opacity: 0.9, fontSize: 12, fontWeight: "700" },
+  root: { flex: 1, gap: SPACING.sm },
 
   alert: {
     flexDirection: "row",

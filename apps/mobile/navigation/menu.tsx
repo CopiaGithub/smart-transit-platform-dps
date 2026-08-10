@@ -1,12 +1,12 @@
 import type { ComponentProps } from "react";
 import { Feather } from "@expo/vector-icons";
-import { LABELS, ROLES, STATUS } from "../constants/domain";
-import { toViewer, worksGate, type Viewer } from "../src/domain/roles";
+import { ROLES, STATUS } from "../constants/domain";
+import { toViewer, type Viewer } from "../src/domain/roles";
+import AttendanceScreen from "../features/attendance/AttendanceScreen";
 import LiveBoardScreen from "../features/board/LiveBoardScreen";
 import BoardingScreen from "../features/boarding/BoardingScreen";
 import DashboardScreen from "../features/dashboard/DashboardScreen";
-import GateInScreen from "../features/gate/GateInScreen";
-import GateOutScreen from "../features/gate/GateOutScreen";
+import GateScreen from "../features/gate/GateScreen";
 import { gated } from "../features/session/gated";
 import MastersScreen from "../features/masters/MastersScreen";
 import ParentScreen from "../features/parent/ParentScreen";
@@ -26,8 +26,12 @@ export type MenuItem = {
 };
 
 const isAdmin = (v: Viewer) => v.role === ROLES.admin;
-/** A guard only ever sees the one direction their gate is for. */
-const guardsGate = (kind: "in" | "out") => (v: Viewer) => worksGate(v, kind);
+/**
+ * One entry, not two. A guard's role names their home post but no longer limits
+ * them to it — the direction is picked on the screen, because posts get covered
+ * mid-shift and a second menu item they were forbidden to open never helped.
+ */
+const worksAGate = (v: Viewer) => v.role === ROLES.security || isAdmin(v);
 
 // Single place to add/remove a section. Order matters: the first item a
 // person can see becomes their home screen.
@@ -36,24 +40,26 @@ export const MENU: MenuItem[] = [
   // that is what their app opens on.
   { name: "Dashboard", title: "Home", icon: "home", component: DashboardScreen, show: isAdmin },
   {
-    name: "GateIn",
-    title: LABELS.gateIn,
-    icon: "log-in",
-    component: gated(GateInScreen),
-    show: guardsGate("in"),
-  },
-  {
-    name: "GateOut",
-    title: LABELS.gateOut,
-    icon: "log-out",
-    component: gated(GateOutScreen),
-    show: guardsGate("out"),
+    name: "Gate",
+    title: "Gate",
+    icon: "shield",
+    component: gated(GateScreen),
+    show: worksAGate,
   },
   {
     name: "Boarding",
     title: STATUS.boarding,
     icon: "users",
     component: gated(BoardingScreen),
+    show: (v) => v.role === ROLES.teacher || isAdmin(v),
+  },
+  // Not gated by a dispersal session: a class is marked in the morning, hours
+  // before anybody opens one.
+  {
+    name: "Attendance",
+    title: "Attendance",
+    icon: "check-square",
+    component: AttendanceScreen,
     show: (v) => v.role === ROLES.teacher || isAdmin(v),
   },
   {

@@ -56,6 +56,16 @@ const config: ExpoConfig = {
   web: {
     favicon: "./assets/favicon.png",
   },
+  // Both plugins only take effect in a development or store build. In Expo Go
+  // the Info.plist is Expo Go's own, so iOS Face ID is unavailable there and
+  // the unlock screen falls back to the MPIN — see features/auth/unlock.ts.
+  plugins: [
+    "expo-secure-store",
+    [
+      "expo-local-authentication",
+      { faceIDPermission: "Allow $(PRODUCT_NAME) to unlock with Face ID instead of a password." },
+    ],
+  ],
   extra: {
     appEnv: APP_ENV,
     apiUrl: env.apiUrl,

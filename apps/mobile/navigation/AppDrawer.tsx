@@ -3,6 +3,7 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import { BOARD, COLORS, RADIUS } from "../constants/theme";
 import { useAppSelector } from "../src/store";
 import DrawerContent from "./DrawerContent";
+import HeaderTitle from "./HeaderTitle";
 import { toViewer, visibleMenu } from "./menu";
 import type { DrawerParamList } from "./types";
 
@@ -38,10 +39,18 @@ export default function AppDrawer() {
           component={item.component}
           options={{
             title: item.title,
+            // Every screen carries the dispersal date under its name, so a
+            // guard glancing down always knows which afternoon they are in.
+            headerTitle: () => (
+              <HeaderTitle
+                title={item.title}
+                tint={item.name === "LiveBoard" ? BOARD.amber : COLORS.white}
+                subTint={item.name === "LiveBoard" ? BOARD.dim : "#FFFFFFB3"}
+              />
+            ),
             // The board mirrors an LED wall, so its chrome stays dark too.
             ...(item.name === "LiveBoard" && {
               headerStyle: { backgroundColor: BOARD.header },
-              headerTitleStyle: { color: BOARD.amber, fontWeight: "700" as const },
             }),
             drawerIcon: ({ color, size }) => (
               <Feather name={item.icon} size={size} color={color} />

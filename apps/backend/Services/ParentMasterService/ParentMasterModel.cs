@@ -86,6 +86,10 @@ public class ParentChildModel
     public string AdmissionNumber { get; set; } = string.Empty;
     public string StudentName { get; set; } = string.Empty;
     public string Class { get; set; } = string.Empty;
+
+    /// <summary>The child's face, when there is one. Null falls back to initials.</summary>
+    public string? PhotoUrl { get; set; }
+
     public string Relation { get; set; } = string.Empty;
     public bool IsPrimaryContact { get; set; }
     public bool IsAuthorisedForPickup { get; set; }

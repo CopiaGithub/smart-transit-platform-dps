@@ -38,7 +38,7 @@ public class BusesMasterService : IBusesMasterService
             query = query.Where(b =>
                 b.BusNumber.Contains(term) ||
                 b.BusType.Contains(term) ||
-                (b.Route != null && b.Route.RouteName.Contains(term)));
+                (b.Route != null && !b.Route.IsDeleted && b.Route.RouteName.Contains(term)));
         }
 
         int totalRecords = await query.CountAsync();
@@ -59,7 +59,12 @@ public class BusesMasterService : IBusesMasterService
                 BusNumber = b.BusNumber,
                 RegistrationNumber = b.RegistrationNumber,
                 RouteId = b.RouteId,
-                RouteName = b.Route != null ? b.Route.RouteName : null,
+                // A soft-deleted route is still reachable through the navigation
+                // property — there is no global query filter — so it has to be
+                // excluded by hand. Printing the name of a route the validator
+                // will reject is what made bus 06 look healthy while every
+                // allocation to it failed.
+                RouteName = b.Route != null && !b.Route.IsDeleted ? b.Route.RouteName : null,
                 BusType = b.BusType,
                 ServiceStatus = b.ServiceStatus,
                 OutOfServiceReason = b.OutOfServiceReason,
@@ -227,6 +232,28 @@ public class BusesMasterService : IBusesMasterService
         if (bus == null)
             return new ServiceResponseDto<bool> { Success = false, Message = "Bus not found." };
 
+        // The same hole routes had: children carry a BusId, so deleting the bus
+        // leaves them pointing at a vehicle that is not there — and the parent
+        // screen would still print its number.
+        bool hasRiders = await _context.StudentMasters.AnyAsync(s => s.BusId == id && !s.IsDeleted);
+        if (hasRiders)
+            return new ServiceResponseDto<bool>
+            {
+                Success = false,
+                Message = "Students are allocated to this bus and it cannot be deleted."
+            };
+
+        // A bus that is still in a dispersal has to finish it. Past sessions are
+        // history and must keep their bus, so only live events block.
+        bool onTheBoard = await _context.BoardingEvents
+            .AnyAsync(e => e.BusId == id && !e.IsDeleted && BoardingStatus.Live.Contains(e.Status));
+        if (onTheBoard)
+            return new ServiceResponseDto<bool>
+            {
+                Success = false,
+                Message = "This bus is on the board right now and cannot be deleted."
+            };
+
         bus.IsDeleted = true;
         bus.IsActive = false;
         bus.UpdatedById = _jwtTokenUtility.GetUserId();
@@ -245,7 +272,8 @@ public class BusesMasterService : IBusesMasterService
         BusNumber = b.BusNumber,
         RegistrationNumber = b.RegistrationNumber,
         RouteId = b.RouteId,
-        RouteName = b.Route?.RouteName,
+        // See the list projection: a deleted route must not be named here either.
+        RouteName = b.Route is { IsDeleted: false } ? b.Route.RouteName : null,
         BusType = b.BusType,
         ServiceStatus = b.ServiceStatus,
         OutOfServiceReason = b.OutOfServiceReason,

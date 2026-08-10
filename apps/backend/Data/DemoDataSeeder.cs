@@ -558,9 +558,12 @@ public static class DemoDataSeeder
         foreach (var pair in pairs)
         {
             int routeId = pair.RouteId, busId = buses[pair.BusNumber];
+            // Match on the bus alone: UX_bus_route_allocation_Standing_Bus allows
+            // one standing row per bus, whatever route it points at. Including
+            // RouteId here missed a bus already standing on another route and
+            // then hit that index.
             await GetOrAddAsync(db, db.BusRouteAllocations,
-                a => a.RouteId == routeId && a.BusId == busId
-                     && a.AllocationType == AllocationKind.Standing,
+                a => a.BusId == busId && a.AllocationType == AllocationKind.Standing,
                 () => new BusRouteAllocation
                 {
                     RouteId = routeId,

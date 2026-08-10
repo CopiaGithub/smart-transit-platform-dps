@@ -151,6 +151,23 @@ public class RoutesMasterService : IRoutesMasterService
         if (route == null)
             return new ServiceResponseDto<bool> { Success = false, Message = "Route not found." };
 
+        // Deleting a route out from under the records that point at it is how
+        // bus 06 ended up allocated to "Panvel", a route that no longer
+        // existed: the bus still listed the name, and the server then refused
+        // every child assigned to that bus because the route failed validation.
+        // Nothing surfaced the contradiction — the bus simply stopped working.
+        //
+        // Same refusal as gates and academic years, for the same reason.
+        bool inUse = await _context.BusesMasters.AnyAsync(b => b.RouteId == id && !b.IsDeleted)
+                  || await _context.StudentMasters.AnyAsync(s => s.RouteId == id && !s.IsDeleted)
+                  || await _context.BusRouteAllocations.AnyAsync(a => a.RouteId == id && !a.IsDeleted);
+        if (inUse)
+            return new ServiceResponseDto<bool>
+            {
+                Success = false,
+                Message = "This route is assigned to buses, students or allocations and cannot be deleted."
+            };
+
         route.IsDeleted = true;
         route.IsActive = false;
         route.UpdatedById = _jwtTokenUtility.GetUserId();

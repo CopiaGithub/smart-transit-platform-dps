@@ -3,6 +3,7 @@ import Constants from "expo-constants";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { LABELS, ROLES } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING } from "../../constants/theme";
+import QuickSignInCard from "../auth/QuickSignInCard";
 import { useSignOut } from "../auth/useSignOut";
 import { useViewer } from "../auth/useViewer";
 
@@ -32,7 +33,9 @@ export default function ProfileScreen() {
         {viewer.role === ROLES.security && (
           <Row
             icon="map-pin"
-            label="Posted at"
+            // Where the shift normally starts. The gate screen can be pointed
+            // anywhere from there, so this is not what they are limited to.
+            label="Home post"
             value={gate ? `${gate.label} · ${gate.kind === "in" ? "Entry" : "Exit"}` : "—"}
           />
         )}
@@ -41,9 +44,7 @@ export default function ProfileScreen() {
           label="You can mark"
           value={
             viewer.role === ROLES.security
-              ? gate?.kind === "out"
-                ? "Departed"
-                : "Arrived"
+              ? "Arrived · Departed"
               : viewer.role === ROLES.teacher
                 ? "Boarding"
                 : viewer.role === ROLES.parent
@@ -52,6 +53,8 @@ export default function ProfileScreen() {
           }
         />
       </View>
+
+      <QuickSignInCard />
 
       <View style={styles.card}>
         <Row icon="smartphone" label="Version" value={String(Constants.expoConfig?.version)} />
