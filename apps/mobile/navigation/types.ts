@@ -10,6 +10,8 @@ export type DrawerParamList = {
   Attendance: undefined;
   MyChild: undefined;
   LiveBoard: undefined;
+  /** The compound drawn as it is on the ground. Admin only, read only. */
+  YardMap: undefined;
   Replace: undefined;
   Reports: undefined;
   Masters: undefined;

@@ -132,7 +132,7 @@ function Row({ bus, index }: { bus: BoardRow; index: number }) {
       <Text style={[styles.cell, styles.colSlot, styles.slot]}>
         {bus.PlatformNumber ?? "—"}
       </Text>
-      <View style={[styles.colStatus, { alignItems: "flex-end" }]}>
+      <View style={styles.colStatus}>
         <Text style={[styles.status, { color }]}>{bus.Status?.toUpperCase()}</Text>
       </View>
     </View>
@@ -247,7 +247,11 @@ const styles = StyleSheet.create({
   colBus: { width: 52 },
   colRoute: { flex: 1, paddingRight: SPACING.sm },
   colSlot: { width: 44, textAlign: "center" },
-  colStatus: { width: 82 },
+  // Carries both alignments because the same style dresses the header, which is
+  // a Text, and the cell, which is a View wrapping one. React Native ignores
+  // textAlign on a View and alignItems on a Text, so each takes the one it can
+  // use and the column finally lines up.
+  colStatus: { width: 82, textAlign: "right", alignItems: "flex-end" },
 
   row: {
     flexDirection: "row",

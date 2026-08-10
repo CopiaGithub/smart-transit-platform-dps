@@ -5,6 +5,7 @@ import {
   type Board,
   type GateInRequest,
   type OperatorQueue,
+  type PlatformStatus,
 } from "../api/operations.api";
 import { ApiError, NetworkError } from "../api/types";
 import { closeSession, resetSession } from "./session.slice";
@@ -19,9 +20,22 @@ import type { RootState } from ".";
  * gate-out promotes a *different* bus into the freed platform (§5.5), so the
  * response for the bus we acted on is not the whole change.
  */
+/**
+ * Which `ops/` thunks are reads. Everything else under that prefix is a write and
+ * drives `submitting`, which disables the gate buttons.
+ *
+ * Listed rather than sniffed out of the action name: this used to read "not queue
+ * and not board", so the next read added would have silently locked every gate
+ * button for the length of its own poll.
+ */
+const READ_THUNKS = ["ops/queue", "ops/board", "ops/platforms"];
+const isRead = (type: string) => READ_THUNKS.some((prefix) => type.startsWith(prefix));
+
 type OpsState = {
   queue: OperatorQueue | null;
   board: Board | null;
+  /** The yard as a map — every platform, occupied or not. Admin screen only. */
+  platforms: PlatformStatus | null;
   /** First load only — a poll must not blank the screen. */
   loading: boolean;
   /** True while a gate action is in flight; blocks double-taps. */
@@ -34,6 +48,7 @@ type OpsState = {
 const initialState: OpsState = {
   queue: null,
   board: null,
+  platforms: null,
   loading: false,
   submitting: false,
   error: null,
@@ -79,6 +94,25 @@ export const fetchBoard = createAsyncThunk<Board, string | undefined, { rejectVa
     }
   },
 );
+
+/**
+ * The yard as a map. Every active platform, whether or not a bus is on it.
+ *
+ * A separate read from the queue on purpose: the queue answers "what can I do
+ * next", this answers "where is everything", and only the admin's yard map asks
+ * the second question.
+ */
+export const fetchPlatformStatus = createAsyncThunk<
+  PlatformStatus,
+  void,
+  { rejectValue: ReadFailure }
+>("ops/platforms", async (_, { rejectWithValue }) => {
+  try {
+    return await operationsApi.getPlatformStatus();
+  } catch (error) {
+    return rejectWithValue(failure(error));
+  }
+});
 
 /** Every write ends the same way: tell the user, then re-read the truth. */
 function gateAction<Arg>(
@@ -179,6 +213,15 @@ const opsSlice = createSlice({
         if (a.payload?.answered) s.board = null;
         s.error = a.payload?.message ?? "Could not read the board.";
       })
+      .addCase(fetchPlatformStatus.fulfilled, (s, a) => {
+        s.platforms = a.payload;
+      })
+      .addCase(fetchPlatformStatus.rejected, (s, a) => {
+        // Same rule as the board: a refusal means the session is gone and the
+        // map must not keep showing buses nobody owns. A dropped poll keeps it.
+        if (a.payload?.answered) s.platforms = null;
+        s.error = a.payload?.message ?? "Could not read the yard.";
+      })
       // Ending the day empties the yard by definition. Without this the tiles
       // and the board table keep yesterday's numbers until the next poll tick.
       .addMatcher(
@@ -186,6 +229,7 @@ const opsSlice = createSlice({
         (s) => {
           s.queue = null;
           s.board = null;
+          s.platforms = null;
           s.error = null;
           s.lastAction = null;
         },
@@ -193,7 +237,7 @@ const opsSlice = createSlice({
       .addMatcher(
         (a) => a.type.startsWith("ops/") && a.type.endsWith("/pending"),
         (s, a: { type: string }) => {
-          if (a.type.includes("queue") || a.type.includes("board")) return;
+          if (isRead(a.type)) return;
           s.submitting = true;
           s.error = null;
         },
@@ -201,7 +245,7 @@ const opsSlice = createSlice({
       .addMatcher(
         (a) => a.type.startsWith("ops/") && a.type.endsWith("/fulfilled"),
         (s, a: { type: string; payload: unknown }) => {
-          if (a.type.includes("queue") || a.type.includes("board")) return;
+          if (isRead(a.type)) return;
           s.submitting = false;
           s.lastAction = typeof a.payload === "string" ? a.payload : null;
         },
@@ -209,7 +253,7 @@ const opsSlice = createSlice({
       .addMatcher(
         (a) => a.type.startsWith("ops/") && a.type.endsWith("/rejected"),
         (s, a: { type: string; payload?: unknown }) => {
-          if (a.type.includes("queue") || a.type.includes("board")) return;
+          if (isRead(a.type)) return;
           s.submitting = false;
           s.error = typeof a.payload === "string" ? a.payload : "The action was refused.";
         },
@@ -224,6 +268,7 @@ export default opsSlice.reducer;
 const empty: never[] = [];
 
 export const selectQueue = (s: RootState) => s.ops.queue;
+export const selectPlatformStatus = (s: RootState) => s.ops.platforms;
 export const selectBoardRows = (s: RootState) => s.ops.board?.Rows ?? empty;
 
 /** Holding a platform — Arrived or Boarding. Server order, untouched. */

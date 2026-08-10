@@ -79,6 +79,56 @@ export type RouteMaster = {
   IsActive: boolean;
 };
 
+export type RouteMasterWrite = {
+  routeCode?: string | null;
+  routeName: string;
+  /** Uppercase short form for the LED wall. Falls back to RouteName when blank. */
+  ledDisplayName?: string | null;
+  isActive?: boolean;
+};
+
+export type PlatformMaster = {
+  Id: number;
+  /** The number painted on the ground. Fixed — students are told to walk to it. */
+  PlatformNumber: number;
+  PlatformName: string | null;
+  /**
+   * The order platforms are handed out in, lowest first — NOT the painted number.
+   * The compound fills from the exit end, so platform 23 normally carries 1.
+   * This is the field to change when a platform closes for repair.
+   */
+  SortOrder: number;
+  /** Which arm of the U-shaped compound: Left or Right. */
+  Side: string | null;
+  IsActive: boolean;
+};
+
+/** Values GateMaster.GateType takes. Only the first two are bus gates. */
+export const GATE_TYPE = {
+  busEntry: "BusEntry",
+  busExit: "BusExit",
+  /** A door students walk out of — belongs to displays and platforms, not to a guard. */
+  studentExit: "StudentExit",
+} as const;
+
+export type GateMaster = {
+  Id: number;
+  /** Short code, e.g. "G6". The digits in it are what tie a gate to its role name. */
+  GateCode: string;
+  GateName: string;
+  GateType: string;
+  SortOrder: number;
+  IsActive: boolean;
+};
+
+export type PlatformMasterWrite = {
+  platformNumber: number;
+  platformName?: string | null;
+  sortOrder: number;
+  side?: string | null;
+  isActive?: boolean;
+};
+
 export type DisplayMaster = {
   Id: number;
   DisplayCode: string;
@@ -106,9 +156,9 @@ function crud<TList, TWrite>(resource: string) {
 export const mastersApi = {
   buses: crud<BusMaster, BusMasterWrite>("BusesMaster"),
   users: crud<UserMaster, UserMasterWrite>("UserMaster"),
-  routes: crud<RouteMaster, { routeCode?: string; routeName: string; ledDisplayName?: string }>(
-    "RoutesMaster",
-  ),
+  routes: crud<RouteMaster, RouteMasterWrite>("RoutesMaster"),
   roles: crud<RoleMaster, { roleName: string }>("RoleMaster"),
   displays: crud<DisplayMaster, never>("DisplayMaster"),
+  platforms: crud<PlatformMaster, PlatformMasterWrite>("PlatformsMaster"),
+  gates: crud<GateMaster, never>("GateMaster"),
 };

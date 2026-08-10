@@ -376,7 +376,9 @@ public static class DemoDataSeeder
 
         // 23 platforms at one bus-length spacing, per the brief. The first half of the
         // U is nearest Exit 1, the second half nearest Exit 2.
-        for (int number = 1; number <= 23; number++)
+        const int PlatformCount = 23;
+
+        for (int number = 1; number <= PlatformCount; number++)
         {
             int platformNumber = number;
             await GetOrAddAsync(db, db.PlatformsMasters,
@@ -385,7 +387,10 @@ public static class DemoDataSeeder
                 {
                     PlatformNumber = platformNumber,
                     PlatformName = $"Station {platformNumber:00}",
-                    SortOrder = platformNumber,
+                    // Buses fill from the exit end, so 23 is handed out first and gets
+                    // SortOrder 1. Deliberately not the platform number: the admin
+                    // reorders this when a platform closes, and nothing gets repainted.
+                    SortOrder = PlatformCount + 1 - platformNumber,
                     NearestGateId = platformNumber <= 12 ? exit1?.Id : exit2?.Id
                 });
         }

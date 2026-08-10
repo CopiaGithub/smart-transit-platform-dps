@@ -14,6 +14,7 @@ import ProfileScreen from "../features/profile/ProfileScreen";
 import ReplaceScreen from "../features/replace/ReplaceScreen";
 import ReportsScreen from "../features/reports/ReportsScreen";
 import SettingsScreen from "../features/settings/SettingsScreen";
+import YardMapScreen from "../features/yard/YardMapScreen";
 import type { DrawerParamList } from "./types";
 
 export type MenuItem = {
@@ -76,6 +77,15 @@ export const MENU: MenuItem[] = [
     icon: "monitor",
     component: LiveBoardScreen,
     show: (v) => v.role !== ROLES.parent,
+  },
+  // Not gated by a session: the yard is a real place whether or not a dispersal
+  // is running, and an admin setting the platform order wants to see the layout.
+  {
+    name: "YardMap",
+    title: "Yard map",
+    icon: "grid",
+    component: YardMapScreen,
+    show: isAdmin,
   },
   {
     name: "Replace",

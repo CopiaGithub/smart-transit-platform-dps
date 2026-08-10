@@ -7,7 +7,7 @@ namespace transit_display_platform_api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+[Authorize(Roles = RoleNames.Admin)]
 public class UserMasterController : ControllerBase
 {
     private readonly IUserMasterService _service;

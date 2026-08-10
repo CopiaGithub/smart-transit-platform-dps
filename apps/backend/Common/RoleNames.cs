@@ -35,4 +35,11 @@ public static class RoleNames
 
     /// <summary>Boarding is started by a teacher at the platform or by gate staff.</summary>
     public const string AnyGateOperatorOrTeacher = $"{AnyGateOperator},{Teacher}";
+
+    /// <summary>
+    /// The two endpoints the parent app reads about itself. A parent is admitted to
+    /// the controller by this, and then pinned to their own record inside the
+    /// action — the role opens the door, the ownership check picks the row.
+    /// </summary>
+    public const string AdminOrParent = $"{Admin},{Parent}";
 }

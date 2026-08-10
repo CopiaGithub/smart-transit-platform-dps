@@ -1,11 +1,14 @@
 import { Feather } from "@expo/vector-icons";
-import { StyleSheet, Text, View } from "react-native";
+import { useMemo } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PickerChip from "../../components/PickerChip";
 import { findGate, LABELS, type Gate } from "../../constants/domain";
 import { COLORS, RADIUS, SPACING } from "../../constants/theme";
+import { toGates } from "../../src/domain/roles";
+import { fetchGates, selectGateRows, selectGatesLoaded } from "../../src/store/masters.slice";
 import { selectOpsStats } from "../../src/store/operations.slice";
-import { useAppSelector } from "../../src/store";
+import { useAppDispatch, useAppSelector } from "../../src/store";
 import { useViewer } from "../auth/useViewer";
 import GateInScreen from "./GateInScreen";
 import GateOutScreen from "./GateOutScreen";
@@ -31,18 +34,47 @@ const DIRECTIONS = [
  */
 export default function GateScreen() {
   const insets = useSafeAreaInsets();
+  const dispatch = useAppDispatch();
   const viewer = useViewer();
-  const { gate, choose, ready } = useGatePost(viewer.userId, viewer.gate);
+  const gateRows = useAppSelector(selectGateRows);
+  const gatesLoaded = useAppSelector(selectGatesLoaded);
   const stats = useAppSelector(selectOpsStats);
 
-  // Storage answers in a frame or two. Rendering the home post meanwhile would
-  // put a covering guard on the wrong keypad for exactly long enough to use it.
-  if (!ready) return <View style={styles.root} />;
+  // Memoised because useGatePost has it in an effect's dependencies — a fresh
+  // array every render would restart that effect forever.
+  const gates = useMemo(() => toGates(gateRows), [gateRows]);
+
+  const { gate, choose, ready } = useGatePost(viewer.userId, viewer.gate, gates);
+
+  // The posts answered, and there were none. Without them there is no way to
+  // know whether this guard takes buses in or lets them out, so the screen says
+  // so plainly instead of leaving a blank frame during a dispersal.
+  if (gatesLoaded && gates.length === 0) {
+    return (
+      <View style={[styles.root, styles.centre]}>
+        <Feather name="alert-triangle" size={34} color={COLORS.warning} />
+        <Text style={styles.emptyTitle}>No gates are set up</Text>
+        <Text style={styles.emptySub}>
+          The app could not read the gate list, so it cannot tell which post you are on. Check
+          the network, or ask an admin to add the entry and exit gates.
+        </Text>
+        <Pressable style={styles.retry} onPress={() => dispatch(fetchGates())}>
+          <Feather name="refresh-cw" size={16} color={COLORS.white} />
+          <Text style={styles.retryText}>Try again</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // Storage and the gate list answer in a frame or two. Rendering the home post
+  // meanwhile would put a covering guard on the wrong keypad for exactly long
+  // enough to use it.
+  if (!ready || !gate) return <View style={styles.root} />;
 
   const entry = gate.kind === "in";
 
   const pickDirection = (kind: string) => {
-    const [first] = gatesFacing(kind as Gate["kind"]);
+    const [first] = gatesFacing(gates, kind as Gate["kind"]);
     if (first) choose(first);
   };
 
@@ -60,8 +92,8 @@ export default function GateScreen() {
         <PickerChip
           title={entry ? "ENTRY GATE" : "EXIT GATE"}
           selected={gate.id}
-          options={gatesFacing(gate.kind).map((g) => ({ key: g.id, label: g.label }))}
-          onSelect={(id) => choose(findGate(id) ?? gate)}
+          options={gatesFacing(gates, gate.kind).map((g) => ({ key: g.id, label: g.label }))}
+          onSelect={(id) => choose(findGate(gates, id) ?? gate)}
         />
 
         <View style={{ flex: 1 }} />
@@ -97,4 +129,25 @@ const styles = StyleSheet.create({
   postIn: { backgroundColor: COLORS.primary },
   postOut: { backgroundColor: COLORS.success },
   postCount: { color: COLORS.white, opacity: 0.9, fontSize: 12, fontWeight: "700" },
+
+  centre: { alignItems: "center", justifyContent: "center", gap: SPACING.sm },
+  emptyTitle: { fontSize: 18, fontWeight: "800", color: COLORS.text },
+  emptySub: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    textAlign: "center",
+    lineHeight: 19,
+    paddingHorizontal: SPACING.md,
+  },
+  retry: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    height: 46,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary,
+  },
+  retryText: { color: COLORS.white, fontWeight: "800", fontSize: 14 },
 });

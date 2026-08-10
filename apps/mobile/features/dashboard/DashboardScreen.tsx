@@ -236,7 +236,10 @@ const styles = StyleSheet.create({
   cBus: { width: 42 },
   cRoute: { flex: 1, paddingRight: SPACING.sm },
   cSlot: { width: 58, textAlign: "center" },
-  cStatus: { width: 74, alignItems: "flex-end" },
+  // textAlign for the header, which is a Text; alignItems for the cell, which is
+  // a View. Each side ignores the property it cannot use, so one style keeps the
+  // heading and the value on the same edge.
+  cStatus: { width: 74, textAlign: "right", alignItems: "flex-end" },
   busNo: { fontWeight: "900", fontSize: 15 },
   slot: { fontWeight: "900", fontSize: 16, color: COLORS.primary },
   status: { fontSize: 11, fontWeight: "900", letterSpacing: 0.3 },

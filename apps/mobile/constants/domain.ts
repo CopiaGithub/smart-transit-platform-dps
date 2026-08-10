@@ -87,14 +87,12 @@ export const ROLE_LABEL: Record<Role, string> = {
  * A security guard is posted at one gate for the shift and picks it at login.
  * Entry gates can only let buses in, exit gates can only let them out — that
  * single choice is what keeps the guard's screen down to one button.
+ *
+ * The gates themselves are no longer listed here. They come from GateMaster and
+ * are mapped by `toGates` in src/domain/roles.ts, so adding Gate 3 is a row in
+ * the database rather than a release.
  */
 export type Gate = { id: string; label: string; kind: "in" | "out" };
 
-// The two gates DPS actually uses: buses enter at 6, leave from 1.
-// ponytail: hardcoded until the Masters API ships — add rows, nothing else.
-export const GATES: Gate[] = [
-  { id: "g6", label: "Gate 6", kind: "in" },
-  { id: "g1", label: "Gate 1", kind: "out" },
-];
-
-export const findGate = (id?: string | null) => GATES.find((g) => g.id === id) ?? null;
+export const findGate = (gates: Gate[], id?: string | null) =>
+  gates.find((g) => g.id === id) ?? null;

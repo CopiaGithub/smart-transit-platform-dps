@@ -1,7 +1,9 @@
 import { Feather } from "@expo/vector-icons";
 import { createDrawerNavigator } from "@react-navigation/drawer";
+import { useEffect } from "react";
 import { BOARD, COLORS, RADIUS } from "../constants/theme";
-import { useAppSelector } from "../src/store";
+import { fetchGates, selectGateRows } from "../src/store/masters.slice";
+import { useAppDispatch, useAppSelector } from "../src/store";
 import DrawerContent from "./DrawerContent";
 import HeaderTitle from "./HeaderTitle";
 import { toViewer, visibleMenu } from "./menu";
@@ -10,8 +12,20 @@ import type { DrawerParamList } from "./types";
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
 export default function AppDrawer() {
+  const dispatch = useAppDispatch();
   const roleName = useAppSelector((s) => s.auth.user?.roleName);
-  const items = visibleMenu(toViewer(roleName));
+  const gateRows = useAppSelector(selectGateRows);
+
+  // The one place the posts are read. This mounts once, after sign-in, and every
+  // screen that names a gate reads the result out of the store.
+  useEffect(() => {
+    dispatch(fetchGates());
+  }, [dispatch]);
+
+  // Deliberately does not wait for the gates. The menu and the screen a person
+  // lands on come from the role alone, so a slow or dead network cannot drop a
+  // guard onto a parent's menu — see toViewer.
+  const items = visibleMenu(toViewer(roleName, gateRows));
 
   return (
     <Drawer.Navigator
