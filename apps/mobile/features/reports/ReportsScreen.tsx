@@ -5,6 +5,7 @@ import { LABELS, STATUS, STATUS_COLOR, type Status } from "../../constants/domai
 import { COLORS, RADIUS, SHADOW, SPACING } from "../../constants/theme";
 import type { BoardRow } from "../../src/api/operations.api";
 import { usePolling } from "../../src/hooks/usePolling";
+import { elapsedMs, formatTime } from "../../src/services/time";
 import { fetchBoard, selectBoardRows } from "../../src/store/operations.slice";
 import { useAppDispatch, useAppSelector } from "../../src/store";
 
@@ -44,7 +45,7 @@ export default function ReportsScreen() {
   // Turnaround only means anything for buses that completed a run.
   const dwells = rows
     .filter((r) => r.Status === STATUS.departed && r.AssignedAt && r.DepartedAt)
-    .map((r) => new Date(r.DepartedAt!).getTime() - new Date(r.AssignedAt!).getTime());
+    .map((r) => elapsedMs(r.AssignedAt, r.DepartedAt) ?? 0);
   const avgMins = dwells.length ? dwells.reduce((a, b) => a + b, 0) / dwells.length / 60000 : 0;
 
   return (
@@ -155,8 +156,9 @@ function Kpi({
   );
 }
 
-const hhmm = (t: string | null) =>
-  t ? new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—";
+// Through formatTime, never `new Date` — a database timestamp comes back as
+// UTC with nothing saying so. See src/services/time.ts.
+const hhmm = (t: string | null) => formatTime(t, "en-GB") ?? "—";
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.screenBg },

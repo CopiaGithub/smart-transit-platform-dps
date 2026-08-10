@@ -5,7 +5,7 @@ import { StatusBar, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OfflineBanner from "../components/OfflineBanner";
 import { COLORS } from "../constants/theme";
-import LoginScreen from "../features/auth/LoginScreen";
+import SignInScreen from "../features/auth/SignInScreen";
 import SplashScreen from "../features/splash/SplashScreen";
 import { navigationRef } from "../src/services/navigationRef";
 import { restoreSession } from "../src/store/auth.slice";
@@ -91,7 +91,9 @@ function RootNavigator() {
         // Drawer brings its own header (with the hamburger).
         <Stack.Screen name="Main" component={AppDrawer} options={{ headerShown: false }} />
       ) : (
-        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+        // SignInScreen picks the MPIN pad or the password form behind this one
+        // route, so auth still decides only "token or no token".
+        <Stack.Screen name="Login" component={SignInScreen} options={{ headerShown: false }} />
       )}
     </Stack.Navigator>
   );

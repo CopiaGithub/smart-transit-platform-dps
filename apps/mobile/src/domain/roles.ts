@@ -4,6 +4,19 @@ import { GATES, ROLES, type Gate, type Role } from "../../constants/domain";
 export type Viewer = { role: Role; gate: Gate | null };
 
 /**
+ * There is deliberately no `worksGate(viewer, kind)` here any more.
+ *
+ * It used to answer "may this guard record arrivals?" and the menu hid a screen
+ * on the strength of it. That was wrong about the job: when the Gate 6 operator
+ * goes home ill, whoever covers the post has to record arrivals, and a client
+ * that says no simply stops the school. The server agrees now too — both
+ * operator roles are accepted on both endpoints.
+ *
+ * So `gate` below is a *home post*, the sensible place to start the shift, and
+ * nothing treats it as a limit.
+ */
+
+/**
  * Server role name -> what the app lets a person see.
  *
  * The live roles are `Admin`, `Teacher`, `Parent`, `Gate 6 Operator` and
@@ -32,10 +45,6 @@ export function toViewer(roleName: string | null | undefined): Viewer {
   return { role: ROLES.parent, gate: null };
 }
 
-/** A guard only ever works the one direction their gate is for; admin does both. */
-export const worksGate = (v: Viewer, kind: "in" | "out") =>
-  v.role === ROLES.admin || (v.role === ROLES.security && v.gate?.kind === kind);
-
 // ponytail: run with `npx tsx src/domain/roles.ts` — no test framework.
 export function selfCheck() {
   const assert = (cond: boolean, msg: string) => {
@@ -53,21 +62,22 @@ export function selfCheck() {
   // Case and spacing are the server's to choose, not ours to depend on.
   assert(toViewer("  gate 6 operator  ").gate?.id === "g6", "trimmed and lowercased");
 
-  // Entry and exit stay apart — that separation is the point of the two roles.
+  // The gate is where a guard starts, not where they are stuck — both of these
+  // people get the same screen, only pointing different ways to begin with.
   const g6 = toViewer("Gate 6 Operator");
   const g1 = toViewer("Gate 1 Operator");
-  assert(worksGate(g6, "in") && !worksGate(g6, "out"), "Gate 6 cannot record departures");
-  assert(worksGate(g1, "out") && !worksGate(g1, "in"), "Gate 1 cannot record arrivals");
+  assert(g6.role === g1.role, "both operators are the same kind of user");
+  assert(g6.gate?.kind === "in" && g1.gate?.kind === "out", "they start on opposite posts");
 
-  const admin = toViewer("Admin");
-  assert(worksGate(admin, "in") && worksGate(admin, "out"), "an admin works both gates");
+  // An admin has no post of their own, so the screen picks a starting one.
+  assert(toViewer("Admin").gate === null, "an admin is posted nowhere");
 
   // Anything unknown degrades to the smallest menu, never to a gate.
   for (const unknown of ["", "   ", "Librarian", "Gate", "Operator", "Gate 99 Operator"]) {
     const v = toViewer(unknown);
     assert(v.role === ROLES.parent, `"${unknown}" degrades to parent`);
     assert(v.gate === null, `"${unknown}" gets no gate`);
-    assert(!worksGate(v, "in") && !worksGate(v, "out"), `"${unknown}" works no gate`);
+    assert(v.role !== ROLES.security, `"${unknown}" is never handed a gate screen`);
   }
 
   return "roles: all checks passed";

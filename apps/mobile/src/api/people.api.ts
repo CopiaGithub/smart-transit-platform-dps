@@ -20,6 +20,8 @@ export type ParentChild = {
   StudentName: string;
   /** Already formatted by the server, e.g. "5-A". */
   Class: string;
+  /** The child's face. Null for most of them — the card falls back to initials. */
+  PhotoUrl: string | null;
   Relation: string;
   IsPrimaryContact: boolean;
   IsAuthorisedForPickup: boolean;

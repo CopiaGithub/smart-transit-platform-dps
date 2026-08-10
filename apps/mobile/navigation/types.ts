@@ -4,9 +4,10 @@ import type { NavigatorScreenParams } from "@react-navigation/native";
 // is decided in menu.ts by their role and gate.
 export type DrawerParamList = {
   Dashboard: undefined;
-  GateIn: undefined;
-  GateOut: undefined;
+  /** Entry and exit in one screen — the direction is picked inside it. */
+  Gate: undefined;
   Boarding: undefined;
+  Attendance: undefined;
   MyChild: undefined;
   LiveBoard: undefined;
   Replace: undefined;
