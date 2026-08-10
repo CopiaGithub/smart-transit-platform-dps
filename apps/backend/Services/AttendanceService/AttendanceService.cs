@@ -162,7 +162,100 @@ public class AttendanceService : IAttendanceService
         };
     }
 
+    public async Task<ServiceResponseDto<List<BusRollCallModel>>> GetByBusAsync(
+        DateOnly? date = null, int? academicYearId = null)
+    {
+        var on = date ?? _clock.Today;
+        if (on > _clock.Today)
+            return Fail<List<BusRollCallModel>>("That day has not happened yet.");
+
+        int? yearId = await ResolveYearAsync(academicYearId);
+        if (yearId == null) return Fail<List<BusRollCallModel>>("No academic year is set as current.");
+
+        // Only children the school actually puts on a bus. UsesTransport is the
+        // school's own flag; BusId being null means nobody has allocated them yet,
+        // and either way there is no bus for them to hold up.
+        var riders = await _context.StudentMasters
+            .Where(s => !s.IsDeleted && s.IsActive && s.AcademicYearId == yearId
+                     && s.UsesTransport && s.BusId != null)
+            .Select(s => new
+            {
+                s.Id,
+                s.AdmissionNumber,
+                s.FirstName,
+                s.MiddleName,
+                s.LastName,
+                s.Grade,
+                s.Division,
+                BusId = s.BusId!.Value,
+                BusNumber = s.Bus!.BusNumber,
+                RouteName = s.Route!.RouteName
+            })
+            .ToListAsync();
+
+        if (riders.Count == 0)
+            return new ServiceResponseDto<List<BusRollCallModel>> { Data = new(), TotalRecords = 0 };
+
+        var riderIds = riders.Select(r => r.Id).ToList();
+
+        var marks = await _context.StudentAttendances
+            .Where(a => !a.IsDeleted && a.AttendanceDate == on && riderIds.Contains(a.StudentId))
+            .Select(a => new { a.StudentId, a.IsPresent })
+            .ToListAsync();
+
+        var byStudent = marks.ToDictionary(a => a.StudentId, a => a.IsPresent);
+
+        var buses = riders
+            .GroupBy(r => new { r.BusId, r.BusNumber, r.RouteName })
+            .Select(g =>
+            {
+                // Three states, not two: marked present, marked absent, and nobody
+                // has said. The third is why PresentCount alone is not enough to
+                // tell a teacher the bus is ready to go.
+                var marked = g
+                    .Select(r => new { Rider = r, Present = Look(byStudent, r.Id) })
+                    .ToList();
+
+                return new BusRollCallModel
+                {
+                    BusId = g.Key.BusId,
+                    BusNumber = g.Key.BusNumber,
+                    RouteName = g.Key.RouteName,
+                    TotalStudents = marked.Count,
+                    PresentCount = marked.Count(m => m.Present == true),
+                    AbsentCount = marked.Count(m => m.Present == false),
+                    UnmarkedCount = marked.Count(m => m.Present == null),
+                    Absentees = marked
+                        .Where(m => m.Present == false)
+                        .Select(m => new BusRollCallStudentModel
+                        {
+                            StudentId = m.Rider.Id,
+                            AdmissionNumber = m.Rider.AdmissionNumber,
+                            Name = FullName(m.Rider.FirstName, m.Rider.MiddleName, m.Rider.LastName),
+                            Class = $"{m.Rider.Grade}-{m.Rider.Division}"
+                        })
+                        .OrderBy(s => s.Name)
+                        .ToList()
+                };
+            })
+            .OrderBy(b => b.BusNumber)
+            .ToList();
+
+        return new ServiceResponseDto<List<BusRollCallModel>>
+        {
+            Data = buses,
+            TotalRecords = buses.Count
+        };
+    }
+
     // ── internals ───────────────────────────────────────────────────────────
+
+    private static bool? Look(Dictionary<int, bool> marks, int studentId) =>
+        marks.TryGetValue(studentId, out var present) ? present : null;
+
+    private static string FullName(string first, string? middle, string last) =>
+        string.Join(" ", new[] { first, middle, last }
+            .Where(part => !string.IsNullOrWhiteSpace(part)));
 
     /// <summary>Reads the class and folds in whatever is stored for the date.</summary>
     private async Task<AttendanceRosterModel> RosterAsync(
@@ -181,7 +274,11 @@ public class AttendanceService : IAttendanceService
                 s.MiddleName,
                 s.LastName,
                 s.PhotoUrl,
-                YearName = s.AcademicYear!.YearName
+                YearName = s.AcademicYear!.YearName,
+                // Nullable FKs, so these become LEFT JOINs and read null for a
+                // child who walks home. `!` silences the compiler, not the database.
+                BusNumber = s.Bus!.BusNumber,
+                RouteName = s.Route!.RouteName
             })
             .ToListAsync();
 
@@ -206,10 +303,11 @@ public class AttendanceService : IAttendanceService
         {
             StudentId = s.Id,
             AdmissionNumber = s.AdmissionNumber,
-            Name = string.Join(" ", new[] { s.FirstName, s.MiddleName, s.LastName }
-                .Where(part => !string.IsNullOrWhiteSpace(part))),
+            Name = FullName(s.FirstName, s.MiddleName, s.LastName),
             PhotoUrl = s.PhotoUrl,
-            IsPresent = byStudent.TryGetValue(s.Id, out var present) ? present : null
+            IsPresent = byStudent.TryGetValue(s.Id, out var present) ? present : null,
+            BusNumber = s.BusNumber,
+            RouteName = s.RouteName
         }).ToList();
 
         return new AttendanceRosterModel

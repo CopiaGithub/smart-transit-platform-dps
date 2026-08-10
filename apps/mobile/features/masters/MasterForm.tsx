@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useFormik } from "formik";
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -19,14 +19,21 @@ import { LABELS } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING, TINT } from "../../constants/theme";
 import {
   BUS_TYPE,
+  PLATFORM_SIDE,
   SERVICE_STATUS,
   type BusMaster,
+  type PlatformMaster,
+  type RouteMaster,
   type UserMaster,
 } from "../../src/api/masters.api";
 import {
   removeBus,
+  removePlatform,
+  removeRoute,
   removeUser,
   saveBus,
+  savePlatform,
+  saveRoute,
   saveUser,
   selectRoles,
   selectRoutes,
@@ -45,9 +52,17 @@ const SERVICE_OPTIONS = [
 // ── bus ─────────────────────────────────────────────────────────────────────
 export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onClose: () => void }) {
   const dispatch = useAppDispatch();
-  const routes = useAppSelector(selectRoutes);
+  const allRoutes = useAppSelector(selectRoutes);
   const saving = useAppSelector((s) => s.masters.saving);
   const bus = editing?.row ?? null;
+
+  // Retired routes are not offered — but the one this bus is already on stays on
+  // the list even after it retires. Dropping it would show the bus as having no
+  // route and quietly blank the field on the next save.
+  const routes = useMemo(
+    () => allRoutes.filter((r) => r.IsActive || r.Id === bus?.RouteId),
+    [allRoutes, bus?.RouteId],
+  );
 
   const form = useFormik({
     enableReinitialize: true,
@@ -380,6 +395,261 @@ export function UserForm({
   );
 }
 
+// ── platform ────────────────────────────────────────────────────────────────
+/**
+ * The screen the whole allocation order hangs off.
+ *
+ * Two numbers live here and they are deliberately not the same one. The platform
+ * number is painted on the ground and a child is told to walk to it, so it never
+ * moves. The allocation order is what the server hands buses out by, lowest
+ * first — and because the compound fills from the exit end, platform 23 normally
+ * carries order 1. Closing a platform for repair changes the order, or switches
+ * the platform off; neither needs anything repainted.
+ */
+export function PlatformForm({
+  editing,
+  onClose,
+}: {
+  editing: Editing<PlatformMaster>;
+  onClose: () => void;
+}) {
+  const dispatch = useAppDispatch();
+  const saving = useAppSelector((s) => s.masters.saving);
+  const platform = editing?.row ?? null;
+
+  const form = useFormik({
+    enableReinitialize: true,
+    initialValues: {
+      platformNumber: platform ? String(platform.PlatformNumber) : "",
+      platformName: platform?.PlatformName ?? "",
+      sortOrder: platform ? String(platform.SortOrder) : "",
+      side: platform?.Side ?? null,
+      isActive: platform?.IsActive ?? true,
+    },
+    validationSchema: Yup.object({
+      platformNumber: Yup.string()
+        .trim()
+        .required("Platform number is required")
+        .test("positive", "Must be a number above zero", (v) => Number(v) > 0),
+      sortOrder: Yup.string()
+        .trim()
+        .required("Allocation order is required")
+        .test("positive", "Must be a number above zero", (v) => Number(v) > 0),
+    }),
+    onSubmit: async (v) => {
+      const result = await dispatch(
+        savePlatform({
+          id: platform?.Id,
+          body: {
+            platformNumber: Number(v.platformNumber),
+            platformName: v.platformName.trim() || null,
+            sortOrder: Number(v.sortOrder),
+            side: v.side,
+            isActive: v.isActive,
+          },
+        }),
+      );
+      if (savePlatform.fulfilled.match(result)) onClose();
+    },
+  });
+
+  const confirmDelete = () =>
+    Alert.alert(
+      `Delete ${LABELS.slot.toLowerCase()} ${platform?.PlatformNumber}?`,
+      "It stops being handed out but is kept, so past dispersal reports still make sense. " +
+        "To close it only for today, switch it off instead.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            if (!platform) return;
+            const result = await dispatch(removePlatform(platform.Id));
+            if (removePlatform.fulfilled.match(result)) onClose();
+          },
+        },
+      ],
+    );
+
+  return (
+    <Sheet
+      visible={!!editing}
+      title={
+        platform
+          ? `${LABELS.slot} ${String(platform.PlatformNumber).padStart(2, "0")}`
+          : `New ${LABELS.slot.toLowerCase()}`
+      }
+      saving={saving}
+      onClose={onClose}
+      onSave={form.handleSubmit}
+      onDelete={platform ? confirmDelete : undefined}
+    >
+      <Field
+        label="PLATFORM NUMBER (PAINTED ON THE GROUND)"
+        value={form.values.platformNumber}
+        onChangeText={form.handleChange("platformNumber")}
+        onBlur={form.handleBlur("platformNumber")}
+        error={form.touched.platformNumber ? form.errors.platformNumber : undefined}
+        keyboardType="number-pad"
+        placeholder="23"
+        maxLength={3}
+      />
+
+      <Field
+        label="ALLOCATION ORDER"
+        value={form.values.sortOrder}
+        onChangeText={form.handleChange("sortOrder")}
+        onBlur={form.handleBlur("sortOrder")}
+        error={form.touched.sortOrder ? form.errors.sortOrder : undefined}
+        keyboardType="number-pad"
+        placeholder="1"
+        maxLength={3}
+      />
+      <Text style={styles.hint}>
+        Buses are given the lowest free number here, not the lowest platform. The yard fills
+        from the exit end, so {LABELS.slot.toLowerCase()} 23 is normally 1. Change this to move
+        a {LABELS.slot.toLowerCase()} earlier or later in the queue — nothing gets repainted.
+      </Text>
+
+      <Field
+        label="NAME (OPTIONAL)"
+        value={form.values.platformName}
+        onChangeText={form.handleChange("platformName")}
+        placeholder="Station 23"
+        maxLength={50}
+      />
+
+      <Chips
+        label="SIDE OF THE COMPOUND"
+        value={form.values.side}
+        options={[
+          { value: null, label: "Not set" },
+          { value: PLATFORM_SIDE.left as string | null, label: "Left" },
+          { value: PLATFORM_SIDE.right as string | null, label: "Right" },
+        ]}
+        onPick={(v) => form.setFieldValue("side", v)}
+      />
+
+      <Toggle
+        label="Open for buses"
+        hint="Switch off while it is blocked or under repair. It is skipped when a bus is given a platform, and any bus already standing on it stays put."
+        value={form.values.isActive}
+        onChange={(v) => form.setFieldValue("isActive", v)}
+      />
+    </Sheet>
+  );
+}
+
+// ── route ───────────────────────────────────────────────────────────────────
+export function RouteForm({
+  editing,
+  onClose,
+}: {
+  editing: Editing<RouteMaster>;
+  onClose: () => void;
+}) {
+  const dispatch = useAppDispatch();
+  const saving = useAppSelector((s) => s.masters.saving);
+  const route = editing?.row ?? null;
+
+  const form = useFormik({
+    enableReinitialize: true,
+    initialValues: {
+      routeName: route?.RouteName ?? "",
+      routeCode: route?.RouteCode ?? "",
+      ledDisplayName: route?.LedDisplayName ?? "",
+      isActive: route?.IsActive ?? true,
+    },
+    validationSchema: Yup.object({
+      routeName: Yup.string().trim().required("Route name is required").max(100, "Too long"),
+    }),
+    onSubmit: async (v) => {
+      const result = await dispatch(
+        saveRoute({
+          id: route?.Id,
+          body: {
+            routeName: v.routeName.trim(),
+            routeCode: v.routeCode.trim() || null,
+            ledDisplayName: v.ledDisplayName.trim() || null,
+            isActive: v.isActive,
+          },
+        }),
+      );
+      if (saveRoute.fulfilled.match(result)) onClose();
+    },
+  });
+
+  const confirmDelete = () =>
+    Alert.alert(
+      `Delete ${route?.RouteName}?`,
+      `It is hidden from every list but kept, so past dispersal reports still make sense. ` +
+        `${LABELS.vehiclePlural} already on this route keep it until you move them.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            if (!route) return;
+            const result = await dispatch(removeRoute(route.Id));
+            if (removeRoute.fulfilled.match(result)) onClose();
+          },
+        },
+      ],
+    );
+
+  return (
+    <Sheet
+      visible={!!editing}
+      title={route ? route.RouteName : `New ${LABELS.route.toLowerCase()}`}
+      saving={saving}
+      onClose={onClose}
+      onSave={form.handleSubmit}
+      onDelete={route ? confirmDelete : undefined}
+    >
+      <Field
+        label={`${LABELS.route.toUpperCase()} NAME`}
+        value={form.values.routeName}
+        onChangeText={form.handleChange("routeName")}
+        onBlur={form.handleBlur("routeName")}
+        error={form.touched.routeName ? form.errors.routeName : undefined}
+        placeholder="Seawoods — Palm Beach Road"
+        maxLength={100}
+      />
+
+      <Field
+        label="CODE (OPTIONAL)"
+        value={form.values.routeCode}
+        onChangeText={form.handleChange("routeCode")}
+        placeholder="R04"
+        autoCapitalize="characters"
+        maxLength={20}
+      />
+
+      <Field
+        label="LED BOARD NAME (OPTIONAL)"
+        value={form.values.ledDisplayName}
+        onChangeText={form.handleChange("ledDisplayName")}
+        placeholder="SEAWOODS"
+        autoCapitalize="characters"
+        maxLength={50}
+      />
+      <Text style={styles.hint}>
+        The short form the LED wall shows. Left blank, the wall falls back to the full route
+        name — which is usually too long to read across the compound.
+      </Text>
+
+      <Toggle
+        label="In use"
+        hint="Switch off for a route the school has stopped running. It disappears from the pickers but stays on past records."
+        value={form.values.isActive}
+        onChange={(v) => form.setFieldValue("isActive", v)}
+      />
+    </Sheet>
+  );
+}
+
 // ── shared chrome ───────────────────────────────────────────────────────────
 function Sheet({
   visible,
@@ -559,6 +829,9 @@ const styles = StyleSheet.create({
   },
   inputBad: { borderColor: COLORS.danger, backgroundColor: TINT.danger },
   error: { color: COLORS.danger, fontSize: 12, fontWeight: "600" },
+  // Sits under a field whose meaning is not obvious from its label — the
+  // allocation order in particular is the one number an admin can get wrong.
+  hint: { fontSize: 11, color: COLORS.textMuted, lineHeight: 16, marginTop: -SPACING.xs },
 
   chips: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   chip: {

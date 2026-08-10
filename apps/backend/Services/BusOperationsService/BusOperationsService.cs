@@ -732,15 +732,28 @@ public class BusOperationsService : IBusOperationsService
             s.Id == sessionId && !s.IsDeleted && s.Status == DispersalSessionService.DispersalSessionService.Open);
     }
 
+    /// <summary>
+    /// Platforms in the order they are handed out, which is <see cref="PlatformsMaster.SortOrder"/>
+    /// and NOT the number painted on the ground.
+    ///
+    /// The compound fills from the exit end, so the platform nearest the exit has the
+    /// lowest SortOrder. Keeping the two apart is the point: when a platform is closed
+    /// for repair the admin reorders it, and nothing has to be renumbered or repainted.
+    ///
+    /// PlatformNumber is the tiebreak so two platforms sharing a SortOrder still come
+    /// back in a fixed order — without it SQL Server may return them either way round
+    /// and the same yard state would allocate differently on different calls.
+    /// </summary>
     private Task<List<PlatformsMaster>> ActivePlatformsAsync() =>
         _context.PlatformsMasters
             .Where(p => !p.IsDeleted && p.IsActive)
-            .OrderBy(p => p.PlatformNumber)
+            .OrderBy(p => p.SortOrder)
+            .ThenBy(p => p.PlatformNumber)
             .ToListAsync();
 
     /// <summary>
-    /// Lowest-numbered platform not currently held. Returns null when the yard is
-    /// full — more buses than marked platforms is a real operating state.
+    /// First platform in allocation order that is not currently held. Returns null when
+    /// the yard is full — more buses than marked platforms is a real operating state.
     /// </summary>
     private async Task<int?> NextFreePlatformIdAsync(int sessionId)
     {

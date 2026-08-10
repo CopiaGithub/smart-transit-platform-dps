@@ -49,6 +49,23 @@ public class AttendanceController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>
+    /// The day's attendance per bus instead of per class — what the boarding screen
+    /// reads to tell a teacher how many children a bus is waiting for, and which of
+    /// them never came to school.
+    /// </summary>
+    [HttpGet("by-bus")]
+    public async Task<IActionResult> GetByBus(
+        [FromQuery] DateOnly? date,
+        [FromQuery] int? academicYearId)
+    {
+        var response = await _service.GetByBusAsync(date, academicYearId);
+        if (!response.Success)
+            return BadRequest(response.Message);
+
+        return Ok(response);
+    }
+
     /// <summary>Saves the marks and answers with the roster as it now stands.</summary>
     [HttpPost]
     public async Task<IActionResult> PostAttendance([FromBody] SaveAttendanceModel model)

@@ -5,6 +5,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Avatar from "../../components/Avatar";
 import FlashBar, { useFlash } from "../../components/FlashBar";
+import { LABELS } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING, TINT } from "../../constants/theme";
 import {
   attendanceApi,
@@ -297,7 +298,18 @@ export default function AttendanceScreen() {
                   <Text style={styles.name} numberOfLines={1}>
                     {item.Name}
                   </Text>
-                  <Text style={styles.admission}>#{item.AdmissionNumber}</Text>
+                  <Text style={styles.admission}>
+                    #{item.AdmissionNumber}
+                    {/* Which bus this absence will hold up, said here rather
+                        than looked up later. A teacher marking a child away
+                        can see it is bus 12 that need not wait for them. */}
+                    {item.BusNumber ? (
+                      <Text style={styles.busTag}>
+                        {"  ·  "}
+                        {LABELS.vehicle} {item.BusNumber}
+                      </Text>
+                    ) : null}
+                  </Text>
                 </View>
 
                 {/* Two explicit buttons rather than one toggle: a teacher
@@ -497,6 +509,7 @@ const styles = StyleSheet.create({
   rowAbsent: { backgroundColor: TINT.danger, borderColor: COLORS.danger + "44" },
   name: { fontSize: 15, fontWeight: "800", color: COLORS.text },
   admission: { fontSize: 11, color: COLORS.textMuted, marginTop: 1 },
+  busTag: { color: COLORS.primary, fontWeight: "700" },
 
   toggle: { flexDirection: "row", borderRadius: RADIUS.sm, overflow: "hidden" },
   half: {

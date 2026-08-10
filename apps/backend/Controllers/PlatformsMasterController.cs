@@ -7,7 +7,12 @@ namespace transit_display_platform_api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+/// <summary>
+/// Admin only, reads included. SortOrder here decides which platform an arriving
+/// bus is sent to (see BusOperationsService.ActivePlatformsAsync), so editing this
+/// table reorders the live yard — that is not a gate operator's or a parent's call.
+/// </summary>
+[Authorize(Roles = RoleNames.Admin)]
 public class PlatformsMasterController : ControllerBase
 {
     private readonly IPlatformsMasterService _service;

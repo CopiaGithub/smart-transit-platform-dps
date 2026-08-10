@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { ROLE_LABEL, type Gate, type Role } from "../../constants/domain";
 import { toViewer } from "../../navigation/menu";
+import { selectGateRows } from "../../src/store/masters.slice";
 import { useAppSelector } from "../../src/store";
 
 /**
@@ -21,9 +22,12 @@ export type Viewer = {
 
 export function useViewer(): Viewer {
   const user = useAppSelector((s) => s.auth.user);
+  // Empty until GateMaster answers. The role is already right without it, so
+  // only `gate` is briefly null — which every screen that reads it handles.
+  const gateRows = useAppSelector(selectGateRows);
 
   return useMemo(() => {
-    const { role, gate } = toViewer(user?.roleName);
+    const { role, gate } = toViewer(user?.roleName, gateRows);
     return {
       userId: user?.userId ?? null,
       name: user?.name ?? "",
@@ -31,5 +35,5 @@ export function useViewer(): Viewer {
       roleLabel: ROLE_LABEL[role],
       gate,
     };
-  }, [user]);
+  }, [user, gateRows]);
 }

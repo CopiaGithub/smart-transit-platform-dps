@@ -30,7 +30,14 @@ export type PagedQuery = {
   searchTerm?: string;
   sortBy?: string; // name
   descending?: boolean; // false
-  isActive?: boolean; // true — false includes deactivated records
+  /**
+   * Filters to records with this exact flag, defaulting to `true`.
+   *
+   * NOT "include inactive": `false` returns ONLY deactivated records, because
+   * the server applies `Where(IsActive == value)` either way. There is no value
+   * that asks for both — a screen wanting the whole list has to ask twice.
+   */
+  isActive?: boolean;
 };
 
 /**

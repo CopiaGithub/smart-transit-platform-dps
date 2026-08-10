@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using transit_display_platform_api.Common;
 using transit_display_platform_api.Services.MenuAssignmentService;
 
 namespace transit_display_platform_api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+[Authorize(Roles = RoleNames.Admin)]
 public class MenuAssignmentController : ControllerBase
 {
     private readonly IMenuAssignmentService _service;

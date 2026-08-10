@@ -4,8 +4,12 @@ import {
   type BusMaster,
   type BusMasterWrite,
   type DisplayMaster,
+  type GateMaster,
+  type PlatformMaster,
+  type PlatformMasterWrite,
   type RoleMaster,
   type RouteMaster,
+  type RouteMasterWrite,
   type UserMaster,
   type UserMasterWrite,
 } from "../api/masters.api";
@@ -24,10 +28,28 @@ const emptyPage = <T,>(): Page<T> => ({ items: [], total: 0, page: 1, loading: f
 type MastersState = {
   buses: Page<BusMaster>;
   users: Page<UserMaster>;
-  /** Small lookup lists, loaded whole — they are picker options, not pages. */
+  /**
+   * Loaded whole rather than paged. A school has a handful of routes and one
+   * platform per painted bay — both are small, fixed lists, so a page number
+   * and a debounced server search would be machinery for nothing. Buses and
+   * users are paged because they genuinely grow.
+   */
   routes: RouteMaster[];
   roles: RoleMaster[];
   displays: DisplayMaster[];
+  platforms: PlatformMaster[];
+  /**
+   * Which posts exist. Read by every signed-in user, not just an admin — a
+   * guard's own post is worked out from these, so the Gate screen cannot render
+   * without them.
+   */
+  gates: GateMaster[];
+  /**
+   * True once the gates request has answered, succeeded or failed. The Gate
+   * screen needs the difference: still loading is a blank frame, answered-with-
+   * nothing is a guard who has to be told, not left staring.
+   */
+  gatesLoaded: boolean;
   /** Server's own wording for the last failed write. */
   error: string | null;
   saving: boolean;
@@ -39,6 +61,9 @@ const initialState: MastersState = {
   routes: [],
   roles: [],
   displays: [],
+  platforms: [],
+  gates: [],
+  gatesLoaded: false,
   error: null,
   saving: false,
 };
@@ -74,19 +99,119 @@ export const fetchUsers = createAsyncThunk<
   }
 });
 
-/** Picker options. Fetched once per visit, not per keystroke. */
+/**
+ * Picker options and the routes admin list. Fetched once per visit, not per keystroke.
+ *
+ * Routes come in two calls for the same reason platforms do: `isActive` filters
+ * to that exact flag, so retired routes are invisible unless asked for
+ * separately — and the routes screen has to be able to switch one back on.
+ * Roles stay active-only; they are a picker here and nothing edits them.
+ *
+ * Consumers that need only live routes filter this list themselves — see
+ * BusForm, which keeps a bus's own route on the list even after it retires.
+ */
 export const fetchLookups = createAsyncThunk("masters/lookups", async () => {
-  const [routes, roles] = await Promise.all([
-    mastersApi.routes.list({ pageSize: 100 }),
+  const [routes, retiredRoutes, roles] = await Promise.all([
+    mastersApi.routes.list({ pageSize: 100, isActive: true }),
+    mastersApi.routes.list({ pageSize: 100, isActive: false }),
     mastersApi.roles.list({ pageSize: 50 }),
   ]);
-  return { routes: routes.Items, roles: roles.Items };
+  return { routes: [...routes.Items, ...retiredRoutes.Items], roles: roles.Items };
+});
+
+/**
+ * The posts. Fetched once when the drawer mounts, because the Gate screen and
+ * the Profile both need to name a guard's post and neither can work it out
+ * alone. Failure is swallowed into `gates: []` rather than an error banner —
+ * the menu is already correct without them (see toViewer), and a guard whose
+ * post is merely unnamed can still pick one on screen.
+ */
+export const fetchGates = createAsyncThunk("masters/gates", async () => {
+  const r = await mastersApi.gates.list({ pageSize: 50 });
+  return r.Items;
 });
 
 export const fetchDisplays = createAsyncThunk("masters/displays", async () => {
   const r = await mastersApi.displays.list({ pageSize: 50 });
   return r.Items;
 });
+
+/**
+ * Every platform, open and closed alike.
+ *
+ * Asked for in two calls because the server has no "both" option: `isActive`
+ * filters to that exact flag (see PagedQuery), so one request can never return
+ * the whole list. The admin screen has to show closed platforms — reopening one
+ * is the entire reason it exists, and a list that hid them would be a trap.
+ */
+export const fetchPlatforms = createAsyncThunk<
+  PlatformMaster[],
+  void,
+  { rejectValue: string }
+>("masters/platforms", async (_, { rejectWithValue }) => {
+  try {
+    const [open, closed] = await Promise.all([
+      mastersApi.platforms.list({ pageSize: 200, isActive: true }),
+      mastersApi.platforms.list({ pageSize: 200, isActive: false }),
+    ]);
+    return [...open.Items, ...closed.Items];
+  } catch (error) {
+    return rejectWithValue(messageFor(error));
+  }
+});
+
+export const savePlatform = createAsyncThunk<
+  void,
+  { id?: number; body: PlatformMasterWrite },
+  { rejectValue: string }
+>("masters/savePlatform", async ({ id, body }, { dispatch, rejectWithValue }) => {
+  try {
+    if (id) await mastersApi.platforms.update(id, body);
+    else await mastersApi.platforms.create(body);
+    await dispatch(fetchPlatforms());
+  } catch (error) {
+    return rejectWithValue(messageFor(error));
+  }
+});
+
+export const removePlatform = createAsyncThunk<void, number, { rejectValue: string }>(
+  "masters/removePlatform",
+  async (id, { dispatch, rejectWithValue }) => {
+    try {
+      await mastersApi.platforms.remove(id);
+      await dispatch(fetchPlatforms());
+    } catch (error) {
+      return rejectWithValue(messageFor(error));
+    }
+  },
+);
+
+export const saveRoute = createAsyncThunk<
+  void,
+  { id?: number; body: RouteMasterWrite },
+  { rejectValue: string }
+>("masters/saveRoute", async ({ id, body }, { dispatch, rejectWithValue }) => {
+  try {
+    if (id) await mastersApi.routes.update(id, body);
+    else await mastersApi.routes.create(body);
+    // Routes are also the bus form's picker options, so the one refresh serves both.
+    await dispatch(fetchLookups());
+  } catch (error) {
+    return rejectWithValue(messageFor(error));
+  }
+});
+
+export const removeRoute = createAsyncThunk<void, number, { rejectValue: string }>(
+  "masters/removeRoute",
+  async (id, { dispatch, rejectWithValue }) => {
+    try {
+      await mastersApi.routes.remove(id);
+      await dispatch(fetchLookups());
+    } catch (error) {
+      return rejectWithValue(messageFor(error));
+    }
+  },
+);
 
 export const saveBus = createAsyncThunk<
   void,
@@ -178,6 +303,24 @@ const mastersSlice = createSlice({
       .addCase(fetchDisplays.fulfilled, (s, a) => {
         s.displays = a.payload;
       })
+      .addCase(fetchGates.pending, (s) => {
+        s.gatesLoaded = false;
+      })
+      .addCase(fetchGates.fulfilled, (s, a) => {
+        s.gates = a.payload;
+        s.gatesLoaded = true;
+      })
+      .addCase(fetchGates.rejected, (s) => {
+        // Answered, with nothing. Not an error banner — the Gate screen says it
+        // in place, where the person who is blocked by it is standing.
+        s.gatesLoaded = true;
+      })
+      .addCase(fetchPlatforms.fulfilled, (s, a) => {
+        s.platforms = a.payload;
+      })
+      .addCase(fetchPlatforms.rejected, (s, a) => {
+        s.error = a.payload ?? "Could not load platforms.";
+      })
       .addMatcher(
         (a) => /^masters\/(save|remove)/.test(a.type) && a.type.endsWith("/pending"),
         (s) => {
@@ -205,3 +348,7 @@ export const selectUserPage = (s: RootState) => s.masters.users;
 export const selectRoutes = (s: RootState) => s.masters.routes;
 export const selectRoles = (s: RootState) => s.masters.roles;
 export const selectDisplays = (s: RootState) => s.masters.displays;
+export const selectPlatforms = (s: RootState) => s.masters.platforms;
+/** Raw GateMaster rows. Map with toGates for a picker; toViewer takes them as-is. */
+export const selectGateRows = (s: RootState) => s.masters.gates;
+export const selectGatesLoaded = (s: RootState) => s.masters.gatesLoaded;

@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
-import { findGate, GATES, type Gate } from "../../constants/domain";
+import { findGate, type Gate } from "../../constants/domain";
 
 /**
  * Which gate the guard is standing at right now.
@@ -17,25 +17,36 @@ import { findGate, GATES, type Gate } from "../../constants/domain";
  *    never used.
  *  - **Per user**, because a phone gets handed over at shift change, and the
  *    incoming guard's own post is the right thing to start from.
+ *
+ * `gates` now comes from GateMaster rather than a constant, so it starts empty.
+ * Until it fills there is genuinely no post to show, and `ready` stays false —
+ * the screen renders nothing rather than guessing a gate and letting a guard
+ * record a bus through the wrong one.
  */
-export function useGatePost(userId: number | null, home: Gate | null) {
-  const fallback = home ?? GATES[0];
-  const [gate, setGate] = useState<Gate>(fallback);
-  /** False until storage has answered — see the null render in GateScreen. */
+export function useGatePost(userId: number | null, home: Gate | null, gates: Gate[]) {
+  const fallback = home ?? gates[0] ?? null;
+  const [gate, setGate] = useState<Gate | null>(fallback);
+  /** False until both the gates and storage have answered — see GateScreen. */
   const [ready, setReady] = useState(false);
 
   const key = `gate.post.${userId ?? "anon"}`;
 
   useEffect(() => {
+    if (gates.length === 0) {
+      setReady(false);
+      return;
+    }
+
     let live = true;
     setReady(false);
 
     AsyncStorage.getItem(key)
       .then((id) => {
         if (!live) return;
-        // An unreadable or retired gate id falls back to the home post rather
-        // than to whatever happens to sit first in the list.
-        setGate(findGate(id) ?? fallback);
+        // A stored id that no longer exists — a retired gate, or the ids from
+        // before these came from the database — falls back to the home post
+        // rather than to whatever happens to sit first in the list.
+        setGate(findGate(gates, id) ?? fallback);
       })
       // A storage failure is not worth blocking a dispersal over; the home post
       // is a safe place to start.
@@ -45,7 +56,7 @@ export function useGatePost(userId: number | null, home: Gate | null) {
     return () => {
       live = false;
     };
-  }, [key, fallback.id]);
+  }, [key, fallback?.id, gates]);
 
   const choose = useCallback(
     (next: Gate) => {
@@ -59,4 +70,5 @@ export function useGatePost(userId: number | null, home: Gate | null) {
 }
 
 /** The gates a guard can be posted to in a given direction. */
-export const gatesFacing = (kind: Gate["kind"]) => GATES.filter((g) => g.kind === kind);
+export const gatesFacing = (gates: Gate[], kind: Gate["kind"]) =>
+  gates.filter((g) => g.kind === kind);

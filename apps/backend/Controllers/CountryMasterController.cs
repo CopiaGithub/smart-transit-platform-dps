@@ -7,7 +7,7 @@ namespace transit_display_platform_api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+[Authorize(Roles = RoleNames.Admin)]
 public class CountryMasterController : ControllerBase
 {
     private readonly ICountryMasterService _service;
