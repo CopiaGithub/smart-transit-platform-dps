@@ -36,6 +36,7 @@ public partial class ApplicationDbContext : DbContext
     public virtual DbSet<ParentMaster> ParentMasters { get; set; }
     public virtual DbSet<StudentParentMapping> StudentParentMappings { get; set; }
     public virtual DbSet<BusRouteAllocation> BusRouteAllocations { get; set; }
+    public virtual DbSet<StudentAttendance> StudentAttendances { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -260,6 +261,14 @@ public partial class ApplicationDbContext : DbContext
             entity.HasOne(e => e.ExitGate)
                 .WithMany()
                 .HasForeignKey(e => e.ExitGateId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<StudentAttendance>(entity =>
+        {
+            entity.HasOne(e => e.Student)
+                .WithMany()
+                .HasForeignKey(e => e.StudentId)
                 .OnDelete(DeleteBehavior.NoAction);
         });
 
@@ -492,6 +501,15 @@ public partial class ApplicationDbContext : DbContext
             .HasDatabaseName("UX_student_master_RfidTag")
             .IsUnique()
             .HasFilter("[IsDeleted] = 0 AND [RfidTag] IS NOT NULL");
+
+        // A child is present or absent on a given day, not both. Saving a class
+        // twice — a teacher correcting themselves, or two taps on a slow
+        // connection — has to update the row rather than add a second answer.
+        modelBuilder.Entity<StudentAttendance>()
+            .HasIndex(e => new { e.StudentId, e.AttendanceDate })
+            .HasDatabaseName("UX_student_attendance_Student_Date")
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
 
         modelBuilder.Entity<ParentMaster>()
             .HasIndex(e => e.MobileNumber)

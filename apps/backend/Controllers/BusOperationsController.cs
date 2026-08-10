@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using transit_display_platform_api.Common;
 using transit_display_platform_api.Services.BusOperationsService;
 
 namespace transit_display_platform_api.Controllers;
 
 /// <summary>
-/// The gate touchscreens and the LED panels. Roles are enforced here because a Gate 1
-/// operator marking arrivals — or vice versa — would corrupt the platform queue.
+/// The gate touchscreens and the LED panels. Either gate's operator may record a
+/// movement in either direction — posts get covered mid-shift and the app has to
+/// follow — while the service keeps the queue honest and the audit keeps the name.
+/// See <see cref="RoleNames.AnyGateOperator"/>.
 /// </summary>
 [Route("api/[controller]")]
 [ApiController]
@@ -22,7 +25,7 @@ public class BusOperationsController : ControllerBase
 
     /// <summary>Entry gate: one tap assigns the next platform.</summary>
     [HttpPost("gate-in")]
-    [Authorize(Roles = "Admin,Gate 6 Operator")]
+    [Authorize(Roles = RoleNames.AnyGateOperator)]
     public async Task<IActionResult> PostGateIn([FromBody] GateInModel model)
     {
         if (!ModelState.IsValid)
@@ -36,7 +39,7 @@ public class BusOperationsController : ControllerBase
     }
 
     [HttpPost("{eventId}/boarding")]
-    [Authorize(Roles = "Admin,Gate 6 Operator,Teacher")]
+    [Authorize(Roles = RoleNames.AnyGateOperatorOrTeacher)]
     public async Task<IActionResult> PostStartBoarding(int eventId)
     {
         var response = await _service.StartBoardingAsync(eventId);
@@ -48,7 +51,7 @@ public class BusOperationsController : ControllerBase
 
     /// <summary>Exit gate: marks the bus departed and frees its platform.</summary>
     [HttpPost("gate-out")]
-    [Authorize(Roles = "Admin,Gate 1 Operator")]
+    [Authorize(Roles = RoleNames.AnyGateOperator)]
     public async Task<IActionResult> PostGateOut([FromBody] GateOutModel model)
     {
         if (!ModelState.IsValid)
@@ -63,7 +66,7 @@ public class BusOperationsController : ControllerBase
 
     /// <summary>Breakdown: the reserve inherits the route and the platform.</summary>
     [HttpPost("{eventId}/replace")]
-    [Authorize(Roles = "Admin,Gate 6 Operator")]
+    [Authorize(Roles = RoleNames.AnyGateOperator)]
     public async Task<IActionResult> PostReplace(int eventId, [FromBody] ReplaceBusModel model)
     {
         if (!ModelState.IsValid)
@@ -78,7 +81,7 @@ public class BusOperationsController : ControllerBase
 
     /// <summary>Undo the most recent assignment. Single step, per the SOP.</summary>
     [HttpPost("undo-last")]
-    [Authorize(Roles = "Admin,Gate 6 Operator")]
+    [Authorize(Roles = RoleNames.AnyGateOperator)]
     public async Task<IActionResult> PostUndoLast()
     {
         var response = await _service.UndoLastAssignmentAsync();

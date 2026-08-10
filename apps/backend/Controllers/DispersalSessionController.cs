@@ -51,8 +51,10 @@ public class DispersalSessionController : ControllerBase
         return Ok(response);
     }
 
+    // Whoever is on the entry gate opens the day — and that is not always the
+    // person whose role says Gate 6, so both operators qualify.
     [HttpPost("open")]
-    [Authorize(Roles = "Admin,Gate 6 Operator")]
+    [Authorize(Roles = RoleNames.AnyGateOperator)]
     public async Task<IActionResult> PostOpenSession([FromBody] OpenSessionModel model)
     {
         var response = await _service.OpenAsync(model ?? new OpenSessionModel());
@@ -63,7 +65,7 @@ public class DispersalSessionController : ControllerBase
     }
 
     [HttpPost("{id}/close")]
-    [Authorize(Roles = "Admin,Gate 6 Operator,Gate 1 Operator")]
+    [Authorize(Roles = RoleNames.AnyGateOperator)]
     public async Task<IActionResult> PostCloseSession(int id)
     {
         var response = await _service.CloseAsync(id);
