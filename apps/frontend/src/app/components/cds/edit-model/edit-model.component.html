@@ -20,11 +20,27 @@
       (ngSubmit)="onSave()"
       class="flex flex-col flex-1 overflow-hidden"
     >
+      <!-- Tabs, when the form declares them -->
+      <div *ngIf="tabs.length" class="edit-modal-tabs" role="tablist">
+        <button
+          *ngFor="let tab of tabs"
+          type="button"
+          role="tab"
+          class="edit-modal-tab"
+          [class.edit-modal-tab--active]="tab === activeTab"
+          [class.edit-modal-tab--error]="tabHasError(tab)"
+          [attr.aria-selected]="tab === activeTab"
+          (click)="selectTab(tab)"
+        >
+          {{ tab }}
+        </button>
+      </div>
+
       <div class="edit-modal-body">
         <div
           class="edit-modal-grid grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5"
         >
-          <ng-container *ngFor="let field of fields">
+          <ng-container *ngFor="let field of fieldsForActiveTab()">
             <div *ngIf="isFieldVisible(field)" class="space-y-1">
               <!-- TEXT / PASSWORD / NUMBER / EMAIL -->
               <cds-input
@@ -141,8 +157,37 @@
                 *ngIf="field.type === 'date'"
                 [formControlName]="field.name"
                 [label]="field.label"
+                [isAstRequired]="!!field.required"
                 (dateChange)="onFieldChange(field.name, $event)"
               ></app-datepicker>
+
+              <!-- TOGGLE (boolean flags such as IsActive) -->
+              <div *ngIf="field.type === 'toggle'" class="space-y-1">
+                <label class="edit-modal-field-label">
+                  {{ field.label }}
+                  <span *ngIf="field.required" class="text-red-500">*</span>
+                </label>
+                <label class="edit-modal-toggle">
+                  <input
+                    type="checkbox"
+                    [formControlName]="field.name"
+                    (change)="onFieldChange(field.name, $event)"
+                  />
+                  <span class="edit-modal-toggle-track" aria-hidden="true">
+                    <span class="edit-modal-toggle-thumb"></span>
+                  </span>
+                  <span class="edit-modal-toggle-text">
+                    {{
+                      form.get(field.name)?.value
+                        ? field.onLabel || "Yes"
+                        : field.offLabel || "No"
+                    }}
+                  </span>
+                </label>
+              </div>
+
+              <!-- HINT -->
+              <p *ngIf="field.hint" class="edit-modal-hint">{{ field.hint }}</p>
 
               <!-- ERRORS -->
               <div
@@ -166,6 +211,10 @@
                   "
                 >
                   {{ field.label }} must be exactly 6 digits and numbers only.
+                </span>
+                <span *ngIf="form.get(field.name)?.errors?.['maxlength']">
+                  {{ field.label }} cannot exceed {{ field.maxLength }}
+                  characters.
                 </span>
                 <span *ngIf="form.get(field.name)?.errors?.['duplicate']">
                   {{ field.label }} already exists.

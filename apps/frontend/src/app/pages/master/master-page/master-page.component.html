@@ -1,0 +1,131 @@
+<div>
+  <app-cds-title
+    [title]="config.title"
+    [buttonText]="'Add New'"
+    [showButton]="canWrite"
+    (buttonClick)="onAddNew()"
+  ></app-cds-title>
+
+  <!-- Search filter -->
+  <app-cds-container
+    *ngIf="config.filters.length"
+    title="Search Filter"
+    icon="filter_list"
+  >
+    <form [formGroup]="filterForm" (ngSubmit)="onSearch()">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <ng-container *ngFor="let f of config.filters">
+          <cds-input
+            *ngIf="f.type === 'search'"
+            [label]="f.label"
+            [placeholder]="f.placeholder ?? 'Type to search…'"
+            [formControlName]="f.name"
+            [isAstRequired]="false"
+            [attr.data-testid]="'filter-' + f.name"
+            class="w-full"
+          ></cds-input>
+
+          <cds-autocomplete-dropdown
+            *ngIf="f.type !== 'search'"
+            [label]="f.label"
+            [placeholder]="
+              isFilterDisabled(f) ? 'Select ' + f.dependsOn + ' first' : 'Select a value'
+            "
+            [options]="optionsFor(f)"
+            [formControlName]="f.name"
+            [showNoRecords]="true"
+            [attr.data-testid]="'filter-' + f.name"
+          ></cds-autocomplete-dropdown>
+        </ng-container>
+
+        <div class="flex justify-end items-end gap-2">
+          <cds-button
+            [variant]="'search'"
+            [buttonType]="'submit'"
+            [testid]="'btn-' + config.resource + '-search'"
+          >
+            Search
+          </cds-button>
+          <cds-button
+            [variant]="'clear'"
+            (click)="onClear()"
+            [testid]="'btn-' + config.resource + '-clear'"
+          >
+            Clear
+          </cds-button>
+        </div>
+      </div>
+    </form>
+  </app-cds-container>
+
+  <!-- List -->
+  <div class="relative mt-4">
+    <div class="absolute top-2 right-12 z-10">
+      <cds-button [variant]="'success'" (click)="onDownloadExcel()">
+        Export to Excel
+      </cds-button>
+    </div>
+
+    <app-cds-container [title]="config.listTitle" icon="table_chart">
+      <!-- Loading: a skeleton, not a spinner -->
+      <div *ngIf="isLoading()" class="master-skeleton" aria-busy="true">
+        <div class="master-skeleton-row" *ngFor="let _ of [1, 2, 3, 4, 5]"></div>
+      </div>
+
+      <!-- Error / offline: show the server's own message -->
+      <div *ngIf="!isLoading() && loadError()" class="master-state master-state--error">
+        <mat-icon aria-hidden="true" class="master-state-icon">
+          {{ isOffline() ? "wifi_off" : "error_outline" }}
+        </mat-icon>
+        <p class="master-state-title">
+          {{ isOffline() ? "You appear to be offline" : "Could not load this list" }}
+        </p>
+        <p class="master-state-text">{{ loadError() }}</p>
+        <cds-button [variant]="'primary'" (click)="onRetry()">Retry</cds-button>
+      </div>
+
+      <!-- Empty, with a reason -->
+      <div *ngIf="showEmptyState()" class="master-state">
+        <mat-icon aria-hidden="true" class="master-state-icon">inbox</mat-icon>
+        <p class="master-state-title">{{ emptyStateMessage() }}</p>
+        <cds-button *ngIf="isFiltered()" [variant]="'clear'" (click)="onClear()">
+          Clear filters
+        </cds-button>
+      </div>
+
+      <app-table
+        *ngIf="!isLoading() && !loadError() && tableData().length"
+        [tableId]="config.resource + '-table'"
+        [headers]="config.columns"
+        [data]="tableData()"
+        [showViewAction]="true"
+        [showEditAction]="canWrite"
+        [showDeleteAction]="canWrite"
+        [showPagination]="true"
+        [itemsPerPage]="filter.pageSize"
+        [isServerSidePagination]="true"
+        [totalRecords]="totalCount()"
+        [pageReset]="pageResetCounter()"
+        [enableHorizontalScroll]="true"
+        [fixedHeader]="true"
+        [tableHeight]="'420px'"
+        (onNext)="onPageChange($event)"
+        (onPrevious)="onPageChange($event)"
+        (view)="onViewRow($event)"
+        (edit)="onEditRow($event)"
+        (delete)="onDeleteRow($event)"
+        (selectionChange)="onSelectionChange($event)"
+      ></app-table>
+    </app-cds-container>
+  </div>
+</div>
+
+<app-popup
+  [heading]="popupHeading()"
+  [content]="popupContent()"
+  [isVisible]="isPopupVisible()"
+  [headerBgColor]="headingColor()"
+  [ButtonColor]="buttonColor()"
+  [imageUrl]="popupImage()"
+  (closed)="onPopupClosed()"
+></app-popup>

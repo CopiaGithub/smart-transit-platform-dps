@@ -4,46 +4,44 @@ import {
   HttpEvent,
   HttpInterceptorFn,
   HttpHandlerFn,
-  HttpErrorResponse,
 } from '@angular/common/http';
-import { catchError, Observable, switchMap, throwError } from 'rxjs';
+import { Observable } from 'rxjs';
 import { AuthService } from '../services/auth/auth.service';
 
+/**
+ * Escape hatch for the endpoints the server marks [AllowAnonymous] — the LED
+ * board renderer and the display heartbeat, which run with no login at all.
+ */
+export const SKIP_AUTH_HEADER = 'X-Skip-Auth';
+
+/**
+ * Attaches the bearer token. Nothing else.
+ *
+ * Session handling deliberately does NOT live here: this API answers HTTP 200
+ * for every failure and puts the real status inside the body, so an expired
+ * token never arrives as an HttpErrorResponse. ApiService reads the envelope's
+ * StatusCode and signs the user out on 401 — implemented once, there.
+ *
+ * 403 is a normal, frequent answer on this backend because the roles are
+ * deliberately separated. It must never sign anyone out: doing so throws a gate
+ * operator off shift for tapping the wrong screen.
+ *
+ * There is no token-refresh flow — AuthController exposes only POST /Auth/login.
+ */
 export const jwtInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
   next: HttpHandlerFn,
 ): Observable<HttpEvent<unknown>> => {
-  const auth = inject(AuthService);
-  const token = auth.getToken();
-
-  if (token) {
-    req = req.clone({
-      setHeaders: { Authorization: `Bearer ${token}` },
-    });
+  if (req.headers.has(SKIP_AUTH_HEADER)) {
+    return next(req.clone({ headers: req.headers.delete(SKIP_AUTH_HEADER) }));
   }
 
-  return next(req).pipe(
-    catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !auth.isRefreshing) {
-        auth.isRefreshing = true;
-        return auth.refreshToken().pipe(
-          switchMap((res: any) => {
-            auth.isRefreshing = false;
-            auth.saveToken(res.token);
-            auth.saveRefreshToken(res.refreshToken);
-            const newReq = req.clone({
-              setHeaders: { Authorization: `Bearer ${res.token}` },
-            });
-            return next(newReq);
-          }),
-          catchError((err) => {
-            auth.isRefreshing = false;
-            auth.logout();
-            return throwError(() => err);
-          }),
-        );
-      }
-      return throwError(() => error);
-    }),
+  const token = inject(AuthService).getToken();
+  if (!token) {
+    return next(req);
+  }
+
+  return next(
+    req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }),
   );
 };

@@ -119,3 +119,40 @@ table thead tr th {
     padding: 0.25rem 0.75rem;
   }
 }
+
+/* Badge column (`type: 'badge'`) — one vocabulary of status colours shared by
+   every master list. See TableComponent.badgeClass(). */
+.cds-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  border-radius: 999px;
+}
+
+.cds-badge--success {
+  color: #1a7f5a;
+  background: #d7f5e9;
+}
+
+.cds-badge--danger {
+  color: #b32741;
+  background: #fde0e6;
+}
+
+.cds-badge--warning {
+  color: #9a5b06;
+  background: #fdeacc;
+}
+
+.cds-badge--muted {
+  color: #6b7280;
+  background: #eceef1;
+}
+
+.cds-badge--neutral {
+  color: #3f4a5a;
+  background: #e8ebf0;
+}

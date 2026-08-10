@@ -8,10 +8,7 @@
   >
     <div class="sidebar-header">
       <div class="avatar-wrapper">
-        <div
-          class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium text-2xl overflow-hidden flex-shrink-0"
-          title="{{ userName }}"
-        >
+        <div class="sidebar-avatar" title="{{ userName }}">
           <img
             *ngIf="previewUrl"
             [src]="previewUrl"
@@ -21,21 +18,23 @@
           <span *ngIf="!previewUrl">{{ userName[0]?.toUpperCase() }}</span>
         </div>
       </div>
-      <div *ngIf="!isCollapsed" class="sidebar-header-text flex flex-col min-w-0 flex-1">
-        <div class="brand-title underline underline-offset-4 truncate">
+      <div *ngIf="!isCollapsed" class="sidebar-header-text">
+        <div class="brand-title truncate">
           {{ appTitle }}
         </div>
-        <div class="flex items-center gap-1 min-w-0">
-          <span class="font-semibold text-[14px] text-gray-600 truncate">{{
-            userName
-          }}</span>
-          <mat-icon
-            class="pl-1 text-[20px] text-blue-600 cursor-pointer"
-            (click)="redirectToProfile()"
-            >person</mat-icon
-          >
-        </div>
+        <div class="sidebar-user-name truncate">{{ userName }}</div>
       </div>
+
+      <button
+        *ngIf="!isCollapsed"
+        type="button"
+        class="sidebar-profile-btn"
+        (click)="redirectToProfile()"
+        title="Profile"
+        aria-label="Profile"
+      >
+        <mat-icon>person_outline</mat-icon>
+      </button>
 
       <button
         *ngIf="isTablet && !isCollapsed"

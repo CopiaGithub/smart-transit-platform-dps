@@ -3,8 +3,8 @@ import { ComponentFixture,TestBed } from '@angular/core/testing';
 import { CdsDropdownComponent } from './cds-dropdown.component';
 
 describe('CdsDropdownComponent', () => {
-  let component: CdsDropdownComponent;
-  let fixture: ComponentFixture<CdsDropdownComponent>;
+  let component: CdsDropdownComponent<unknown>;
+  let fixture: ComponentFixture<CdsDropdownComponent<unknown>>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -12,7 +12,7 @@ describe('CdsDropdownComponent', () => {
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(CdsDropdownComponent);
+    fixture = TestBed.createComponent<CdsDropdownComponent<unknown>>(CdsDropdownComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

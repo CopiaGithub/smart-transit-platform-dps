@@ -1,21 +1,21 @@
 /* tslint:disable:no-unused-variable */
-import { async,ComponentFixture,TestBed } from '@angular/core/testing';
+import { ComponentFixture,TestBed } from '@angular/core/testing';
 
 import { CdsReportTableComponent } from './cds-report-table.component';
 
 describe('CdsReportTableComponent', () => {
-  let component: CdsReportTableComponent;
-  let fixture: ComponentFixture<CdsReportTableComponent>;
+  let component: CdsReportTableComponent<unknown>;
+  let fixture: ComponentFixture<CdsReportTableComponent<unknown>>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      declarations: [ CdsReportTableComponent ]
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ CdsReportTableComponent ]
     })
     .compileComponents();
-  }));
+  });
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(CdsReportTableComponent);
+    fixture = TestBed.createComponent<CdsReportTableComponent<unknown>>(CdsReportTableComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

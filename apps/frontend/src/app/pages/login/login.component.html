@@ -12,7 +12,7 @@
 
           <h3 class="mt-8 text-3xl font-extrabold leading-tight text-white">
             Manage Your
-            <span style="color: #ffd1d8"> Transit Displays</span>
+            <span class="login-headline-accent"> Transit Displays</span>
           </h3>
           <p class="mt-4" style="color: rgba(255, 255, 255, 0.8)">
             Configure screens, schedules, and content for your transit display
@@ -140,8 +140,7 @@
 
               <button
                 data-testid="forgot-password-link"
-                class="text-sm hover:underline"
-                style="color: #c8102e"
+                class="text-sm hover:underline login-link"
                 type="button"
                 (click)="goToPassResetPage(null)"
               >
@@ -152,10 +151,7 @@
             <button
               data-testid="login-button"
               type="submit"
-              class="w-full py-3 text-white rounded-xl transition duration-300 shadow-lg disabled:opacity-50"
-              style="background-color: #c8102e"
-              onmouseover="this.style.backgroundColor = '#a50d25'"
-              onmouseout="this.style.backgroundColor = '#C8102E'"
+              class="w-full py-3 text-white rounded-xl transition duration-300 shadow-lg disabled:opacity-50 login-submit"
               [disabled]="formgroup.invalid"
             >
               Login

@@ -108,6 +108,11 @@ export class EditModelComponent {
           ? this.data.formData[field.name]
           : (field.value ?? (field.multiple ? [] : ''));
 
+      // A checkbox needs a real boolean — '' would silently read back as '' on save.
+      if (field.type === 'toggle') {
+        initialValue = !!initialValue;
+      }
+
       if (field.type === 'dropdown' && Array.isArray(field.optionsList)) {
         const matchedOption = field.optionsList.find(
           (opt: { name: string; value: any }) => opt.name === initialValue,
@@ -127,6 +132,47 @@ export class EditModelComponent {
       this.form.addControl('profilePic', this.fb.control(this.previewUrl));
     });
     this.refreshFieldVisibility(false);
+    this.tabs = this.collectTabs();
+    this.activeTab = this.tabs[0] ?? '';
+  }
+
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  //
+  // A tab only hides fields visually. Unlike visibleWhen, a field on an inactive
+  // tab keeps its validators and is still included on save — otherwise filling in
+  // tab 1 and saving would silently drop everything on tab 2.
+
+  tabs: string[] = [];
+  activeTab = '';
+
+  private collectTabs(): string[] {
+    const names: string[] = [];
+    for (const field of this.fields) {
+      if (field.tab && !names.includes(field.tab)) {
+        names.push(field.tab);
+      }
+    }
+    return names;
+  }
+
+  fieldsForActiveTab(): any[] {
+    if (!this.tabs.length) {
+      return this.fields;
+    }
+    return this.fields.filter((f) => (f.tab ?? this.tabs[0]) === this.activeTab);
+  }
+
+  selectTab(tab: string): void {
+    this.activeTab = tab;
+  }
+
+  /** Marks a tab that holds a control the user still has to fix. */
+  tabHasError(tab: string): boolean {
+    return this.fields.some((f) => {
+      if ((f.tab ?? this.tabs[0]) !== tab) return false;
+      const control = this.form.get(f.name);
+      return !!control && control.invalid && control.touched;
+    });
   }
   onMultiSelectChange(fieldName: string, event: any) {
     const selectedValues = Array.from(event.target.selectedOptions).map(
@@ -542,11 +588,26 @@ private recalculateApprovedDays() {
 
     const validators = field.required ? [Validators.required] : [];
 
-    if (field.name.toLowerCase().includes('pincode')) {
+    // Explicit constraints from the field descriptor. Prefer these — they let a
+    // form mirror the server's own MaxLength instead of guessing.
+    if (typeof field.maxLength === 'number') {
+      validators.push(Validators.maxLength(field.maxLength));
+    }
+
+    if (typeof field.minLength === 'number') {
+      validators.push(Validators.minLength(field.minLength));
+    }
+
+    if (field.pattern) {
+      validators.push(Validators.pattern(field.pattern));
+    }
+
+    // Name-based fallbacks, kept for descriptors that declare nothing explicit.
+    if (!field.pattern && field.name.toLowerCase().includes('pincode')) {
       validators.push(Validators.pattern(/^[0-9]{6}$/));
     }
 
-    if (field.name.includes('phoneNo')) {
+    if (field.minLength === undefined && field.name.includes('phoneNo')) {
       validators.push(Validators.minLength(10), Validators.maxLength(10));
     }
 
@@ -565,7 +626,7 @@ private recalculateApprovedDays() {
       }
 
       if (!this.isFieldVisible(field) && resetHiddenFields) {
-        control.reset(field.multiple ? [] : '');
+        control.reset(field.multiple ? [] : field.type === 'toggle' ? false : '');
       }
 
       control.setValidators(this.getFieldValidators(field));

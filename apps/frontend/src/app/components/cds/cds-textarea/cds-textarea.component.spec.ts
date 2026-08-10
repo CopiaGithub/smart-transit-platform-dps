@@ -1,21 +1,21 @@
 /* tslint:disable:no-unused-variable */
-import { async,ComponentFixture,TestBed } from '@angular/core/testing';
+import { ComponentFixture,TestBed } from '@angular/core/testing';
 
 import { CdsTextareaComponent } from './cds-textarea.component';
 
 describe('CdsTextareaComponent', () => {
-  let component: CdsTextareaComponent;
-  let fixture: ComponentFixture<CdsTextareaComponent>;
+  let component: CdsTextareaComponent<unknown>;
+  let fixture: ComponentFixture<CdsTextareaComponent<unknown>>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      declarations: [ CdsTextareaComponent ]
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ CdsTextareaComponent ]
     })
     .compileComponents();
-  }));
+  });
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(CdsTextareaComponent);
+    fixture = TestBed.createComponent<CdsTextareaComponent<unknown>>(CdsTextareaComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

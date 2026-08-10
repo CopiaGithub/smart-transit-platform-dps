@@ -1,4 +1,5 @@
 import { ComponentFixture,TestBed } from '@angular/core/testing';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
 import { EditModelComponent } from './edit-model.component';
 
@@ -8,7 +9,20 @@ describe('EditModelComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [EditModelComponent]
+      imports: [EditModelComponent],
+      providers: [
+        {
+          provide: MAT_DIALOG_DATA,
+          useValue: {
+            title: 'Add',
+            formFields: [{ name: 'Name', label: 'Name', type: 'text' }],
+            formData: {},
+            allData: [],
+            duplicateCheckFields: [],
+          },
+        },
+        { provide: MatDialogRef, useValue: { close: () => {} } },
+      ],
     })
     .compileComponents();
 

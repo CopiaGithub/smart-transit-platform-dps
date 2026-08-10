@@ -4,7 +4,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth/auth.service';
-import { UserMasterService } from '../../services/user-master.service';
 import { ConfirmationDialogComponent } from '../cds/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
@@ -18,7 +17,7 @@ export class HeaderComponent implements OnInit {
   previewUrl: string | null = null;
   currentDate: string = '';
   showMenu: boolean = false;
-  constructor(private router: Router, private userMasterService: UserMasterService, private authService: AuthService, private dialog: MatDialog) { }
+  constructor(private router: Router, private authService: AuthService, private dialog: MatDialog) { }
 
   logout() {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
@@ -36,28 +35,14 @@ export class HeaderComponent implements OnInit {
     });
   }
 
-  async ngOnInit(): Promise<void> {
-    const userData = this.authService.getUserData();
-    if (userData && userData.name) {
-      this.userName = userData.name;
-    }
+  ngOnInit(): void {
+    this.userName = this.authService.getUserData()?.name ?? '';
     this.currentDate = new Date().toLocaleDateString('en-IN', {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
-
-    const res = await this.userMasterService.getUserById(userData.id).toPromise();
-    console.log(res);
-
-    if (res?.success) {
-      const user = res.data;
-      // Now patch the form with all data including state
-      if (user) {
-        this.previewUrl = user.profilePic || null;
-      }
-    }
   }
   toggleMenu() {
     this.showMenu = !this.showMenu;

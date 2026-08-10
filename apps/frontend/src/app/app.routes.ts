@@ -1,5 +1,10 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './guards/auth.guard';
+import { ACADEMIC_MASTER_ROUTES } from './routes/modules/academic-master.routes';
+import { INFRASTRUCTURE_MASTER_ROUTES } from './routes/modules/infrastructure-master.routes';
+import { LOCATION_MASTER_ROUTES } from './routes/modules/location-master.routes';
+import { SECURITY_MASTER_ROUTES } from './routes/modules/security-master.routes';
+import { TRANSPORT_MASTER_ROUTES } from './routes/modules/transport-master.routes';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -21,6 +26,16 @@ export const routes: Routes = [
         path: 'home',
         loadComponent: () =>
           import('./pages/home/home.component').then((m) => m.HomeComponent),
+      },
+      {
+        path: 'master',
+        children: [
+          ...TRANSPORT_MASTER_ROUTES,
+          ...INFRASTRUCTURE_MASTER_ROUTES,
+          ...SECURITY_MASTER_ROUTES,
+          ...ACADEMIC_MASTER_ROUTES,
+          ...LOCATION_MASTER_ROUTES,
+        ],
       },
     ],
   },

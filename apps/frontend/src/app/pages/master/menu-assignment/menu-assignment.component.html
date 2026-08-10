@@ -1,0 +1,114 @@
+<div>
+  <app-cds-title title="Menu Assignment" [showButton]="false"></app-cds-title>
+
+  <div class="assign-layout">
+    <!-- Roles -->
+    <app-cds-container title="Roles" icon="badge" customClass="assign-roles">
+      <div *ngIf="isLoadingRoles()" class="assign-skeleton">
+        <div class="assign-skeleton-row" *ngFor="let _ of [1, 2, 3, 4, 5]"></div>
+      </div>
+
+      <ul *ngIf="!isLoadingRoles()" class="assign-role-list">
+        <li *ngFor="let role of roles()">
+          <button
+            type="button"
+            class="assign-role"
+            [class.assign-role--active]="role.Id === selectedRoleId()"
+            (click)="selectRole(role.Id)"
+          >
+            <span class="assign-role-name">{{ role.RoleName }}</span>
+            <span *ngIf="!role.IsActive" class="assign-badge">Inactive</span>
+          </button>
+        </li>
+      </ul>
+    </app-cds-container>
+
+    <!-- Menu tree -->
+    <app-cds-container
+      [title]="
+        selectedRoleName() ? 'Menus for ' + selectedRoleName() : 'Menus'
+      "
+      icon="checklist"
+    >
+      <div class="assign-toolbar">
+        <span class="assign-count">{{ checkedCount() }} selected</span>
+        <span class="assign-toolbar-spacer"></span>
+        <cds-button [variant]="'clear'" (click)="selectAll()">Select all</cds-button>
+        <cds-button [variant]="'clear'" (click)="clearAll()">Clear all</cds-button>
+        <cds-button [variant]="'clear'" [disabled]="!isDirty()" (click)="reset()">
+          Reset
+        </cds-button>
+        <cds-button
+          [variant]="'primary'"
+          [disabled]="!isDirty() || isSaving() || selectedRoleId() === null"
+          (click)="save()"
+        >
+          {{ isSaving() ? "Saving…" : "Save" }}
+        </cds-button>
+      </div>
+
+      <div *ngIf="isLoadingTree()" class="assign-skeleton">
+        <div class="assign-skeleton-row" *ngFor="let _ of [1, 2, 3, 4, 5, 6]"></div>
+      </div>
+
+      <div *ngIf="!isLoadingTree() && loadError()" class="assign-state assign-state--error">
+        <mat-icon aria-hidden="true" class="assign-state-icon">error_outline</mat-icon>
+        <p class="assign-state-title">Could not load the menu tree</p>
+        <p class="assign-state-text">{{ loadError() }}</p>
+      </div>
+
+      <div
+        *ngIf="!isLoadingTree() && !loadError() && !tree().length"
+        class="assign-state"
+      >
+        <mat-icon aria-hidden="true" class="assign-state-icon">checklist</mat-icon>
+        <p class="assign-state-title">
+          No menus defined yet — add them in Menu Master first.
+        </p>
+      </div>
+
+      <ul *ngIf="!isLoadingTree() && tree().length" class="assign-tree">
+        <li
+          *ngFor="let node of visibleNodes()"
+          class="assign-tree-row"
+          [style.padding-left.rem]="0.75 + node.depth * 1.5"
+        >
+          <button
+            type="button"
+            class="assign-tree-toggle"
+            [class.assign-tree-toggle--hidden]="!node.children.length"
+            [attr.aria-label]="node.expanded ? 'Collapse' : 'Expand'"
+            (click)="toggleExpanded(node)"
+          >
+            <mat-icon aria-hidden="true">
+              {{ node.expanded ? "expand_more" : "chevron_right" }}
+            </mat-icon>
+          </button>
+
+          <label class="assign-tree-label">
+            <input
+              type="checkbox"
+              [checked]="isChecked(node)"
+              [indeterminate]="isIndeterminate(node)"
+              (change)="toggleChecked(node)"
+            />
+            <span class="assign-tree-name">{{ node.name }}</span>
+            <span *ngIf="node.item.Route" class="assign-tree-route">
+              {{ node.item.Route }}
+            </span>
+          </label>
+        </li>
+      </ul>
+    </app-cds-container>
+  </div>
+</div>
+
+<app-popup
+  [heading]="popupHeading()"
+  [content]="popupContent()"
+  [isVisible]="isPopupVisible()"
+  [headerBgColor]="headingColor()"
+  [ButtonColor]="buttonColor()"
+  [imageUrl]="popupImage()"
+  (closed)="onPopupClosed()"
+></app-popup>

@@ -1,0 +1,120 @@
+<div>
+  <app-cds-title
+    title="Menu Master"
+    [buttonText]="'Add New'"
+    [showButton]="true"
+    (buttonClick)="onAddNew()"
+  ></app-cds-title>
+
+  <app-cds-container title="Navigation Tree" icon="account_tree">
+    <div class="menu-tree-toolbar">
+      <cds-button [variant]="'clear'" (click)="expandAll(true)">Expand all</cds-button>
+      <cds-button [variant]="'clear'" (click)="expandAll(false)">Collapse all</cds-button>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="isLoading()" class="menu-skeleton" aria-busy="true">
+      <div class="menu-skeleton-row" *ngFor="let _ of [1, 2, 3, 4, 5, 6]"></div>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="!isLoading() && loadError()" class="menu-state menu-state--error">
+      <mat-icon aria-hidden="true" class="menu-state-icon">error_outline</mat-icon>
+      <p class="menu-state-title">Could not load the menu tree</p>
+      <p class="menu-state-text">{{ loadError() }}</p>
+      <cds-button [variant]="'primary'" (click)="load()">Retry</cds-button>
+    </div>
+
+    <!-- Empty -->
+    <div *ngIf="isEmpty()" class="menu-state">
+      <mat-icon aria-hidden="true" class="menu-state-icon">account_tree</mat-icon>
+      <p class="menu-state-title">No menus defined yet.</p>
+      <cds-button [variant]="'primary'" (click)="onAddNew()">Add the first menu</cds-button>
+    </div>
+
+    <!-- Tree -->
+    <ul *ngIf="!isLoading() && !loadError() && tree().length" class="menu-tree">
+      <li
+        *ngFor="let node of visibleNodes()"
+        class="menu-tree-row"
+        [class.menu-tree-row--inactive]="!node.item.IsActive"
+        [style.padding-left.rem]="0.75 + node.depth * 1.5"
+      >
+        <button
+          type="button"
+          class="menu-tree-toggle"
+          [class.menu-tree-toggle--hidden]="!node.children.length"
+          [attr.aria-label]="node.expanded ? 'Collapse' : 'Expand'"
+          (click)="toggle(node)"
+        >
+          <mat-icon aria-hidden="true">
+            {{ node.expanded ? "expand_more" : "chevron_right" }}
+          </mat-icon>
+        </button>
+
+        <mat-icon class="menu-tree-icon" aria-hidden="true">
+          {{ node.item.Icon || (node.children.length ? "folder" : "chevron_right") }}
+        </mat-icon>
+
+        <span class="menu-tree-name">{{ node.name }}</span>
+        <span *ngIf="node.item.Route" class="menu-tree-route">{{ node.item.Route }}</span>
+        <span *ngIf="!node.item.IsActive" class="menu-tree-badge">Inactive</span>
+
+        <span class="menu-tree-actions">
+          <button
+            type="button"
+            class="menu-tree-action"
+            title="Move up"
+            [disabled]="!canMove(node, -1)"
+            (click)="move(node, -1)"
+          >
+            <mat-icon aria-hidden="true">arrow_upward</mat-icon>
+          </button>
+          <button
+            type="button"
+            class="menu-tree-action"
+            title="Move down"
+            [disabled]="!canMove(node, 1)"
+            (click)="move(node, 1)"
+          >
+            <mat-icon aria-hidden="true">arrow_downward</mat-icon>
+          </button>
+          <button
+            type="button"
+            class="menu-tree-action"
+            title="Add child menu"
+            (click)="onAddNew(node)"
+          >
+            <mat-icon aria-hidden="true">add</mat-icon>
+          </button>
+          <button
+            type="button"
+            class="menu-tree-action menu-tree-action--edit"
+            title="Edit"
+            (click)="onEdit(node)"
+          >
+            <mat-icon aria-hidden="true">edit</mat-icon>
+          </button>
+          <button
+            type="button"
+            class="menu-tree-action menu-tree-action--delete"
+            title="Delete"
+            (click)="onDelete(node)"
+          >
+            <mat-icon aria-hidden="true">delete</mat-icon>
+          </button>
+        </span>
+      </li>
+    </ul>
+  </app-cds-container>
+</div>
+
+<app-popup
+  [heading]="popupHeading()"
+  [content]="popupContent()"
+  [isVisible]="isPopupVisible()"
+  [headerBgColor]="headingColor()"
+  [ButtonColor]="buttonColor()"
+  [imageUrl]="popupImage()"
+  (closed)="onPopupClosed()"
+></app-popup>

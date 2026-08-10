@@ -1,5 +1,5 @@
 /* tslint:disable:no-unused-variable */
-import { async,ComponentFixture,TestBed } from '@angular/core/testing';
+import { ComponentFixture,TestBed } from '@angular/core/testing';
 
 import { CdsToggleComponent } from './cds-toggle.component';
 
@@ -7,12 +7,12 @@ describe('CdsToggleComponent', () => {
   let component: CdsToggleComponent;
   let fixture: ComponentFixture<CdsToggleComponent>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      declarations: [ CdsToggleComponent ]
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ CdsToggleComponent ]
     })
     .compileComponents();
-  }));
+  });
 
   beforeEach(() => {
     fixture = TestBed.createComponent(CdsToggleComponent);

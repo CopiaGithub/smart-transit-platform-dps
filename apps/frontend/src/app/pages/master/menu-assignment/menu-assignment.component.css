@@ -1,0 +1,209 @@
+.assign-layout {
+  display: grid;
+  grid-template-columns: minmax(14rem, 20rem) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .assign-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Roles */
+.assign-role-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.assign-role {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.875rem;
+  text-align: left;
+  color: var(--argon-gray-700);
+  background: none;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.assign-role:hover {
+  background: var(--argon-gray-100);
+}
+
+.assign-role--active {
+  color: var(--argon-primary);
+  background: var(--argon-primary-subtle);
+  font-weight: var(--argon-font-weight-semibold);
+}
+
+.assign-role-name {
+  flex: 1;
+}
+
+.assign-badge {
+  padding: 0.1rem 0.45rem;
+  font-size: 0.7rem;
+  color: var(--argon-gray-700);
+  background: var(--argon-gray-200);
+  border-radius: 999px;
+}
+
+/* Toolbar */
+.assign-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.assign-toolbar-spacer {
+  flex: 1;
+}
+
+.assign-count {
+  font-size: 0.8125rem;
+  color: var(--argon-gray-600);
+}
+
+/* Tree */
+.assign-tree {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--argon-border-color);
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.assign-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.4rem;
+  padding-right: 0.75rem;
+  border-bottom: 1px solid var(--argon-border-color);
+}
+
+.assign-tree-row:hover {
+  background: var(--argon-gray-100);
+}
+
+.assign-tree-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--argon-gray-600);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.assign-tree-toggle--hidden {
+  visibility: hidden;
+}
+
+.assign-tree-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  cursor: pointer;
+}
+
+.assign-tree-label input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--argon-primary);
+  cursor: pointer;
+}
+
+.assign-tree-name {
+  font-size: 0.875rem;
+  color: var(--argon-gray-800);
+}
+
+.assign-tree-route {
+  font-size: 0.75rem;
+  color: var(--argon-gray-500);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* States */
+.assign-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
+}
+
+.assign-skeleton-row {
+  height: 2rem;
+  border-radius: 0.375rem;
+  background: linear-gradient(
+    90deg,
+    var(--argon-gray-200) 25%,
+    var(--argon-gray-100) 37%,
+    var(--argon-gray-200) 63%
+  );
+  background-size: 400% 100%;
+  animation: assign-skeleton-shimmer 1.4s ease infinite;
+}
+
+@keyframes assign-skeleton-shimmer {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assign-skeleton-row {
+    animation: none;
+  }
+}
+
+.assign-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: var(--argon-gray-600);
+}
+
+.assign-state-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 2.5rem;
+  color: var(--argon-gray-400);
+}
+
+.assign-state-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-gray-700);
+}
+
+.assign-state-text {
+  margin: 0;
+  max-width: 34rem;
+  font-size: 0.8125rem;
+}
+
+.assign-state--error .assign-state-icon {
+  color: var(--argon-danger, #f5365c);
+}

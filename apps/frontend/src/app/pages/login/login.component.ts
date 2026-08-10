@@ -21,6 +21,7 @@ export class LoginComponent implements OnInit {
   appTitle = 'Transit Display';
   private readonly rememberedUsernameKey = 'rememberedUsername';
   showPassword = false;
+  isSubmitting = false;
 
   formgroup = new FormGroup({
     username: new FormControl('', [Validators.required]),
@@ -73,11 +74,14 @@ export class LoginComponent implements OnInit {
   }
 
   goToPassResetPage(_email: string | null): void {
-    // Placeholder — wire forgot-password page later
+    // Placeholder — wire forgot-password page later.
+    // PopupComponent picks its variant by matching a colour word in these
+    // strings, so they are class-style names, not hex. Nothing here is an
+    // error, so it falls through to the neutral "info" styling.
     this.popupHeading = 'Forgot Password';
     this.popupContent = 'Password reset is not configured yet.';
-    this.HeadingColor = '#c8102e';
-    this.buttonColor = '#c8102e';
+    this.HeadingColor = '';
+    this.buttonColor = '';
     this.isPopupVisible = true;
   }
 
@@ -114,32 +118,24 @@ export class LoginComponent implements OnInit {
     const username = this.formgroup.value.username!;
     const password = this.formgroup.value.password!;
 
-    this.authService.login(username, password).subscribe({
-      next: (response) => {
-        if (response?.token && response?.user) {
-          this.updateRememberedUsername(username);
-          this.authService.saveAuthData(
-            response.token,
-            response.refreshToken,
-            response.user,
-            response.stateId ?? null,
-            response.isPrinciple ?? false,
-          );
-          this.router.navigate(['/mainlayout']);
-          return;
-        }
+    this.isSubmitting = true;
 
-        this.popupHeading = 'Login Failed';
-        this.popupContent = response?.message || 'Invalid credentials.';
-        this.HeadingColor = '#c8102e';
-        this.buttonColor = '#c8102e';
-        this.isPopupVisible = true;
+    this.authService.login(username, password).subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        this.updateRememberedUsername(username);
+        this.router.navigate(['/mainlayout']);
       },
-      error: () => {
+      // Show the server's own message ("Invalid username or password.") rather
+      // than a generic failure.
+      error: (error: unknown) => {
+        this.isSubmitting = false;
         this.popupHeading = 'Login Failed';
-        this.popupContent = 'Unable to sign in. Please try again.';
-        this.HeadingColor = '#c8102e';
-        this.buttonColor = '#c8102e';
+        this.popupContent =
+          error instanceof Error ? error.message : 'Unable to sign in. Please try again.';
+        // "red" is what tells PopupComponent to render this as an error.
+        this.HeadingColor = 'bg-red-600';
+        this.buttonColor = 'border border-red-600 text-red-600';
         this.isPopupVisible = true;
       },
     });

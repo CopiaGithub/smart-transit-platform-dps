@@ -767,4 +767,37 @@ export class TableComponent implements OnInit {
       this.customAction.emit(event);
     }
   }
+
+  /**
+   * Colour for a `type: 'badge'` column, keyed off the displayed text.
+   *
+   * Deliberately value-based rather than configurable: the same vocabulary
+   * (Active/Online/Offline/...) shows up across every master list, so one map
+   * keeps them consistent. Anything unrecognised renders neutral grey.
+   */
+  badgeClass(value: unknown): string {
+    switch (String(value ?? '').toLowerCase()) {
+      case 'active':
+      case 'online':
+      case 'inservice':
+      case 'in service':
+      case 'verified':
+      case 'current':
+        return 'cds-badge--success';
+      case 'offline':
+      case 'breakdown':
+      case 'outofservice':
+      case 'out of service':
+        return 'cds-badge--danger';
+      case 'maintenance':
+      case 'waiting':
+      case 'unknown':
+      case 'not verified':
+        return 'cds-badge--warning';
+      case 'inactive':
+        return 'cds-badge--muted';
+      default:
+        return 'cds-badge--neutral';
+    }
+  }
 }

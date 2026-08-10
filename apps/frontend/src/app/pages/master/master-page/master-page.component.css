@@ -1,0 +1,71 @@
+/* Loading skeleton — the docx asks for a skeleton, not a spinner, so the page
+   keeps its shape while the first page of rows arrives. */
+.master-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem 0;
+}
+
+.master-skeleton-row {
+  height: 2.4rem;
+  border-radius: 0.375rem;
+  background: linear-gradient(
+    90deg,
+    var(--argon-gray-200) 25%,
+    var(--argon-gray-100) 37%,
+    var(--argon-gray-200) 63%
+  );
+  background-size: 400% 100%;
+  animation: master-skeleton-shimmer 1.4s ease infinite;
+}
+
+@keyframes master-skeleton-shimmer {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .master-skeleton-row {
+    animation: none;
+  }
+}
+
+/* Empty / error / offline states */
+.master-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--argon-gray-600);
+}
+
+.master-state-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 2.5rem;
+  color: var(--argon-gray-400);
+}
+
+.master-state-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-gray-700);
+}
+
+.master-state-text {
+  margin: 0 0 0.5rem;
+  max-width: 34rem;
+  font-size: 0.8125rem;
+}
+
+.master-state--error .master-state-icon {
+  color: var(--argon-danger, #f5365c);
+}

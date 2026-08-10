@@ -4,7 +4,7 @@
   (document:click)="closeDropdownOnOutsideClick($event)"
   [class]="customclasses"
 >
-  <app-cds-label ="isRequired" [label]="label" />
+  <app-cds-label [isAstRequired]="isRequired" [label]="label" />
   <button
     class="w-full px-4 py-2 mt-2 text-gray-700 rounded-md flex justify-between items-center focus:outline-none border border-gray-300"
     (click)="toggleDropdown($event)"

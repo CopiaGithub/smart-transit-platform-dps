@@ -244,3 +244,23 @@ input:focus {
     align-items: center;
   }
 }
+
+/* Brand actions — driven by the theme tokens rather than a hardcoded hex, so a
+   palette change reaches the login page too. */
+.login-submit {
+  background-color: var(--argon-primary);
+}
+
+.login-submit:hover:not(:disabled) {
+  background-color: var(--argon-primary-dark);
+}
+
+.login-link {
+  color: var(--argon-primary);
+}
+
+/* Headline accent on the brand panel. A pale tint of the brand rather than a
+   fixed hue, so it stays in key if the palette changes again. */
+.login-headline-accent {
+  color: #b8e6d0;
+}

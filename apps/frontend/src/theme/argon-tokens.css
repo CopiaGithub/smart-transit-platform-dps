@@ -30,12 +30,17 @@
   --argon-gray-800: #32325d;
   --argon-gray-900: #212529;
 
-  /* Semantic colors */
+  /* Semantic colors
+   *
+   * Brand primary is a deep emerald. It is deliberately darker than
+   * --argon-success (#2dce89): the two appear side by side — a primary Search
+   * button next to an "Active" badge — and need to read as different things.
+   * White text on --argon-primary clears WCAG AA at ~4.9:1. */
   --argon-default: #172b4d;
-  --argon-primary: #5e72e4;
-  --argon-primary-dark: #324cdd;
-  --argon-primary-muted: #eef0fd;
-  --argon-primary-subtle: rgba(94, 114, 228, 0.12);
+  --argon-primary: #12855c;
+  --argon-primary-dark: #0d6b49;
+  --argon-primary-muted: #e7f6ef;
+  --argon-primary-subtle: rgba(18, 133, 92, 0.12);
   --argon-secondary: #f7fafc;
   --argon-success: #2dce89;
   --argon-info: #11cdef;
@@ -53,10 +58,10 @@
   --argon-sidebar-border: rgba(0, 0, 0, 0.05);
   --argon-sidebar-shadow: 0 0 2rem 0 rgba(136, 152, 170, 0.15);
   --argon-sidebar-hover-bg: #f6f9fc;
-  --argon-sidebar-active-bg: #5e72e4;
+  --argon-sidebar-active-bg: #12855c;
   --argon-sidebar-active-color: #fff;
-  --argon-sidebar-parent-bg: rgba(94, 114, 228, 0.12);
-  --argon-sidebar-parent-color: #5e72e4;
+  --argon-sidebar-parent-bg: rgba(18, 133, 92, 0.12);
+  --argon-sidebar-parent-color: #12855c;
 
   /* Cards & elevation */
   --argon-card-shadow: 0 0 2rem 0 rgba(136, 152, 170, 0.15);
@@ -71,20 +76,22 @@
   --argon-font-weight-semibold: 600;
   --argon-font-weight-bold: 700;
 
-  /* Tailwind blue remap (Argon primary scale) */
-  --argon-tw-blue-50: #eef0fd;
-  --argon-tw-blue-100: #d9dff9;
-  --argon-tw-blue-200: #b3bff3;
-  --argon-tw-blue-300: #8d9fed;
-  --argon-tw-blue-400: #677fe7;
-  --argon-tw-blue-500: #5e72e4;
-  --argon-tw-blue-600: #4c63d2;
-  --argon-tw-blue-700: #3a54c0;
-  --argon-tw-blue-800: #2845ae;
-  --argon-tw-blue-900: #172b4d;
+  /* Tailwind blue/indigo remap (Argon primary scale).
+   * The name is historical — these drive the .bg-blue-* / .text-indigo-* helper
+   * overrides in argon-theme.css, so the whole utility family follows the brand. */
+  --argon-tw-blue-50: #e7f6ef;
+  --argon-tw-blue-100: #c6e9d9;
+  --argon-tw-blue-200: #97d7ba;
+  --argon-tw-blue-300: #66c39a;
+  --argon-tw-blue-400: #34ab7b;
+  --argon-tw-blue-500: #12855c;
+  --argon-tw-blue-600: #0f7350;
+  --argon-tw-blue-700: #0c6043;
+  --argon-tw-blue-800: #094c36;
+  --argon-tw-blue-900: #0a3a2a;
 
   /* Gradients (Argon docs/argon.css) */
-  --argon-gradient-primary: linear-gradient(87deg, #5e72e4 0, #825ee4 100%);
+  --argon-gradient-primary: linear-gradient(87deg, #12855c 0, #1aa06b 100%);
   --argon-gradient-default: linear-gradient(87deg, #172b4d 0, #1a174d 100%);
   --argon-gradient-purple: linear-gradient(87deg, #8965e0 0, #bc65e0 100%);
   --argon-gradient-success: linear-gradient(87deg, #2dce89 0, #2dcecc 100%);

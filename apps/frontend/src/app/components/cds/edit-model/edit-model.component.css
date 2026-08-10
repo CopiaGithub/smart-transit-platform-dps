@@ -110,6 +110,115 @@
   color: var(--argon-gray-700);
 }
 
+/* Tabs — only rendered when the form config declares them. */
+.edit-modal-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid var(--argon-border-color);
+  background: var(--argon-white);
+}
+
+.edit-modal-tab {
+  position: relative;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-gray-600);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.edit-modal-tab:hover {
+  color: var(--argon-gray-800);
+}
+
+.edit-modal-tab--active {
+  color: var(--argon-primary);
+  border-bottom-color: var(--argon-primary);
+}
+
+.edit-modal-tab--error::after {
+  content: "";
+  position: absolute;
+  top: 0.6rem;
+  right: 0.35rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  background: var(--argon-danger, #f5365c);
+  border-radius: 50%;
+}
+
+.edit-modal-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--argon-gray-600);
+}
+
+/* Toggle — used for boolean flags such as IsActive. */
+.edit-modal-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.6rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.edit-modal-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.edit-modal-toggle-track {
+  display: inline-flex;
+  align-items: center;
+  width: 2.6rem;
+  height: 1.4rem;
+  padding: 0.15rem;
+  background: var(--argon-gray-400);
+  border-radius: 999px;
+  transition: background-color 0.15s ease;
+}
+
+.edit-modal-toggle-thumb {
+  width: 1.1rem;
+  height: 1.1rem;
+  background: var(--argon-white);
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 25%);
+  transition: transform 0.15s ease;
+}
+
+.edit-modal-toggle input:checked + .edit-modal-toggle-track {
+  background: var(--argon-success, #2dce89);
+}
+
+.edit-modal-toggle input:checked + .edit-modal-toggle-track .edit-modal-toggle-thumb {
+  transform: translateX(1.2rem);
+}
+
+.edit-modal-toggle input:focus-visible + .edit-modal-toggle-track {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--argon-primary-subtle);
+}
+
+.edit-modal-toggle input:disabled + .edit-modal-toggle-track {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.edit-modal-toggle-text {
+  font-size: 0.875rem;
+  color: var(--argon-gray-700);
+}
+
 .edit-modal-select {
   width: 100%;
   max-width: 100%;

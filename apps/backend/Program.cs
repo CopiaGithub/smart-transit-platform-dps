@@ -62,6 +62,37 @@ try
         };
     });
 
+    // The web app is the first browser client — the mobile app is native and
+    // never needed this. Without it every request fails at the preflight.
+    // Origins come from Cors:AllowedOrigins so production does not have to
+    // ship a code change.
+    const string webAppCorsPolicy = "WebAppCors";
+    var allowedOrigins = builder.Configuration
+        .GetSection("Cors:AllowedOrigins")
+        .Get<string[]>() ?? new[] { "http://localhost:4200" };
+
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy(webAppCorsPolicy, policy =>
+        {
+            policy.AllowAnyHeader().AllowAnyMethod();
+
+            if (builder.Environment.IsDevelopment())
+            {
+                // `ng serve` picks a different port whenever 4200 is taken, so
+                // pinning one port means CORS breaks at random during dev.
+                // Any loopback origin is allowed here — and only here.
+                policy.SetIsOriginAllowed(origin =>
+                    Uri.TryCreate(origin, UriKind.Absolute, out var uri) &&
+                    (uri.IsLoopback || uri.Host is "localhost" or "127.0.0.1" or "[::1]"));
+            }
+            else
+            {
+                policy.WithOrigins(allowedOrigins);
+            }
+        });
+    });
+
     builder.Services.AddApplicationServices();
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -136,6 +167,10 @@ try
     app.UseSerilogRequestLogging();
 
     app.UseHttpsRedirection();
+
+    // Before authentication: a preflight carries no credentials, so it has to be
+    // answered before anything can reject it.
+    app.UseCors(webAppCorsPolicy);
 
     app.UseAuthentication();
     app.UseAuthorization();

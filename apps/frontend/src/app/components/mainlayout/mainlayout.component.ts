@@ -21,7 +21,11 @@ import { PageBreadcrumbService } from '../../services/page-breadcrumb.service';
   ],
 })
 export class MainlayoutComponent implements OnInit {
-  /** Static menu for basic scaffold — replace with role-assigned API later. */
+  /**
+   * Static menu for now. It will be replaced by the role-assigned tree from
+   * GET /api/MenuAssignment/assigned-menus/{roleId} — the sidebar already
+   * renders whatever shape it is handed, so only the source changes.
+   */
   sidebarMenu: any[] = [
     {
       name: 'Home',
@@ -29,14 +33,61 @@ export class MainlayoutComponent implements OnInit {
       icon: 'home',
     },
     {
-      name: 'Masters',
-      icon: 'folder',
+      name: 'Transport Masters',
+      icon: 'directions_bus',
+      children: [
+        { name: 'Routes Master', route: '/mainlayout/master/routes-master' },
+        { name: 'Buses Master', route: '/mainlayout/master/buses-master' },
+        {
+          name: 'Bus-Route Allocation',
+          route: '/mainlayout/master/bus-route-allocation',
+        },
+      ],
+    },
+    {
+      name: 'Infrastructure Masters',
+      icon: 'meeting_room',
+      children: [
+        { name: 'Gate Master', route: '/mainlayout/master/gate-master' },
+        { name: 'Platforms Master', route: '/mainlayout/master/platforms-master' },
+        { name: 'Display Master', route: '/mainlayout/master/display-master' },
+      ],
+    },
+    {
+      name: 'Academic Masters',
+      icon: 'school',
       children: [
         {
-          name: 'Sample Master',
-          route: '/mainlayout/home',
-          icon: 'list',
+          name: 'Academic Year Master',
+          route: '/mainlayout/master/academic-year-master',
         },
+        { name: 'Student Master', route: '/mainlayout/master/student-master' },
+        { name: 'Parent Master', route: '/mainlayout/master/parent-master' },
+        {
+          name: 'Student-Parent Mapping',
+          route: '/mainlayout/master/student-parent-mapping',
+        },
+      ],
+    },
+    {
+      name: 'Security & Navigation',
+      icon: 'admin_panel_settings',
+      children: [
+        { name: 'Role Master', route: '/mainlayout/master/role-master' },
+        { name: 'User Master', route: '/mainlayout/master/user-master' },
+        { name: 'Menu Master', route: '/mainlayout/master/menu-master' },
+        { name: 'Menu Assignment', route: '/mainlayout/master/menu-assignment' },
+      ],
+    },
+    {
+      name: 'Location Masters',
+      icon: 'public',
+      children: [
+        { name: 'Country Master', route: '/mainlayout/master/country-master' },
+        { name: 'Region Master', route: '/mainlayout/master/region-master' },
+        { name: 'State Master', route: '/mainlayout/master/state-master' },
+        { name: 'City Master', route: '/mainlayout/master/city-master' },
+        { name: 'PinCode Master', route: '/mainlayout/master/pincode-master' },
       ],
     },
   ];

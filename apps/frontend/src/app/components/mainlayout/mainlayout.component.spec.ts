@@ -1,5 +1,6 @@
 /* tslint:disable:no-unused-variable */
-import { async,ComponentFixture,TestBed } from '@angular/core/testing';
+import { ComponentFixture,TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { MainlayoutComponent } from './mainlayout.component';
 
@@ -7,12 +8,13 @@ describe('MainlayoutComponent', () => {
   let component: MainlayoutComponent;
   let fixture: ComponentFixture<MainlayoutComponent>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      declarations: [ MainlayoutComponent ]
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ MainlayoutComponent ],
+      providers: [provideRouter([])],
     })
     .compileComponents();
-  }));
+  });
 
   beforeEach(() => {
     fixture = TestBed.createComponent(MainlayoutComponent);

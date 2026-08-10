@@ -26,7 +26,6 @@ import { filter } from 'rxjs/operators';
 import { ConfirmationDialogComponent } from '../cds/confirmation-dialog/confirmation-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
 import { AuthService } from '../../services/auth/auth.service';
-import { UserMasterService } from '../../services/user-master.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -80,7 +79,6 @@ export class SidebarComponent implements OnInit, OnChanges {
   activeMenuIndex: number | null = null;
   private selectedMenuItem: any = null;
   private activeBranchRoot: any | null = null;
-  private dealerId: string = '';
 
   constructor(
     private router: Router,
@@ -88,7 +86,6 @@ export class SidebarComponent implements OnInit, OnChanges {
     private elRef: ElementRef,
     private dialog: MatDialog,
     private authService: AuthService,
-    private userMasterService: UserMasterService,
   ) {}
 
   ngOnChanges() {
@@ -96,28 +93,14 @@ export class SidebarComponent implements OnInit, OnChanges {
     this.expandActiveMenuPath();
   }
 
-  async ngOnInit(): Promise<void> {
-    const userData = this.authService.getUserData();
-    if (userData?.name) {
-      this.userName = userData.name;
-      this.dealerId = userData.dealerId;
-    }
+  ngOnInit(): void {
+    this.userName = this.authService.getUserData()?.name ?? '';
 
     this.expandActiveMenuPath();
 
     this.router.events
       .pipe(filter((e) => e instanceof NavigationEnd))
       .subscribe(() => this.expandActiveMenuPath());
-
-    if (userData?.id) {
-      const res = await this.userMasterService
-        .getUserById(userData.id)
-        .toPromise();
-
-      if (res?.success && res.data) {
-        this.previewUrl = res.data.profilePic || null;
-      }
-    }
   }
 
   toggleCollapse(): void {
@@ -454,12 +437,7 @@ export class SidebarComponent implements OnInit, OnChanges {
   }
 
   redirectToProfile(): void {
-    this.router.navigate(['/mainlayout/master/save-dealer-master'], {
-      queryParams: {
-        dealerId: this.dealerId,
-        Type: 'View',
-        source: 'DealerList',
-      },
-    });
+    // TODO: point at the Profile screen (Group H) once it exists.
+    this.router.navigate(['/mainlayout/home']);
   }
 }

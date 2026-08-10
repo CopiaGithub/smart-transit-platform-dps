@@ -1,5 +1,5 @@
 /* tslint:disable:no-unused-variable */
-import { async,ComponentFixture,TestBed } from '@angular/core/testing';
+import { ComponentFixture,TestBed } from '@angular/core/testing';
 
 import { CdsTitleComponent } from './cds-title.component';
 
@@ -7,12 +7,12 @@ describe('CdsTitleComponent', () => {
   let component: CdsTitleComponent;
   let fixture: ComponentFixture<CdsTitleComponent>;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      declarations: [ CdsTitleComponent ]
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ CdsTitleComponent ]
     })
     .compileComponents();
-  }));
+  });
 
   beforeEach(() => {
     fixture = TestBed.createComponent(CdsTitleComponent);

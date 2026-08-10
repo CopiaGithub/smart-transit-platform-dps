@@ -336,6 +336,13 @@
                   <span *ngIf="!row.hasQuotation" class="text-gray-300">—</span>
                 </ng-container>
 
+                <!-- Badge column — a coloured pill for status-like values. -->
+                <ng-container *ngIf="header.type === 'badge'">
+                  <span class="cds-badge" [ngClass]="badgeClass(row[header.key])">
+                    {{ row[header.key] }}
+                  </span>
+                </ng-container>
+
                 <!-- Text column -->
                 <ng-container
                   *ngIf="
@@ -348,6 +355,7 @@
                       header.type !== 'number' &&
                       header.type !== 'text' &&
                       header.type !== 'dropdown' &&
+                      header.type !== 'badge' &&
                       header.type !== 'moreInfo' &&
                       header.type !== 'accessoryDelete')
                   "

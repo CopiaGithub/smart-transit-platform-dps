@@ -4,18 +4,18 @@
 
 .cds-select-option:hover,
 .cds-select-option:focus {
-  background-color: var(--argon-primary, #5e72e4);
+  background-color: var(--argon-primary, #12855c);
   color: var(--argon-white, #fff);
 }
 
 .cds-select-option--selected {
-  background-color: var(--argon-primary-muted, #eef0fd);
-  color: var(--argon-primary, #5e72e4);
+  background-color: var(--argon-primary-muted, #e7f6ef);
+  color: var(--argon-primary, #12855c);
   font-weight: 600;
 }
 
 .cds-select-option--selected:hover,
 .cds-select-option--selected:focus {
-  background-color: var(--argon-primary, #5e72e4);
+  background-color: var(--argon-primary, #12855c);
   color: var(--argon-white, #fff);
 }

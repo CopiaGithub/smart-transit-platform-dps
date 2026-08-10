@@ -1,0 +1,174 @@
+<div class="dash">
+  <!-- Greeting -->
+  <div class="dash-greeting">
+    <h2 class="dash-greeting-title">
+      Welcome back{{ userName ? ", " + userName : "" }}
+    </h2>
+    <p class="dash-greeting-text">Here is where today's dispersal stands.</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="loadError()" class="dash-error">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    <span>{{ loadError() }}</span>
+    <cds-button [variant]="'primary'" (click)="load()">Retry</cds-button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading()" class="dash-grid" aria-busy="true">
+    <div class="dash-skeleton" *ngFor="let _ of [1, 2, 3, 4, 5, 6]"></div>
+  </div>
+
+  <ng-container *ngIf="!isLoading()">
+    <!-- Session banner -->
+    <div
+      class="dash-session"
+      [class.dash-session--open]="hasOpenSession()"
+      [class.dash-session--closed]="!hasOpenSession()"
+    >
+      <ng-container *ngIf="hasOpenSession(); else noSession">
+        <mat-icon class="dash-session-icon" aria-hidden="true">play_circle</mat-icon>
+        <div class="dash-session-body">
+          <p class="dash-session-title">
+            Dispersal session open
+            <span class="dash-pill">{{ session()?.ShiftName }}</span>
+          </p>
+          <p class="dash-session-text">
+            {{ sessionDateLabel() }}
+            <ng-container *ngIf="sessionRunningFor()">
+              · running for {{ sessionRunningFor() }}
+            </ng-container>
+          </p>
+        </div>
+      </ng-container>
+
+      <ng-template #noSession>
+        <mat-icon class="dash-session-icon" aria-hidden="true">pause_circle</mat-icon>
+        <div class="dash-session-body">
+          <p class="dash-session-title">No dispersal session is open</p>
+          <p class="dash-session-text">
+            Nothing can be recorded until a session is open — no gate in, no gate
+            out, no boarding.
+          </p>
+        </div>
+        <cds-button
+          *ngIf="isAdmin"
+          [variant]="'primary'"
+          [disabled]="isOpeningSession()"
+          (click)="openSession()"
+        >
+          {{ isOpeningSession() ? "Opening…" : "Open Session" }}
+        </cds-button>
+      </ng-template>
+    </div>
+
+    <!-- Cards -->
+    <div class="dash-grid">
+      <!-- Yard -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <mat-icon aria-hidden="true" class="dash-card-icon">local_parking</mat-icon>
+          <span class="dash-card-label">Yard occupied</span>
+        </div>
+        <p class="dash-card-value">{{ yardLabel() }}</p>
+        <p class="dash-card-note" *ngIf="platforms() as p">
+          <ng-container *ngIf="p.YardFull; else nextFree">
+            <span class="dash-warn">Yard is full — arrivals will wait.</span>
+          </ng-container>
+          <ng-template #nextFree>
+            <ng-container *ngIf="p.NextFreePlatformNumber !== null">
+              Next free platform: {{ p.NextFreePlatformNumber }}
+            </ng-container>
+          </ng-template>
+        </p>
+      </div>
+
+      <!-- Waiting -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <mat-icon aria-hidden="true" class="dash-card-icon">hourglass_top</mat-icon>
+          <span class="dash-card-label">Waiting buses</span>
+        </div>
+        <p class="dash-card-value">{{ session()?.Waiting ?? 0 }}</p>
+        <p class="dash-card-note">Holding until a platform frees up.</p>
+      </div>
+
+      <!-- Departed -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <mat-icon aria-hidden="true" class="dash-card-icon">logout</mat-icon>
+          <span class="dash-card-label">Departed</span>
+        </div>
+        <p class="dash-card-value">{{ session()?.Departed ?? 0 }}</p>
+        <p class="dash-card-note" *ngIf="session() as s">
+          of {{ s.TotalBuses }} {{ s.TotalBuses === 1 ? "bus" : "buses" }} in this
+          session
+        </p>
+      </div>
+
+      <!-- In yard -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <mat-icon aria-hidden="true" class="dash-card-icon">directions_bus</mat-icon>
+          <span class="dash-card-label">Buses in yard</span>
+        </div>
+        <p class="dash-card-value">{{ buses()?.InYardCount ?? 0 }}</p>
+        <p class="dash-card-note" *ngIf="buses() as b">
+          {{ b.AvailableCount }} available of {{ b.TotalBuses }} in the fleet
+        </p>
+      </div>
+
+      <!-- Out of service -->
+      <div
+        class="dash-card"
+        [class.dash-card--danger]="(buses()?.OutOfServiceCount ?? 0) > 0"
+      >
+        <div class="dash-card-head">
+          <mat-icon aria-hidden="true" class="dash-card-icon">build</mat-icon>
+          <span class="dash-card-label">Out of service</span>
+        </div>
+        <p class="dash-card-value">{{ buses()?.OutOfServiceCount ?? 0 }}</p>
+        <p class="dash-card-note">
+          <a class="dash-link" (click)="go('/mainlayout/master/buses-master')">
+            Open Buses Master
+          </a>
+        </p>
+      </div>
+
+      <!-- Displays -->
+      <div class="dash-card" [class.dash-card--danger]="offlineDisplays().length > 0">
+        <div class="dash-card-head">
+          <mat-icon aria-hidden="true" class="dash-card-icon">cast</mat-icon>
+          <span class="dash-card-label">Displays not online</span>
+        </div>
+        <p class="dash-card-value">
+          {{ offlineDisplays().length }}
+          <span class="dash-card-value-of">/ {{ displays().length }}</span>
+        </p>
+        <p class="dash-card-note">
+          <ng-container *ngIf="offlineDisplays().length; else allOnline">
+            {{ offlineDisplays()[0].DisplayName
+            }}<ng-container *ngIf="offlineDisplays().length > 1">
+              and {{ offlineDisplays().length - 1 }} more</ng-container
+            >
+          </ng-container>
+          <ng-template #allOnline>Every LED wall is reporting in.</ng-template>
+        </p>
+      </div>
+    </div>
+
+    <p class="dash-footnote">
+      Refreshes every 30 seconds while this tab is open.
+    </p>
+  </ng-container>
+</div>
+
+<app-popup
+  [heading]="popupHeading()"
+  [content]="popupContent()"
+  [isVisible]="isPopupVisible()"
+  [headerBgColor]="headingColor()"
+  [ButtonColor]="buttonColor()"
+  [imageUrl]="popupImage()"
+  (closed)="onPopupClosed()"
+></app-popup>
