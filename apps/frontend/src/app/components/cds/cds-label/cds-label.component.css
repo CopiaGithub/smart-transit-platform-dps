@@ -1,0 +1,7 @@
+.cds-label {
+  color: var(--argon-heading-color, #32325d);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: normal;
+  text-transform: none;
+}

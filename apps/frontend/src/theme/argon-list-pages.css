@@ -1,0 +1,243 @@
+/*
+ * List pages — Argon Alternative slim styling (CSS-only)
+ * ref: ref-doc/angular-theme/argon-dashboard-pro-angular-v1.5.1
+ *   - pages/tables/tables.component.html (header-body + card-header)
+ *   - pages/dashboards/alternative/alternative.component.html
+ */
+
+/* --- Page title row (e.g. Principle User Master + Add New) --- */
+
+app-page-header-shell cds-button button {
+  background: var(--argon-gradient-primary) !important;
+  box-shadow: var(--argon-btn-shadow) !important;
+  border: 0 !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  height: 2rem !important;
+  min-height: 2rem !important;
+  max-height: 2rem !important;
+  padding: 0 0.875rem !important;
+  line-height: 1 !important;
+  border-radius: 0.375rem !important;
+}
+
+app-page-header-shell cds-button button:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+app-page-header-shell .page-title-text {
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  color: var(--argon-heading-color) !important;
+  letter-spacing: -0.01em;
+}
+
+.page-content app-cds-title h2,
+.page-content app-cds-title .page-title-text {
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  color: var(--argon-heading-color) !important;
+  letter-spacing: -0.01em;
+  padding-bottom: 0 !important;
+}
+
+.page-content app-cds-title cds-button button {
+  background: var(--argon-gradient-primary) !important;
+  box-shadow: var(--argon-btn-shadow) !important;
+  border: 0 !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  height: 2rem !important;
+  min-height: 2rem !important;
+  max-height: 2rem !important;
+  padding: 0 0.875rem !important;
+  line-height: 1 !important;
+  border-radius: 0.375rem !important;
+}
+
+.page-content app-cds-title cds-button button:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+/* --- Section cards: spacing between filter + list --- */
+
+.page-content app-cds-container .border.border-gray-200.rounded-lg {
+  margin-bottom: 1rem !important;
+}
+
+.page-content app-cds-container > .overflow-visible {
+  padding: 0.75rem 1.25rem 1rem !important;
+}
+
+/* --- Filter grid: tighter field gaps --- */
+
+.page-content app-cds-container .grid.gap-4,
+.page-content app-cds-container .grid.gap-7 {
+  gap: 0.75rem !important;
+}
+
+.page-content app-cds-container cds-label,
+.page-content app-cds-container cds-label label {
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  color: var(--argon-heading-color) !important;
+  line-height: 1.2 !important;
+  margin-bottom: 0 !important;
+}
+
+.page-content app-cds-container cds-select .mb-\[6px\],
+.page-content app-cds-container cds-input .mb-\[6px\] {
+  margin-top: 0 !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/* Slim Argon form-control sizing */
+.page-content app-cds-container cds-select button,
+.page-content app-cds-container cds-select-vertical button,
+.page-content app-cds-container app-cds-select-multiple button,
+.page-content app-cds-container app-cds-multi-select-dd button,
+.page-content app-cds-container app-datepicker input,
+.page-content app-cds-container cds-input input {
+  height: 2.125rem !important;
+  min-height: unset !important;
+  padding: 0 0.75rem !important;
+  border-radius: 0.375rem !important;
+  border-color: var(--argon-border-color) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  color: var(--argon-heading-color) !important;
+  line-height: 1.25 !important;
+  box-sizing: border-box !important;
+}
+
+.page-content app-cds-container app-cds-textarea textarea {
+  border-color: var(--argon-border-color) !important;
+  color: var(--argon-heading-color) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+}
+
+.page-content app-cds-container cds-input input {
+  display: block;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: calc(2.125rem - 2px) !important;
+}
+
+.page-content app-cds-container cds-input input::placeholder,
+.page-content app-cds-container app-datepicker input::placeholder,
+.page-content app-cds-container app-cds-textarea textarea::placeholder,
+.page-content app-cds-container cds-select .text-gray-400,
+.page-content app-cds-container cds-select-vertical .text-gray-400,
+.page-content app-cds-container app-cds-select-multiple .text-\[\#ccc\] {
+  color: var(--argon-gray-600) !important;
+  font-weight: 500 !important;
+  opacity: 1 !important;
+}
+
+.page-content app-cds-container cds-select button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.page-content app-cds-container cds-select button mat-icon {
+  font-size: 1.125rem !important;
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  line-height: 1.125rem !important;
+}
+
+.page-content app-cds-container cds-select button span {
+  line-height: 1.25 !important;
+}
+
+/* Filter grid: align action buttons with input row */
+.page-content app-cds-container form .grid.grid-cols-4 > div:empty {
+  display: none;
+}
+
+.page-content app-cds-container form .grid.grid-cols-4 > .flex.justify-end.items-end.gap-2,
+.page-content app-cds-container form .grid.grid-cols-4 > .flex.justify-end.items-end.gap-4,
+.page-content app-cds-container form .grid.grid-cols-4 > .flex.justify-end.gap-2,
+.page-content app-cds-container form .grid.grid-cols-4 > .flex.justify-end.gap-4 {
+  grid-column: 3 / -1;
+  align-self: end;
+}
+
+.page-content app-cds-container form .grid.grid-cols-3 > div:empty {
+  display: none;
+}
+
+.page-content app-cds-container form .grid.grid-cols-3 > .flex.justify-end.items-end.gap-2,
+.page-content app-cds-container form .grid.grid-cols-3 > .flex.justify-end.gap-2 {
+  grid-column: -2 / -1;
+  align-self: end;
+}
+
+/* Search / Clear actions */
+.page-content app-cds-container cds-button button.bg-blue-500 {
+  background: var(--argon-gradient-primary) !important;
+  box-shadow: var(--argon-btn-shadow) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  height: 2.125rem !important;
+  min-height: unset !important;
+  padding: 0 1rem !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.page-content app-cds-container cds-button button.border-gray-300,
+.page-content app-cds-container cds-button button.bg-white.text-gray-700 {
+  background: var(--argon-white) !important;
+  color: var(--argon-gray-700) !important;
+  border: 1px solid var(--argon-border-color) !important;
+  box-shadow: none !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  height: 2.125rem !important;
+  min-height: unset !important;
+  padding: 0 1rem !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.page-content app-cds-container cds-button button.border-gray-300:hover:not(:disabled),
+.page-content app-cds-container cds-button button.bg-white.text-gray-700:hover:not(:disabled) {
+  background: var(--argon-gray-100) !important;
+  color: var(--argon-heading-color) !important;
+  border-color: var(--argon-gray-400) !important;
+}
+
+.page-content app-cds-container cds-button .cds-btn-icon {
+  color: inherit !important;
+}
+
+.page-content app-cds-container .flex.justify-end.items-end.gap-2,
+.page-content app-cds-container .flex.justify-end.gap-2,
+.page-content app-cds-container .flex.justify-end.gap-4 {
+  gap: 0.5rem !important;
+}
+
+/* Dropdown menus must render above the list section below */
+.page-content app-cds-container:has(cds-select) {
+  position: relative;
+  z-index: 2;
+}
+
+.page-content app-cds-container:has(app-table) {
+  position: relative;
+  z-index: 1;
+}
+
+.page-content app-cds-container cds-select ul.absolute,
+.page-content app-cds-container .relative .absolute.z-10 {
+  z-index: 1000 !important;
+}

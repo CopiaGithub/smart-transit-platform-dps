@@ -1,0 +1,18 @@
+:host {
+  display: inline-flex;
+}
+
+/* Mobile only: guarantee breathing room between adjacent buttons
+   (e.g. filter Search/Clear rows) regardless of the parent's gap. */
+@media (max-width: 640px) {
+  :host + :host {
+    margin-left: 0.5rem;
+  }
+}
+
+.cds-btn-icon {
+  font-size: 1rem !important;
+  width: 1rem !important;
+  height: 1rem !important;
+  line-height: 1rem !important;
+}

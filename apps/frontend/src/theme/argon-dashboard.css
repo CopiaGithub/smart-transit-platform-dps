@@ -1,0 +1,385 @@
+/*
+ * Slim dashboard styling — Argon Alternative reference
+ * https://demos.creative-tim.com/argon-dashboard-pro-angular/#/dashboards/alternative
+ * CSS-only; targets app-dms-dashboards + app-dealer-dashboard
+ */
+
+app-dms-dashboards,
+app-dealer-dashboard {
+  display: block;
+}
+
+/* Tighter page padding when dashboard is active */
+.page-content:has(app-dms-dashboards),
+.page-content:has(app-dealer-dashboard) {
+  padding: 0.5rem 1rem 1rem !important;
+}
+
+/* --- Page title --- */
+
+app-dms-dashboards app-cds-title > div,
+app-dealer-dashboard app-cds-title > div {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.5rem !important;
+}
+
+app-dms-dashboards app-cds-title h2,
+app-dealer-dashboard app-cds-title h2,
+app-dms-dashboards app-cds-title .page-title-text,
+app-dealer-dashboard app-cds-title .page-title-text {
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  color: var(--argon-heading-color) !important;
+  letter-spacing: -0.01em;
+}
+
+/* --- Section cards: clean white header (not heavy gradient bar) --- */
+
+app-dms-dashboards app-cds-container .border.border-gray-200.rounded-lg,
+app-dealer-dashboard app-cds-container .border.border-gray-200.rounded-lg {
+  margin-bottom: 1.5rem !important;
+}
+
+app-dms-dashboards app-cds-container .bg-blue-50,
+app-dealer-dashboard app-cds-container .bg-blue-50 {
+  background: var(--argon-white) !important;
+  border-bottom: 1px solid var(--argon-border-color) !important;
+  padding: 0.625rem 1.25rem !important;
+  min-height: 3rem !important;
+  box-shadow: none !important;
+  align-items: center !important;
+  row-gap: 0.5rem !important;
+}
+
+app-dms-dashboards app-cds-container .bg-blue-50 h2,
+app-dealer-dashboard app-cds-container .bg-blue-50 h2 {
+  font-size: 0.9375rem !important;
+  font-weight: 600 !important;
+  color: var(--argon-heading-color) !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  line-height: 1.25 !important;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+app-dms-dashboards app-cds-container .bg-blue-50 mat-icon,
+app-dealer-dashboard app-cds-container .bg-blue-50 mat-icon {
+  color: var(--argon-primary) !important;
+  font-size: 1.125rem !important;
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* Toggle + title row vertically centered in section headers */
+app-dms-dashboards app-cds-container [header-left],
+app-dealer-dashboard app-cds-container [header-left],
+app-dms-dashboards app-cds-container [header-left] app-cds-toggle,
+app-dealer-dashboard app-cds-container [header-left] app-cds-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+app-dms-dashboards app-cds-container [header-left] cds-label label,
+app-dealer-dashboard app-cds-container [header-left] cds-label label {
+  display: inline-flex !important;
+  align-items: center !important;
+  line-height: 1.25 !important;
+  margin: 0 !important;
+}
+
+/* Title group keeps its natural width (never shrinks to a sliver) */
+app-dms-dashboards app-cds-container .bg-blue-50 > .flex.items-center.gap-2,
+app-dealer-dashboard app-cds-container .bg-blue-50 > .flex.items-center.gap-2 {
+  flex: 0 1 auto !important;
+  min-width: max-content !important;
+  align-items: center !important;
+}
+
+/* Actions group: toolbar (tabs + filters) */
+app-dms-dashboards app-cds-container .bg-blue-50 > .flex.items-center.space-x-2,
+app-dealer-dashboard app-cds-container .bg-blue-50 > .flex.items-center.space-x-2,
+app-dms-dashboards app-cds-container .dash-header-actions,
+app-dealer-dashboard app-cds-container .dash-header-actions {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-end !important;
+  gap: 1rem !important;
+  align-items: center !important;
+}
+
+app-dms-dashboards app-cds-container > .overflow-visible,
+app-dealer-dashboard app-cds-container > .overflow-visible {
+  padding: 1rem 1.25rem 1.25rem !important;
+}
+
+/* Desktop dashboard layout */
+app-dms-dashboards .dash-kpi-grid,
+app-dealer-dashboard .dash-kpi-grid {
+  gap: 1.5rem !important;
+  margin: 0.5rem 0 0 !important;
+}
+
+.page-content:has(app-dms-dashboards),
+.page-content:has(app-dealer-dashboard) {
+  padding: 0.75rem 1.5rem 1.5rem !important;
+}
+
+/* Compact header filters */
+app-dms-dashboards app-cds-container [header-actions] .flex.gap-2,
+app-dealer-dashboard app-cds-container [header-actions] .flex.gap-2 {
+  gap: 0.5rem !important;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+app-dms-dashboards app-cds-container [header-actions] cds-select-vertical,
+app-dealer-dashboard app-cds-container [header-actions] cds-select-vertical {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+/* Filter dropdown panel: full-width stacked fields, no header flex squeeze */
+app-dms-dashboards .dash-filter-panel cds-select-vertical,
+app-dealer-dashboard .dash-filter-panel cds-select-vertical {
+  flex: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+app-dms-dashboards app-cds-container [header-actions] cds-select-vertical .cds-select-vertical-row,
+app-dealer-dashboard app-cds-container [header-actions] cds-select-vertical .cds-select-vertical-row {
+  width: 100%;
+}
+
+@media (max-width: 767.98px) {
+  app-dms-dashboards app-cds-container [header-actions] .overall-filter-popover,
+  app-dealer-dashboard app-cds-container [header-actions] .overall-filter-popover {
+    width: 100%;
+  }
+
+  app-dms-dashboards app-cds-container [header-actions] .flex.gap-2,
+  app-dealer-dashboard app-cds-container [header-actions] .flex.gap-2 {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.625rem !important;
+  }
+
+  app-dms-dashboards app-cds-container [header-actions] cds-select-vertical,
+  app-dealer-dashboard app-cds-container [header-actions] cds-select-vertical {
+    flex: 1 1 auto;
+    width: 100% !important;
+  }
+
+  app-dms-dashboards app-cds-container .bg-blue-50 > .flex.items-center.space-x-2,
+  app-dealer-dashboard app-cds-container .bg-blue-50 > .flex.items-center.space-x-2 {
+    width: 100%;
+    justify-content: stretch !important;
+  }
+}
+
+/* --- Section tabs (Overview / Trends / Top 10): kill the 220px hack --- */
+
+app-dms-dashboards app-cds-container [header-actions] .pl-\[220px\],
+app-dealer-dashboard app-cds-container [header-actions] .pl-\[220px\] {
+  padding-left: 0 !important;
+}
+
+app-dms-dashboards app-cds-container [header-actions] .relative.w-full,
+app-dealer-dashboard app-cds-container [header-actions] .relative.w-full {
+  width: auto !important;
+}
+
+app-dms-dashboards app-cds-container [header-actions] .flex.gap-6.border-b,
+app-dealer-dashboard app-cds-container [header-actions] .flex.gap-6.border-b {
+  margin-right: 0 !important;
+  gap: 1.25rem !important;
+  flex-wrap: nowrap !important;
+  border-bottom: 0 !important;
+}
+
+app-dms-dashboards app-cds-container [header-actions] .flex.gap-6.border-b button,
+app-dealer-dashboard app-cds-container [header-actions] .flex.gap-6.border-b button {
+  white-space: nowrap !important;
+  flex: 0 0 auto !important;
+  padding-bottom: 0.25rem !important;
+}
+
+app-dms-dashboards app-cds-container cds-select-vertical button,
+app-dealer-dashboard app-cds-container cds-select-vertical button {
+  padding: 0.35rem 0.65rem !important;
+  min-height: 2rem;
+  border-radius: 0.375rem !important;
+  border-color: var(--argon-border-color) !important;
+  font-size: 0.8125rem !important;
+  box-shadow: none !important;
+}
+
+app-dms-dashboards app-cds-container cds-label,
+app-dealer-dashboard app-cds-container cds-label {
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  color: var(--argon-heading-color) !important;
+}
+
+/* --- KPI stat cards → see dash-kpi-cards.css (Argon Alternative gradients) --- */
+
+app-dms-dashboards .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4.gap-4,
+app-dealer-dashboard .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4.gap-4,
+app-dms-dashboards .px-2.pt-3.pb-4 .grid.lg\:grid-cols-4,
+app-dealer-dashboard .px-2.pt-3.pb-4 .grid.lg\:grid-cols-4,
+app-dms-dashboards .dash-kpi-grid,
+app-dealer-dashboard .dash-kpi-grid {
+  gap: 1.5rem !important;
+  margin: 0.75rem 0.25rem 1.25rem !important;
+}
+
+/* --- Filter toolbar (compact, borderless) --- */
+
+app-dms-dashboards .grid.md\:grid-cols-6.gap-4.bg-white.border,
+app-dealer-dashboard .grid.md\:grid-cols-6.gap-4.bg-white.border {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0.25rem 0 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+  gap: 0.625rem !important;
+}
+
+app-dms-dashboards .grid.md\:grid-cols-6 cds-select button,
+app-dms-dashboards .grid.md\:grid-cols-6 cds-select-vertical button,
+app-dealer-dashboard .grid.md\:grid-cols-6 cds-select button,
+app-dealer-dashboard .grid.md\:grid-cols-6 cds-select-vertical button {
+  padding: 0.375rem 0.625rem !important;
+  min-height: 2rem;
+  border-radius: 0.375rem !important;
+  border-color: var(--argon-border-color) !important;
+  font-size: 0.8125rem !important;
+}
+
+/* --- Section tabs --- */
+
+app-dms-dashboards .flex.gap-6.border-b,
+app-dealer-dashboard .flex.gap-6.border-b {
+  gap: 1.25rem !important;
+  border-color: var(--argon-border-color) !important;
+}
+
+app-dms-dashboards .flex.gap-6.border-b button,
+app-dealer-dashboard .flex.gap-6.border-b button {
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  padding-bottom: 0.5rem !important;
+  color: var(--argon-gray-600) !important;
+}
+
+app-dms-dashboards .flex.gap-6.border-b button.border-blue-600,
+app-dealer-dashboard .flex.gap-6.border-b button.border-blue-600 {
+  color: var(--dash-kpi-purple) !important;
+  border-color: var(--dash-kpi-purple) !important;
+  border-bottom-width: 2px !important;
+}
+
+/* --- Toggle, clear button, inputs --- */
+
+app-dms-dashboards app-cds-toggle,
+app-dealer-dashboard app-cds-toggle {
+  font-size: 0.8125rem !important;
+}
+
+app-dms-dashboards cds-button button,
+app-dealer-dashboard cds-button button {
+  border-radius: 0.5rem !important;
+  font-size: 0.8125rem !important;
+  padding: 0.375rem 0.875rem !important;
+}
+
+app-dms-dashboards .grid.md\:grid-cols-6 cds-label,
+app-dealer-dashboard .grid.md\:grid-cols-6 cds-label {
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0;
+  color: #718096 !important;
+  margin-bottom: 0.25rem !important;
+}
+
+app-dms-dashboards cds-select button,
+app-dms-dashboards cds-select-vertical button,
+app-dealer-dashboard cds-select button,
+app-dealer-dashboard cds-select-vertical button {
+  border-radius: 0.5rem !important;
+  border-color: #e2e8f0 !important;
+  background: var(--argon-white) !important;
+  color: #2d3748 !important;
+  box-shadow: none !important;
+}
+
+app-dms-dashboards cds-select button:focus,
+app-dms-dashboards cds-select-vertical button:focus,
+app-dealer-dashboard cds-select button:focus,
+app-dealer-dashboard cds-select-vertical button:focus {
+  border-color: var(--dash-kpi-purple) !important;
+  box-shadow: 0 0 0 3px rgba(128, 90, 213, 0.12) !important;
+}
+
+/* --- Chart cards --- */
+
+app-dms-dashboards .bg-white.rounded-xl.shadow-md,
+app-dealer-dashboard .bg-white.rounded-xl.shadow-md,
+app-dms-dashboards .chart-container,
+app-dealer-dashboard .chart-container {
+  border: 0 !important;
+  border-radius: 0.375rem !important;
+  padding: 1.25rem !important;
+  box-shadow: var(--argon-card-shadow) !important;
+  background: var(--argon-white) !important;
+}
+
+app-dms-dashboards .chart-container:hover,
+app-dealer-dashboard .chart-container:hover {
+  transform: none !important;
+}
+
+app-dms-dashboards h3.text-xl,
+app-dms-dashboards h3.text-2xl,
+app-dealer-dashboard h3.text-xl,
+app-dealer-dashboard h3.text-2xl {
+  font-size: 1.0625rem !important;
+  font-weight: 600 !important;
+  color: var(--argon-heading-color) !important;
+}
+
+app-dms-dashboards .mb-20,
+app-dealer-dashboard .mb-20 {
+  margin-bottom: 1.25rem !important;
+}
+
+app-dms-dashboards .grid.gap-8,
+app-dealer-dashboard .grid.gap-8 {
+  gap: 1.25rem !important;
+}
+
+/* Expand chart button — subtle */
+app-dms-dashboards button.rounded-full.bg-indigo-100,
+app-dealer-dashboard button.rounded-full.bg-indigo-100 {
+  width: 2rem !important;
+  height: 2rem !important;
+  background: var(--argon-primary-muted) !important;
+}
+
+app-dms-dashboards button.rounded-full.bg-indigo-100 mat-icon,
+app-dealer-dashboard button.rounded-full.bg-indigo-100 mat-icon {
+  color: var(--argon-primary) !important;
+  font-size: 1.125rem !important;
+}

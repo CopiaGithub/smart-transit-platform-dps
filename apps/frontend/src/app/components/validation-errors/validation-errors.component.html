@@ -1,0 +1,7 @@
+@if (isSubmitted || (control().invalid && control().touched)) {
+<ul class="dvs-validation-errors">
+  <li *ngFor="let error of errors | keyvalue">
+    {{ errorMessages[error.key] }}
+  </li>
+</ul>
+}

@@ -1,0 +1,62 @@
+@if (control) {
+<div #dropdownRef class="relative w-full" [class]="customclasses">
+
+  <!-- Label -->
+  <div class="mb-[6px] mt-[2px]" [class]="customlabel">
+    <cds-label [isAstRequired]="isAstRequired" [label]="label" />
+  </div>
+
+  <!-- Trigger -->
+ <button
+  class="w-full px-3 py-1.5 text-gray-700 rounded-md flex justify-between items-center border border-gray-300"
+  (click)="toggleDropdown($event)"
+  [disabled]="control.disabled"
+>
+  <span class="truncate">
+    {{ selectedNames }}
+  </span>
+
+  <span>{{ dropdownOpen ? '▲' : '▼' }}</span>
+</button>
+
+  <!-- Dropdown -->
+  @if (dropdownOpen) {
+  <ul class="absolute w-full mt-1 bg-white border rounded shadow-md z-50 max-h-48 overflow-auto">
+
+    <!-- Select All -->
+    <li class="px-3 py-2 flex items-center gap-2 border-b">
+      <input
+        type="checkbox"
+        [checked]="isAllSelected()"
+        (change)="toggleSelectAll($event)"
+      />
+      <b>Select All</b>
+    </li>
+
+    <!-- Options -->
+    @for (option of optionsList; track $index) {
+    <li
+      class="px-3 py-2 flex items-center gap-2 hover:bg-blue-100 cursor-pointer"
+      (click)="toggleItem(option, $event)"
+    >
+      <input
+        type="checkbox"
+        [checked]="isSelected(option)"
+        (click)="$event.stopPropagation()"
+      />
+      {{ option.name }}
+    </li>
+    }
+
+  </ul>
+  }
+
+</div>
+
+<!-- Validation -->
+<cds-validation-errors
+  [control]="control"
+  [errors]="control.errors"
+  [isSubmitted]="isSubmitted"
+/>
+}

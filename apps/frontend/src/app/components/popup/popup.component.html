@@ -1,0 +1,60 @@
+<div
+  #overlay
+  class="popup-overlay"
+  [class.popup-overlay--visible]="isVisible"
+  [attr.aria-hidden]="!isVisible"
+>
+  <div
+    class="popup-card"
+    #popup
+    (click)="stopPropagation($event)"
+    role="dialog"
+    aria-modal="true"
+  >
+    <!-- Header -->
+    <div class="popup-header" [ngClass]="'popup-header--' + popupVariant">
+      <h2 class="popup-title">{{ heading }}</h2>
+      <button
+        data-testid="close-button-popup"
+        type="button"
+        class="popup-close"
+        (click)="closePopup()"
+        aria-label="Close"
+      >
+        <mat-icon aria-hidden="true">close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="popup-body">
+      <mat-icon
+        *ngIf="!useCustomIcon"
+        class="popup-icon"
+        [ngClass]="'popup-icon--' + popupVariant"
+        aria-hidden="true"
+      >
+        {{ iconName }}
+      </mat-icon>
+
+      <img
+        *ngIf="useCustomIcon"
+        [src]="imageUrl"
+        alt=""
+        class="popup-image"
+      />
+
+      <p class="popup-message">{{ content }}</p>
+    </div>
+
+    <!-- Footer -->
+    <div class="popup-footer">
+      <cds-button
+        [variant]="okButtonVariant"
+        [testid]="'ok-button-popup-footer'"
+        (click)="closePopup(); stopPropagation($event)"
+      >
+        OK
+      </cds-button>
+    </div>
+  </div>
+</div>

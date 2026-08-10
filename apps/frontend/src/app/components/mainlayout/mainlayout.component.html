@@ -1,0 +1,32 @@
+<div class="flex">
+  <app-sidebar
+    [menuItems]="sidebarMenu"
+    [isTablet]="isTablet"
+    [isCollapsed]="sidebarCollapsed"
+    (collapsedChange)="onSidebarCollapsed($event)"
+  ></app-sidebar>
+  <main
+    class="main-content flex-1 min-w-0 flex flex-col overflow-hidden"
+    [class.sidebar-collapsed]="sidebarCollapsed"
+    [class.sidebar-open]="isTablet && !sidebarCollapsed"
+  >
+    <header class="mobile-topbar flex-shrink-0" *ngIf="isTablet">
+      <button
+        type="button"
+        class="topbar-hamburger"
+        (click)="toggleSidebar()"
+        *ngIf="sidebarCollapsed && !hasOpenDialog"
+        aria-label="Open menu"
+      >
+        <mat-icon>menu</mat-icon>
+      </button>
+      <span class="topbar-title">{{ appTitle }}</span>
+    </header>
+    <app-page-header-shell class="flex-shrink-0"></app-page-header-shell>
+    <div class="page-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+      <div class="page-content px-2 pt-0 pb-6 sm:px-4 sm:pb-4 bg-blue w-full min-w-0">
+        <router-outlet></router-outlet>
+      </div>
+    </div>
+  </main>
+</div>

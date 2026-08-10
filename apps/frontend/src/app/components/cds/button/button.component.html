@@ -1,0 +1,24 @@
+@if (!isProcessing()) {
+<button
+  [type]="buttonType"
+  [ngClass]="{
+    'bg-blue-500  hover:bg-blue-400  text-white font-medium':
+      variant === 'primary',
+    'bg-gray-500 hover:bg-gray-600 text-white': variant === 'secondary',
+    'bg-red-600 hover:bg-red-500 text-white font-medium': variant === 'danger',
+    'bg-black hover:bg-gray-800 text-white font-medium': variant === 'newBtn'
+  }"
+  class="rounded-md px-4 py-2 transition duration-300 focus:outline-none"
+>
+  <ng-content></ng-content>
+</button>
+} @else {
+<button
+  type="button"
+  class="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm shadow rounded-md text-white bg-indigo-500 hover:bg-indigo-400 transition ease-in-out duration-150 cursor-not-allowed"
+  disabled=""
+>
+  <cds-spinner />
+  Processing...
+</button>
+}
