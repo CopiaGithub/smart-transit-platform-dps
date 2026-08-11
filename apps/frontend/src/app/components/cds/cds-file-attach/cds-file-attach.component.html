@@ -1,0 +1,90 @@
+<div class="cds-file-attach">
+  <cds-label [label]="label" [isAstRequired]="isAstRequired"></cds-label>
+
+  <div class="cds-file-attach-body">
+    <!-- Preview: the stored image, or the file just picked -->
+    <button
+      type="button"
+      class="cds-file-attach-preview"
+      [class.cds-file-attach-preview--empty]="!previewUrl()"
+      [attr.aria-label]="previewUrl() ? 'View full size' : 'No file attached'"
+      [disabled]="!previewUrl()"
+      (click)="openImageModal()"
+    >
+      <img
+        *ngIf="previewUrl(); else emptyPreview"
+        [src]="previewUrl()"
+        alt=""
+        (error)="onPreviewError()"
+      />
+      <ng-template #emptyPreview>
+        <span class="material-icons cds-file-attach-placeholder">image</span>
+      </ng-template>
+    </button>
+
+    <div class="cds-file-attach-actions">
+      <input
+        type="file"
+        [accept]="accept"
+        [disabled]="isDisabled"
+        (change)="onChangeFile($event)"
+        class="cds-file-attach-input"
+        #fileInput
+      />
+
+      <div class="cds-file-attach-buttons">
+        <button
+          type="button"
+          class="cds-file-attach-btn"
+          [disabled]="isDisabled"
+          (click)="fileInput.click()"
+        >
+          <span class="material-icons cds-file-attach-btn-icon">
+            attach_file
+          </span>
+          {{ fileName() ? "Change file" : "Attach file" }}
+        </button>
+
+        <button
+          *ngIf="previewUrl() || fileName()"
+          type="button"
+          class="cds-file-attach-remove"
+          [disabled]="isDisabled"
+          (click)="onRemove()"
+        >
+          Remove
+        </button>
+      </div>
+
+      <p class="cds-file-attach-constraint">{{ constraintLabel }}</p>
+
+      <p *ngIf="fileName()" class="cds-file-attach-filename">
+        <span class="material-icons cds-file-attach-btn-icon">description</span>
+        {{ fileName() }}
+      </p>
+
+      <p *ngIf="errorMsg()" class="cds-file-attach-error" role="alert">
+        {{ errorMsg() }}
+      </p>
+
+      <p *ngIf="unavailableNote" class="cds-file-attach-note">
+        {{ unavailableNote }}
+      </p>
+    </div>
+  </div>
+</div>
+
+@if (showImageModal()) {
+  <div class="cds-file-attach-overlay" (click)="closeImageModal()">
+    <div class="cds-file-attach-panel" (click)="$event.stopPropagation()">
+      <button
+        type="button"
+        class="cds-file-attach-close"
+        (click)="closeImageModal()"
+      >
+        ✕
+      </button>
+      <img [src]="previewUrl()" alt="" (error)="onPreviewError()" />
+    </div>
+  </div>
+}

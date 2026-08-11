@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using transit_display_platform_api.Common;
 using transit_display_platform_api.Data;
 using transit_display_platform_api.Schema;
+using transit_display_platform_api.Services.BusRouteAllocationService;
 
 namespace transit_display_platform_api.Services.AttendanceService;
 
@@ -24,13 +25,18 @@ public class AttendanceService : IAttendanceService
     private readonly ApplicationDbContext _context;
     private readonly IJwtTokenUtility _jwtTokenUtility;
     private readonly ISchoolClock _clock;
+    private readonly IBusRouteAllocationService _allocations;
 
     public AttendanceService(
-        ApplicationDbContext context, IJwtTokenUtility jwtTokenUtility, ISchoolClock clock)
+        ApplicationDbContext context,
+        IJwtTokenUtility jwtTokenUtility,
+        ISchoolClock clock,
+        IBusRouteAllocationService allocations)
     {
         _context = context;
         _jwtTokenUtility = jwtTokenUtility;
         _clock = clock;
+        _allocations = allocations;
     }
 
     public async Task<ServiceResponseDto<List<ClassListModel>>> GetClassesAsync(int? academicYearId = null)
@@ -173,11 +179,11 @@ public class AttendanceService : IAttendanceService
         if (yearId == null) return Fail<List<BusRollCallModel>>("No academic year is set as current.");
 
         // Only children the school actually puts on a bus. UsesTransport is the
-        // school's own flag; BusId being null means nobody has allocated them yet,
+        // school's own flag; a null route means nobody has placed them on one yet,
         // and either way there is no bus for them to hold up.
-        var riders = await _context.StudentMasters
+        var enrolled = await _context.StudentMasters
             .Where(s => !s.IsDeleted && s.IsActive && s.AcademicYearId == yearId
-                     && s.UsesTransport && s.BusId != null)
+                     && s.UsesTransport && s.RouteId != null)
             .Select(s => new
             {
                 s.Id,
@@ -187,11 +193,41 @@ public class AttendanceService : IAttendanceService
                 s.LastName,
                 s.Grade,
                 s.Division,
-                BusId = s.BusId!.Value,
-                BusNumber = s.Bus!.BusNumber,
+                RouteId = s.RouteId!.Value,
                 RouteName = s.Route!.RouteName
             })
             .ToListAsync();
+
+        // Resolved for `on`, not for today: a roll call read back for last Tuesday
+        // must group children under the bus that actually ran their route that day,
+        // reserve substitutions included.
+        var busByRoute = await _allocations.ResolveBusesForRoutesAsync(
+            enrolled.Select(r => r.RouteId).Distinct().ToList(), on);
+
+        var busIds = busByRoute.Values.Distinct().ToList();
+        var busNumbers = busIds.Count == 0
+            ? new Dictionary<int, string>()
+            : await _context.BusesMasters
+                .Where(b => busIds.Contains(b.Id) && !b.IsDeleted)
+                .ToDictionaryAsync(b => b.Id, b => b.BusNumber);
+
+        // A route with no bus in force on the date has no roll call to show.
+        var riders = enrolled
+            .Where(r => busByRoute.ContainsKey(r.RouteId))
+            .Select(r => new
+            {
+                r.Id,
+                r.AdmissionNumber,
+                r.FirstName,
+                r.MiddleName,
+                r.LastName,
+                r.Grade,
+                r.Division,
+                BusId = busByRoute[r.RouteId],
+                BusNumber = busNumbers.TryGetValue(busByRoute[r.RouteId], out var number) ? number : string.Empty,
+                r.RouteName
+            })
+            .ToList();
 
         if (riders.Count == 0)
             return new ServiceResponseDto<List<BusRollCallModel>> { Data = new(), TotalRecords = 0 };
@@ -275,12 +311,37 @@ public class AttendanceService : IAttendanceService
                 s.LastName,
                 s.PhotoUrl,
                 YearName = s.AcademicYear!.YearName,
-                // Nullable FKs, so these become LEFT JOINs and read null for a
+                // Nullable FK, so this becomes a LEFT JOIN and reads null for a
                 // child who walks home. `!` silences the compiler, not the database.
-                BusNumber = s.Bus!.BusNumber,
-                RouteName = s.Route!.RouteName
+                RouteName = s.Route!.RouteName,
+                s.RouteId,
+                s.UsesTransport
             })
             .ToListAsync();
+
+        // The bus is the route's, resolved for the day being viewed.
+        var rosterBusByRoute = await _allocations.ResolveBusesForRoutesAsync(
+            students
+                .Where(s => s.UsesTransport && s.RouteId.HasValue)
+                .Select(s => s.RouteId!.Value)
+                .Distinct()
+                .ToList(),
+            on);
+
+        var rosterBusIds = rosterBusByRoute.Values.Distinct().ToList();
+        var rosterBusNumbers = rosterBusIds.Count == 0
+            ? new Dictionary<int, string>()
+            : await _context.BusesMasters
+                .Where(b => rosterBusIds.Contains(b.Id) && !b.IsDeleted)
+                .ToDictionaryAsync(b => b.Id, b => b.BusNumber);
+
+        string? BusNumberFor(int? routeId, bool usesTransport) =>
+            usesTransport
+            && routeId.HasValue
+            && rosterBusByRoute.TryGetValue(routeId.Value, out var busId)
+            && rosterBusNumbers.TryGetValue(busId, out var number)
+                ? number
+                : null;
 
         var ids = students.Select(s => s.Id).ToList();
 
@@ -306,7 +367,7 @@ public class AttendanceService : IAttendanceService
             Name = FullName(s.FirstName, s.MiddleName, s.LastName),
             PhotoUrl = s.PhotoUrl,
             IsPresent = byStudent.TryGetValue(s.Id, out var present) ? present : null,
-            BusNumber = s.BusNumber,
+            BusNumber = BusNumberFor(s.RouteId, s.UsesTransport),
             RouteName = s.RouteName
         }).ToList();
 

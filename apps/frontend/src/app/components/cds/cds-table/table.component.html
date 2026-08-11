@@ -437,7 +437,11 @@
                   <mat-icon>download</mat-icon>
                 </button>
                 <button
-                  *ngIf="showCustomAction"
+                  *ngIf="
+                    row.showCustomAction !== undefined
+                      ? row.showCustomAction
+                      : showCustomAction
+                  "
                   [attr.data-testid]="'btn-custom-action-' + tableId + '-' + i"
                   (click)="onCustomAction(row, $event)"
                   [class]="customActionClass"

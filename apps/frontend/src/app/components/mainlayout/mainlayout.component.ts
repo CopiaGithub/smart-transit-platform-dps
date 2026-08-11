@@ -121,8 +121,15 @@ export class MainlayoutComponent implements OnInit {
 
   checkScreen(): void {
     const width = window.innerWidth;
+    const wasTablet = this.isTablet;
     this.isTablet = width <= 1024;
-    this.sidebarCollapsed = this.isTablet;
+
+    // Follow the breakpoint only when it actually changes. This runs on every
+    // resize event, so assigning unconditionally would throw away a deliberate
+    // collapse the moment the window moved, was zoomed, or devtools opened.
+    if (this.isTablet !== wasTablet) {
+      this.sidebarCollapsed = this.isTablet;
+    }
   }
 
   onSidebarCollapsed(collapsed: boolean): void {

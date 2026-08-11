@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using transit_display_platform_api.Common;
 using transit_display_platform_api.Data;
 using transit_display_platform_api.Schema;
+using transit_display_platform_api.Services.BusRouteAllocationService;
 
 namespace transit_display_platform_api.Services.BusesMasterService;
 
@@ -9,15 +10,24 @@ public class BusesMasterService : IBusesMasterService
 {
     private readonly ApplicationDbContext _context;
     private readonly IJwtTokenUtility _jwtTokenUtility;
+    private readonly IBusRouteAllocationService _allocations;
+    private readonly ISchoolClock _clock;
 
-    public BusesMasterService(ApplicationDbContext context, IJwtTokenUtility jwtTokenUtility)
+    public BusesMasterService(
+        ApplicationDbContext context,
+        IJwtTokenUtility jwtTokenUtility,
+        IBusRouteAllocationService allocations,
+        ISchoolClock clock)
     {
         _context = context;
         _jwtTokenUtility = jwtTokenUtility;
+        _allocations = allocations;
+        _clock = clock;
     }
 
     public async Task<ServiceResponseDto<PagedResult<BusesMasterListModel>>> GetAllAsync(
-        PaginationFilterDto filter, int? routeId = null, bool? status = null)
+        PaginationFilterDto filter, int? routeId = null, bool? status = null,
+        string? busType = null, string? serviceStatus = null)
     {
         var (pageNumber, pageSize) = filter.Normalize();
 
@@ -31,6 +41,14 @@ public class BusesMasterService : IBusesMasterService
 
         if (routeId.HasValue)
             query = query.Where(b => b.RouteId == routeId.Value);
+
+        // Exact match, unlike SearchTerm below which does a fuzzy Contains over
+        // BusType among other columns — "Reserve" here must mean only Reserve.
+        if (!string.IsNullOrWhiteSpace(busType))
+            query = query.Where(b => b.BusType == busType);
+
+        if (!string.IsNullOrWhiteSpace(serviceStatus))
+            query = query.Where(b => b.ServiceStatus == serviceStatus);
 
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {
@@ -232,10 +250,14 @@ public class BusesMasterService : IBusesMasterService
         if (bus == null)
             return new ServiceResponseDto<bool> { Success = false, Message = "Bus not found." };
 
-        // The same hole routes had: children carry a BusId, so deleting the bus
-        // leaves them pointing at a vehicle that is not there — and the parent
-        // screen would still print its number.
-        bool hasRiders = await _context.StudentMasters.AnyAsync(s => s.BusId == id && !s.IsDeleted);
+        // Children are enrolled on routes, not buses, so "has riders" means the bus
+        // is allocated to a route that someone travels on. Deleting it would leave
+        // that route without a vehicle and the parent screen with nothing to print.
+        var servedRoutes = await _allocations.ResolveRoutesForBusAsync(id, _clock.Today);
+        bool hasRiders = servedRoutes.Count > 0
+            && await _context.StudentMasters.AnyAsync(
+                s => s.UsesTransport && s.RouteId != null
+                     && servedRoutes.Contains(s.RouteId.Value) && !s.IsDeleted);
         if (hasRiders)
             return new ServiceResponseDto<bool>
             {

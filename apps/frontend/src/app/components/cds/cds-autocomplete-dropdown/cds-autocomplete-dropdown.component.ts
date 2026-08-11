@@ -50,6 +50,11 @@ export class CdsAutocompleteDropdownComponent
   @Input() options: { name: string; value: any; code?: string }[] = [];
   @Input() required = false;
   @Input() showNoRecords = false;
+  /**
+   * Write `option.value` to the form control instead of the whole option.
+   * Lets this replace a native <select> without changing what the form emits.
+   */
+  @Input() valueOnly = false;
   @Input() customErrorMessages: Record<string, string> = {};
 
   @Output() selectionChange = new EventEmitter<any>();
@@ -208,7 +213,7 @@ export class CdsAutocompleteDropdownComponent
     this.showDropdown = false;
     this.unbindScrollReposition();
 
-    this._changed?.(option);
+    this._changed?.(this.valueOnly ? option.value : option);
     this._onTouched?.();
     this.selectionChange.emit(option);
 

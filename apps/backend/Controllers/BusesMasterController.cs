@@ -17,13 +17,18 @@ public class BusesMasterController : ControllerBase
         _service = service;
     }
 
+    /// <param name="busType">Active or Reserve. Lets a caller ask for just the
+    /// reserve fleet — the substitution flow offers nothing else.</param>
+    /// <param name="serviceStatus">InService, Maintenance or Breakdown.</param>
     [HttpGet]
     public async Task<IActionResult> GetBusesMaster(
         [FromQuery] PaginationFilterDto filter,
         [FromQuery] int? routeId,
-        [FromQuery] bool? status)
+        [FromQuery] bool? status,
+        [FromQuery] string? busType,
+        [FromQuery] string? serviceStatus)
     {
-        var response = await _service.GetAllAsync(filter, routeId, status);
+        var response = await _service.GetAllAsync(filter, routeId, status, busType, serviceStatus);
         if (!response.Success)
             return BadRequest(response.Message);
 

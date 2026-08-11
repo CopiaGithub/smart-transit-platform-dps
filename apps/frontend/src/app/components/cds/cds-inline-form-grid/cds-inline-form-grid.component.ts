@@ -12,7 +12,6 @@ import {
 } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { CdsAutocompleteDropdownComponent } from '../cds-autocomplete-dropdown/cds-autocomplete-dropdown.component';
-import { CdsSelectComponent } from '../cds-select/cds-select.component';
 import { DropdownModel } from '../../constants';
 import { InlineGridColumn } from '../cds-inline-grid/cds-inline-grid.types';
 
@@ -23,7 +22,6 @@ import { InlineGridColumn } from '../cds-inline-grid/cds-inline-grid.types';
     CommonModule,
     ReactiveFormsModule,
     MatIconModule,
-    CdsSelectComponent,
     CdsAutocompleteDropdownComponent,
   ],
   templateUrl: './cds-inline-form-grid.component.html',

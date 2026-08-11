@@ -161,6 +161,31 @@
       Refreshes every 30 seconds while this tab is open.
     </p>
   </ng-container>
+
+  <!-- Quick access.
+
+       Outside the isLoading gate above on purpose: these depend on nothing that
+       is fetched, and going somewhere else is exactly what you want when the
+       dashboard is still loading or has failed to load. -->
+  <h2 class="dash-section-title">Quick access</h2>
+  <div class="dash-grid">
+    <button
+      *ngFor="let shortcut of shortcuts"
+      type="button"
+      class="dash-shortcut"
+      [style.--shortcut-accent]="shortcut.accent"
+      [attr.data-testid]="'shortcut-' + shortcut.route"
+      (click)="go(shortcut.route)"
+    >
+      <span class="dash-shortcut-icon" aria-hidden="true">
+        <mat-icon>{{ shortcut.icon }}</mat-icon>
+      </span>
+      <span class="dash-shortcut-body">
+        <span class="dash-shortcut-label">{{ shortcut.name }}</span>
+        <span class="dash-shortcut-note">{{ shortcut.note }}</span>
+      </span>
+    </button>
+  </div>
 </div>
 
 <app-popup

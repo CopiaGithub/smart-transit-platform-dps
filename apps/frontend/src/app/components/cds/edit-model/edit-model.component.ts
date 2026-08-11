@@ -4,10 +4,11 @@ import {
   EventEmitter,
   HostListener,
   Inject,
+  inject,
   Output,
   QueryList,
-  ViewChild,
   ViewChildren,
+  signal,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -16,13 +17,17 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { firstValueFrom } from 'rxjs';
 import { NgFor, NgIf } from '@angular/common';
 import { DatepickerComponent } from '../../datepicker/datepicker.component';
 import { CdsInputComponent } from '../cds-input/cds-input.component';
 import { CdsTextareaComponent } from '../cds-textarea/cds-textarea.component';
 import { CdsAutocompleteDropdownComponent } from '../cds-autocomplete-dropdown/cds-autocomplete-dropdown.component';
+import { CdsCollectionFieldComponent } from '../cds-collection-field/cds-collection-field.component';
 import { CdsButtonComponent } from '../cds-button/cds-button.component';
+import { CdsFileAttachComponent } from '../cds-file-attach/cds-file-attach.component';
 import { MatIconModule } from '@angular/material/icon';
+import { AttachmentService } from '../../../core/api/attachment.service';
 
 @Component({
   selector: 'app-edit-model',
@@ -34,7 +39,9 @@ import { MatIconModule } from '@angular/material/icon';
     CdsInputComponent,
     CdsTextareaComponent,
     CdsAutocompleteDropdownComponent,
+    CdsCollectionFieldComponent,
     CdsButtonComponent,
+    CdsFileAttachComponent,
     MatIconModule,
   ],
   templateUrl: './edit-model.component.html',
@@ -56,11 +63,11 @@ export class EditModelComponent {
   duplicateCheckCombinationOfFields: string[] = [];
   IsDeligationMatrixPage: boolean = false;
   disableSaveButton: boolean = false;
-  displayUserProfileSection: Boolean;
-  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
-  showImageModal = false;
-  previewUrl: string | null = null;
-  errorMsg: string | null = null;
+  /** Files picked in a `file` field, by control name, awaiting upload on save. */
+  private readonly pendingFiles = new Map<string, File>();
+  private readonly attachments = inject(AttachmentService);
+  /** Signal: written from the upload callback, and the app is zoneless. */
+  readonly saveError = signal<string | null>(null);
 
   constructor(
     private fb: FormBuilder,
@@ -75,7 +82,6 @@ export class EditModelComponent {
       duplicateCheckCombinationOfFields?: string[];
       IsDeligationMatrixPage?: Boolean;
       disableSaveButton?: boolean;
-      displayUserProfileSection?: Boolean;
       footerMode?: 'default' | 'view';
       viewMode?: boolean;
       saveButtonText?: string;
@@ -89,10 +95,6 @@ export class EditModelComponent {
     this.duplicateCheckCombinationOfFields =
       data.duplicateCheckCombinationOfFields || [];
     this.disableSaveButton = data.disableSaveButton ?? false;
-    this.displayUserProfileSection = data.displayUserProfileSection ?? false;
-    if (this.displayUserProfileSection == true) {
-      this.previewUrl = this.data.formData.profilePic || null;
-    }
     // this.IsDeligationMatrixPage = this.data.IsDeligationMatrixPage;
 
     // Build form dynamically
@@ -113,6 +115,19 @@ export class EditModelComponent {
         initialValue = !!initialValue;
       }
 
+      // A collection is always a list, never ''. Validators.required then reads an
+      // empty list as missing, which is what "at least one row" means.
+      if (field.type === 'collection' && !Array.isArray(initialValue)) {
+        initialValue = [];
+      }
+
+      // The autocomplete binds `optionsList` directly, so it must be a stable
+      // array reference — a `|| []` in the template would re-fire ngOnChanges
+      // on every change-detection pass.
+      if (field.type === 'dropdown' && !Array.isArray(field.optionsList)) {
+        field.optionsList = [];
+      }
+
       if (field.type === 'dropdown' && Array.isArray(field.optionsList)) {
         const matchedOption = field.optionsList.find(
           (opt: { name: string; value: any }) => opt.name === initialValue,
@@ -129,7 +144,6 @@ export class EditModelComponent {
           validators,
         ),
       );
-      this.form.addControl('profilePic', this.fb.control(this.previewUrl));
     });
     this.refreshFieldVisibility(false);
     this.tabs = this.collectTabs();
@@ -200,59 +214,44 @@ export class EditModelComponent {
     }
   }
 
-  async onChangeFile(event: any) {
-    if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-      this.errorMsg = null;
+  /** Note shown inside every `file` control while uploads are unavailable. */
+  get attachmentNote(): string {
+    return this.attachments.isUploadAvailable
+      ? ''
+      : this.attachments.unavailableMessage;
+  }
 
-      // Optional: Add file size limit (e.g., 5MB)
-      const maxSize = 2 * 1024 * 1024; // 5MB in bytes
-      if (file.size > maxSize) {
-        this.errorMsg = 'File size exceeds the 2MB limit.';
-        event.target.value = ''; // Clear the input
-        return;
-      }
+  /** A `file` control picked a file (or cleared one); hold it until save. */
+  onFileSelected(fieldName: string, file: File | null): void {
+    if (file) {
+      this.pendingFiles.set(fieldName, file);
+    } else {
+      this.pendingFiles.delete(fieldName);
+    }
+    this.saveError.set(null);
+  }
 
-      if (
-        file.type === 'image/png' ||
-        file.type === 'image/jpeg' ||
-        file.type === 'image/jpg'
-      ) {
-        try {
-          const base64 = await this.toBase64(file);
-
-          // Patch the form value with the base64 string
-          this.form.patchValue({ profilePic: base64 });
-        } catch (error) {
-          console.error('Error converting file to base64:', error);
-          this.errorMsg = 'Error processing file. Please try again.';
-          event.target.value = ''; // Clear the input on error
-        }
-      } else {
-        this.errorMsg = 'Only JPEG, JPG, and PNG files are allowed.';
-        event.target.value = ''; // Clear the input
+  /**
+   * Uploads whatever was picked and writes each returned path into its control,
+   * so the dialog result carries a path exactly as a typed link would.
+   * Returns false when an upload fails, which aborts the save.
+   */
+  private async uploadPendingFiles(): Promise<boolean> {
+    for (const [fieldName, file] of this.pendingFiles) {
+      try {
+        const storedPath = await firstValueFrom(this.attachments.upload(file));
+        this.form.get(fieldName)?.setValue(storedPath);
+      } catch (error: unknown) {
+        this.saveError.set(
+          error instanceof Error
+            ? error.message
+            : 'Could not attach that file. Please try again.',
+        );
+        return false;
       }
     }
-  }
-
-  private toBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (e) => {
-        this.previewUrl = e.target?.result as string;
-        resolve(e.target?.result as string);
-      };
-      reader.onerror = (error) => reject(error);
-    });
-  }
-
-  openImageModal() {
-    this.showImageModal = true;
-  }
-
-  closeImageModal() {
-    this.showImageModal = false;
+    this.pendingFiles.clear();
+    return true;
   }
 
   // onFieldChange(fieldName: string, event: any) {
@@ -270,7 +269,9 @@ export class EditModelComponent {
   //   // }
   // }
 onFieldChange(fieldName: string, event: any) {
-  const value = event.target?.value ?? event.value;
+  // `event` is a DOM event for inputs, a selected option for dropdowns, and
+  // null when an autocomplete selection is cleared by typing over it.
+  const value = event?.target?.value ?? event?.value ?? null;
   this.fieldValueChanged.emit({
     fieldName,
     value,
@@ -354,7 +355,7 @@ private recalculateApprovedDays() {
     const valid = /^\d{10}$/.test(value);
     return valid ? null : { phoneNumber: true };
   }
-  onSave() {
+  async onSave() {
     this.refreshFieldVisibility(false);
 
     // 🔹 Always mark all controls as touched so validation shows on Save click
@@ -390,6 +391,13 @@ private recalculateApprovedDays() {
 
     // 🔹 Stop early if required validation fails
     if (this.form.invalid) {
+      return;
+    }
+
+    // Turn any picked file into a stored path first, so the rest of this method
+    // sees a plain string exactly as if the link had been typed by hand.
+    this.saveError.set(null);
+    if (this.pendingFiles.size > 0 && !(await this.uploadPendingFiles())) {
       return;
     }
 
@@ -500,8 +508,6 @@ private recalculateApprovedDays() {
       }
     });
 
-    finalFormData['profilePic'] = this.previewUrl;
-
     // 🔹 Return final data
     this.dialogRef.close(finalFormData);
   }
@@ -603,16 +609,24 @@ private recalculateApprovedDays() {
     }
 
     // Name-based fallbacks, kept for descriptors that declare nothing explicit.
-    if (!field.pattern && field.name.toLowerCase().includes('pincode')) {
-      validators.push(Validators.pattern(/^[0-9]{6}$/));
-    }
+    //
+    // Only ever for fields the user types into. A dropdown's control value is the
+    // chosen record's id, not the text on screen, so matching on the name alone
+    // pointed these at the wrong thing entirely: Parent Master's `PinCodeId` picks
+    // a PinCodeMaster row, and the 6-digit rule was being run against its id while
+    // the box displayed the pincode itself — "400614" reported as not 6 digits.
+    if (isTextEntryField(field)) {
+      if (!field.pattern && field.name.toLowerCase().includes('pincode')) {
+        validators.push(Validators.pattern(/^[0-9]{6}$/));
+      }
 
-    if (field.minLength === undefined && field.name.includes('phoneNo')) {
-      validators.push(Validators.minLength(10), Validators.maxLength(10));
-    }
+      if (field.minLength === undefined && field.name.includes('phoneNo')) {
+        validators.push(Validators.minLength(10), Validators.maxLength(10));
+      }
 
-    if (field.name.toLowerCase().includes('email')) {
-      validators.push(Validators.email);
+      if (field.name.toLowerCase().includes('email')) {
+        validators.push(Validators.email);
+      }
     }
 
     return validators;
@@ -626,7 +640,13 @@ private recalculateApprovedDays() {
       }
 
       if (!this.isFieldVisible(field) && resetHiddenFields) {
-        control.reset(field.multiple ? [] : field.type === 'toggle' ? false : '');
+        control.reset(
+          field.multiple || field.type === 'collection'
+            ? []
+            : field.type === 'toggle'
+              ? false
+              : '',
+        );
       }
 
       control.setValidators(this.getFieldValidators(field));
@@ -727,4 +747,17 @@ private recalculateApprovedDays() {
         spaceBelow < panelHeight && spaceAbove > spaceBelow ? 'above' : 'below';
     });
   }
+}
+
+/**
+ * Fields whose control value is the text the user typed.
+ *
+ * Everything else holds something else entirely — a dropdown holds the selected
+ * record's id, a collection holds an array of rows, a file field holds a stored
+ * path — so a rule written for typed text must never be aimed at one.
+ */
+const TEXT_ENTRY_TYPES = ['text', 'password', 'number', 'email', 'textarea'];
+
+function isTextEntryField(field: { type?: string }): boolean {
+  return TEXT_ENTRY_TYPES.includes(field.type ?? 'text');
 }

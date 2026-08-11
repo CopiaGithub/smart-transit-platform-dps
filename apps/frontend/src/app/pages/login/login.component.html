@@ -48,66 +48,70 @@
             Sign in to your account to continue
           </p>
 
+          <!-- Server-side failure. role="alert" so screen readers announce it
+               without the user having to go looking for it. -->
+          <div
+            *ngIf="loginError()"
+            data-testid="login-error"
+            class="login-alert"
+            role="alert"
+          >
+            <span class="material-icons login-alert-icon">error_outline</span>
+            <span>{{ loginError() }}</span>
+          </div>
+
           <form
             [formGroup]="formgroup"
             (ngSubmit)="onLogin()"
-            class="space-y-4"
+            novalidate
+            class="space-y-5"
           >
             <!-- Username -->
-            <div>
-              <label class="block text-sm font-medium text-gray-600"
-                >Username</label
-              >
+            <div class="login-field">
+              <label for="login-username" class="login-label">Username</label>
               <input
+                id="login-username"
                 type="text"
                 formControlName="username"
-                placeholder="Enter your Username"
-                class="mt-1 w-full px-4 py-3 border rounded-xl focus:outline-none transition duration-300 bg-white"
-                style="focus-outline: none"
-                [ngClass]="{
-                  'border-red-500':
-                    formgroup.get('username')?.touched &&
-                    formgroup.get('username')?.invalid,
-                  'border-gray-300': !(
-                    formgroup.get('username')?.touched &&
-                    formgroup.get('username')?.invalid
-                  ),
-                }"
-              />
-              <small
-                *ngIf="
-                  formgroup.get('username')?.touched &&
-                  formgroup.get('username')?.invalid
+                placeholder="Enter your username"
+                autocomplete="username"
+                class="login-input"
+                [class.login-input-error]="hasError('username')"
+                [attr.aria-invalid]="hasError('username')"
+                [attr.aria-describedby]="
+                  hasError('username') ? 'login-username-error' : null
                 "
-                class="text-red-500"
-                >Username/Email is required</small
+              />
+              <p
+                *ngIf="hasError('username')"
+                id="login-username-error"
+                class="login-error-text"
               >
+                <span class="material-icons login-error-icon">error_outline</span>
+                Username is required
+              </p>
             </div>
 
             <!-- Password -->
-            <div>
-              <label class="block text-sm font-medium text-gray-600"
-                >Password</label
-              >
-              <div class="relative mt-1">
+            <div class="login-field">
+              <label for="login-password" class="login-label">Password</label>
+              <div class="relative">
                 <input
+                  id="login-password"
                   [type]="showPassword ? 'text' : 'password'"
                   formControlName="password"
                   placeholder="Enter your password"
-                  class="w-full px-4 py-3 pr-12 border rounded-xl focus:outline-none transition duration-300 bg-white"
-                  [ngClass]="{
-                    'border-red-500':
-                      formgroup.get('password')?.touched &&
-                      formgroup.get('password')?.invalid,
-                    'border-gray-300': !(
-                      formgroup.get('password')?.touched &&
-                      formgroup.get('password')?.invalid
-                    ),
-                  }"
+                  autocomplete="current-password"
+                  class="login-input login-input-password"
+                  [class.login-input-error]="hasError('password')"
+                  [attr.aria-invalid]="hasError('password')"
+                  [attr.aria-describedby]="
+                    hasError('password') ? 'login-password-error' : null
+                  "
                 />
                 <button
                   type="button"
-                  class="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
+                  class="login-eye"
                   [attr.aria-label]="
                     showPassword ? 'Hide password' : 'Show password'
                   "
@@ -118,22 +122,22 @@
                   </span>
                 </button>
               </div>
-              <small
-                *ngIf="
-                  formgroup.get('password')?.touched &&
-                  formgroup.get('password')?.invalid
-                "
-                class="text-red-500"
-                >Password is required</small
+              <p
+                *ngIf="hasError('password')"
+                id="login-password-error"
+                class="login-error-text"
               >
+                <span class="material-icons login-error-icon">error_outline</span>
+                Password is required
+              </p>
             </div>
 
             <div class="flex items-center justify-between">
-              <label class="flex items-center gap-2 text-sm text-gray-600">
+              <label class="login-remember">
                 <input
                   type="checkbox"
                   formControlName="rememberMe"
-                  class="h-4 w-4 rounded border-gray-300"
+                  class="login-checkbox"
                 />
                 Remember me
               </label>
@@ -148,13 +152,17 @@
               </button>
             </div>
 
+            <!-- Stays enabled while the form is incomplete: submitting is what
+                 reveals which fields are missing. Only the in-flight request
+                 disables it. -->
             <button
               data-testid="login-button"
               type="submit"
-              class="w-full py-3 text-white rounded-xl transition duration-300 shadow-lg disabled:opacity-50 login-submit"
-              [disabled]="formgroup.invalid"
+              class="login-submit"
+              [disabled]="isSubmitting()"
             >
-              Login
+              <span *ngIf="isSubmitting()" class="login-spinner"></span>
+              {{ isSubmitting() ? "Signing in…" : "Login" }}
             </button>
           </form>
         </div>

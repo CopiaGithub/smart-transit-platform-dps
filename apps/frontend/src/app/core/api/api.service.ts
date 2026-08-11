@@ -39,29 +39,49 @@ export class ApiService {
       }),
       // One retry, GET only, and only when there was no reply at all.
       true,
+      path,
     );
   }
 
   post<T>(path: string, body: unknown): Observable<T> {
-    return this.request<T>(this.http.post<ApiEnvelope<T>>(this.url(path), body), false);
+    return this.request<T>(
+      this.http.post<ApiEnvelope<T>>(this.url(path), body),
+      false,
+      path,
+    );
   }
 
   patch<T>(path: string, body: unknown): Observable<T> {
-    return this.request<T>(this.http.patch<ApiEnvelope<T>>(this.url(path), body), false);
+    return this.request<T>(
+      this.http.patch<ApiEnvelope<T>>(this.url(path), body),
+      false,
+      path,
+    );
   }
 
   delete<T>(path: string): Observable<T> {
-    return this.request<T>(this.http.delete<ApiEnvelope<T>>(this.url(path)), false);
+    return this.request<T>(this.http.delete<ApiEnvelope<T>>(this.url(path)), false, path);
   }
 
   private url(path: string): string {
     return `${this.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
   }
 
+  /**
+   * Sign-in is the one place a 401 means "wrong credentials" rather than "your
+   * session ended". Running the sign-out handler there would reload the login
+   * page and throw away the message the screen is about to show.
+   */
+  private signsOutOn401(path: string): boolean {
+    return !/^\/?auth\/login$/i.test(path);
+  }
+
   private request<T>(
     source: Observable<ApiEnvelope<T>>,
     retryOnNetworkFailure: boolean,
+    path: string,
   ): Observable<T> {
+    const notifyUnauthorized = this.signsOutOn401(path);
     let stream: Observable<ApiEnvelope<T>> = source;
 
     if (retryOnNetworkFailure) {
@@ -81,12 +101,14 @@ export class ApiService {
     }
 
     return stream.pipe(
-      map((envelope) => this.unwrap(envelope)),
-      catchError((error: unknown) => throwError(() => this.toApiError(error))),
+      map((envelope) => this.unwrap(envelope, notifyUnauthorized)),
+      catchError((error: unknown) =>
+        throwError(() => this.toApiError(error, notifyUnauthorized)),
+      ),
     );
   }
 
-  private unwrap<T>(envelope: ApiEnvelope<T>): T {
+  private unwrap<T>(envelope: ApiEnvelope<T>, notifyUnauthorized: boolean): T {
     // Defensive: an endpoint that somehow escapes the wrapper filter returns a
     // bare payload. Treat it as the result rather than failing on a missing flag.
     if (envelope == null || typeof envelope !== 'object' || !('Success' in envelope)) {
@@ -98,7 +120,7 @@ export class ApiService {
         envelope.StatusCode || 400,
         envelope.ErrorMessage ?? 'Request failed.',
       );
-      if (error.isUnauthorized) {
+      if (error.isUnauthorized && notifyUnauthorized) {
         this.onUnauthorized?.();
       }
       throw error;
@@ -107,7 +129,7 @@ export class ApiService {
     return envelope.Result as T;
   }
 
-  private toApiError(error: unknown): ApiError {
+  private toApiError(error: unknown, notifyUnauthorized: boolean): ApiError {
     if (error instanceof ApiError) {
       return error;
     }
@@ -116,7 +138,7 @@ export class ApiService {
     // a bare 403 with an empty body from [Authorize], or a network failure.
     if (error instanceof HttpErrorResponse) {
       const apiError = new ApiError(error.status, messageForWireStatus(error));
-      if (apiError.isUnauthorized) {
+      if (apiError.isUnauthorized && notifyUnauthorized) {
         this.onUnauthorized?.();
       }
       return apiError;

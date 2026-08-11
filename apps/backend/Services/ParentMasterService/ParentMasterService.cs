@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using transit_display_platform_api.Common;
 using transit_display_platform_api.Data;
 using transit_display_platform_api.Schema;
+using transit_display_platform_api.Services.BusRouteAllocationService;
 
 namespace transit_display_platform_api.Services.ParentMasterService;
 
@@ -9,11 +10,19 @@ public class ParentMasterService : IParentMasterService
 {
     private readonly ApplicationDbContext _context;
     private readonly IJwtTokenUtility _jwtTokenUtility;
+    private readonly IBusRouteAllocationService _allocations;
+    private readonly ISchoolClock _clock;
 
-    public ParentMasterService(ApplicationDbContext context, IJwtTokenUtility jwtTokenUtility)
+    public ParentMasterService(
+        ApplicationDbContext context,
+        IJwtTokenUtility jwtTokenUtility,
+        IBusRouteAllocationService allocations,
+        ISchoolClock clock)
     {
         _context = context;
         _jwtTokenUtility = jwtTokenUtility;
+        _allocations = allocations;
+        _clock = clock;
     }
 
     public async Task<ServiceResponseDto<PagedResult<ParentMasterListModel>>> GetAllAsync(
@@ -129,28 +138,64 @@ public class ParentMasterService : IParentMasterService
         if (!exists)
             return new ServiceResponseDto<List<ParentChildModel>> { Success = false, Message = "Parent not found." };
 
-        var children = await _context.StudentParentMappings
+        var rows = await _context.StudentParentMappings
             .Where(m => m.ParentId == id && !m.IsDeleted)
-            .Include(m => m.Student).ThenInclude(s => s!.Bus)
             .Include(m => m.Student).ThenInclude(s => s!.Route)
             .Include(m => m.Student).ThenInclude(s => s!.ExitGate)
             .Where(m => m.Student != null && !m.Student.IsDeleted)
             .OrderBy(m => m.ContactPriority)
-            .Select(m => new ParentChildModel
+            .Select(m => new
             {
-                StudentId = m.StudentId,
-                AdmissionNumber = m.Student!.AdmissionNumber,
-                StudentName = m.Student.FirstName + " " + m.Student.LastName,
-                Class = m.Student.Grade + "-" + m.Student.Division,
-                PhotoUrl = m.Student.PhotoUrl,
-                Relation = m.Relation,
-                IsPrimaryContact = m.IsPrimaryContact,
-                IsAuthorisedForPickup = m.IsAuthorisedForPickup,
-                BusNumber = m.Student.Bus != null ? m.Student.Bus.BusNumber : null,
-                RouteName = m.Student.Route != null ? m.Student.Route.RouteName : null,
-                ExitGateName = m.Student.ExitGate != null ? m.Student.ExitGate.GateName : null
+                Child = new ParentChildModel
+                {
+                    MappingId = m.Id,
+                    StudentId = m.StudentId,
+                    AdmissionNumber = m.Student!.AdmissionNumber,
+                    StudentName = m.Student.FirstName + " " + m.Student.LastName,
+                    Class = m.Student.Grade + "-" + m.Student.Division,
+                    PhotoUrl = m.Student.PhotoUrl,
+                    Relation = m.Relation,
+                    IsPrimaryContact = m.IsPrimaryContact,
+                    IsEmergencyContact = m.IsEmergencyContact,
+                    IsAuthorisedForPickup = m.IsAuthorisedForPickup,
+                    ReceivesNotifications = m.ReceivesNotifications,
+                    RouteName = m.Student.Route != null ? m.Student.Route.RouteName : null,
+                    ExitGateName = m.Student.ExitGate != null ? m.Student.ExitGate.GateName : null
+                },
+                m.Student!.RouteId,
+                m.Student.UsesTransport
             })
             .ToListAsync();
+
+        // The bus comes from the route's allocation, not from a column on the child
+        // — same rule as the student list, so a parent sees the reserve on the day
+        // it actually runs. See StudentMasterService for why the column is not used.
+        var routeIds = rows
+            .Where(r => r.UsesTransport && r.RouteId.HasValue)
+            .Select(r => r.RouteId!.Value)
+            .Distinct()
+            .ToList();
+
+        var busByRoute = await _allocations.ResolveBusesForRoutesAsync(routeIds, _clock.Today);
+        var busIds = busByRoute.Values.Distinct().ToList();
+        var busNumbers = busIds.Count == 0
+            ? new Dictionary<int, string>()
+            : await _context.BusesMasters
+                .Where(b => busIds.Contains(b.Id) && !b.IsDeleted)
+                .ToDictionaryAsync(b => b.Id, b => b.BusNumber);
+
+        foreach (var row in rows)
+        {
+            if (row.UsesTransport
+                && row.RouteId.HasValue
+                && busByRoute.TryGetValue(row.RouteId.Value, out var busId)
+                && busNumbers.TryGetValue(busId, out var busNumber))
+            {
+                row.Child.BusNumber = busNumber;
+            }
+        }
+
+        var children = rows.Select(r => r.Child).ToList();
 
         return new ServiceResponseDto<List<ParentChildModel>>
         {

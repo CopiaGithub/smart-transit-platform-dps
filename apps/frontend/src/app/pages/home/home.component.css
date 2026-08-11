@@ -212,3 +212,91 @@
     animation: none;
   }
 }
+
+/* ── Quick access ────────────────────────────────────────────────────────── */
+
+.dash-section-title {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: var(--argon-font-weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--argon-gray-600);
+}
+
+/* Mirrors .dash-card so the grid reads as one family, with the affordances a
+   card does not need: a pointer, a lift, and a focus ring. */
+.dash-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  background: var(--argon-white);
+  border: 1px solid var(--argon-border-color);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.dash-shortcut:hover {
+  transform: translateY(-2px);
+  border-color: var(--shortcut-accent, var(--argon-primary));
+  box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+}
+
+.dash-shortcut:focus-visible {
+  outline: 2px solid var(--argon-primary);
+  outline-offset: 2px;
+}
+
+.dash-shortcut:active {
+  transform: translateY(0);
+}
+
+.dash-shortcut-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  color: var(--shortcut-accent, var(--argon-primary));
+  /* Tinted from the accent itself, so every tile derives its own wash from the
+     one colour the sidebar already assigns it. */
+  background: color-mix(in srgb, var(--shortcut-accent, #12855c) 12%, white);
+}
+
+.dash-shortcut-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.dash-shortcut-label {
+  font-size: 0.875rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-gray-800);
+}
+
+.dash-shortcut-note {
+  font-size: 0.75rem;
+  color: var(--argon-gray-600);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-shortcut,
+  .dash-shortcut:hover {
+    transform: none;
+    transition: none;
+  }
+}

@@ -25,9 +25,11 @@ public class StudentMasterController : ControllerBase
         [FromQuery] string? division,
         [FromQuery] int? busId,
         [FromQuery] int? exitGateId,
-        [FromQuery] bool? status)
+        [FromQuery] bool? status,
+        [FromQuery] int? classTeacherId)
     {
-        var response = await _service.GetAllAsync(filter, academicYearId, grade, division, busId, exitGateId, status);
+        var response = await _service.GetAllAsync(
+            filter, academicYearId, grade, division, busId, exitGateId, status, classTeacherId);
         if (!response.Success)
             return BadRequest(response.Message);
 

@@ -1,32 +1,10 @@
 import { MasterPageConfig } from '../master-page/master-page.types';
 import { IS_ACTIVE_FIELD, activeLabel, toId } from '../location-masters/location-lookups';
-import { DropdownModel } from '../../../components/constants';
-import { LookupConfig } from '../../../core/api/lookup.service';
-
-const STUDENT_LOOKUP: LookupConfig = {
-  resource: 'StudentMaster',
-  labelField: 'FullName',
-  codeField: 'AdmissionNumber',
-};
-
-const PARENT_LOOKUP: LookupConfig = {
-  resource: 'ParentMaster',
-  labelField: 'FullName',
-  codeField: 'MobileNumber',
-};
-
-const RELATION_OPTIONS: DropdownModel[] = [
-  'Father',
-  'Mother',
-  'Guardian',
-  'Grandfather',
-  'Grandmother',
-  'Uncle',
-  'Aunt',
-  'Sibling',
-  'Driver',
-  'Other',
-].map((name) => ({ name, value: name }));
+import {
+  PARENT_LOOKUP,
+  RELATION_OPTIONS,
+  STUDENT_LOOKUP,
+} from '../people-masters/people-lookups';
 
 /**
  * C4 — Student-Parent Mapping (WEB-APP-SCREENS.docx §Group C).

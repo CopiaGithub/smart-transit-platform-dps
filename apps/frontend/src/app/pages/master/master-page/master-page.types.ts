@@ -15,7 +15,10 @@ export type MasterFieldType =
   | 'dropdown'
   | 'autocomplete'
   | 'date'
-  | 'toggle';
+  | 'toggle'
+  | 'file'
+  /** A list of linked child records — see `columns` and `collection`. */
+  | 'collection';
 
 export interface MasterFieldConfig {
   /** Form control name, and the key on the dialog result. */
@@ -52,6 +55,57 @@ export interface MasterFieldConfig {
   /** Text beside a toggle. Defaults to Yes / No. */
   onLabel?: string;
   offLabel?: string;
+  /**
+   * `file` fields only. The control's value stays the stored URL/path string,
+   * so maxLength still applies to it.
+   */
+  accept?: string;
+  maxFileSizeMb?: number;
+  /** `collection` fields only: the per-row editors. */
+  columns?: MasterCollectionColumn[];
+  /** `collection` fields only: how rows are read back and written. */
+  collection?: MasterCollectionSync;
+  /** `collection` fields only: the add-row button's text. */
+  addRowLabel?: string;
+  emptyText?: string;
+}
+
+export interface MasterCollectionColumn {
+  key: string;
+  label: string;
+  /** 'radio' is a boolean only one row may hold, e.g. the primary contact. */
+  type: 'dropdown' | 'text' | 'number' | 'toggle' | 'radio';
+  optionsList?: DropdownModel[];
+  /** Key into MasterPageConfig.lookups. */
+  optionsFrom?: string;
+  required?: boolean;
+  width?: string;
+  value?: unknown;
+}
+
+/**
+ * A collection is not part of the parent's own payload — its rows are separate
+ * records with their own endpoint. This describes how to read them back and how
+ * to turn edits into requests; MasterPageComponent owns the sequencing, including
+ * the case where the parent saves and a row does not.
+ */
+export interface MasterCollectionSync {
+  /** GET path for an existing parent's rows. */
+  load: (parentId: number) => string;
+  /** A row from that response -> a form row. */
+  toRow: (item: any) => Record<string, unknown>;
+  /**
+   * The row's own record id, or null for a row the user has just added. Drives
+   * whether a row is created, patched or deleted.
+   */
+  rowId: (row: Record<string, unknown>) => number | null;
+  /** Human label for one row, used in error messages. */
+  rowLabel: (row: Record<string, unknown>) => string;
+  /** Skips rows the user added but never filled in. */
+  isComplete: (row: Record<string, unknown>) => boolean;
+  create: (parentId: number, row: Record<string, unknown>) => { path: string; body: unknown };
+  update?: (rowId: number, row: Record<string, unknown>) => { path: string; body: unknown };
+  remove?: (rowId: number) => string;
 }
 
 export type MasterFilterType = 'search' | 'dropdown' | 'status';
@@ -80,6 +134,35 @@ export interface MasterColumnConfig {
    * TableComponent.badgeClass() — used for status-like columns.
    */
   type?: 'badge';
+}
+
+/**
+ * An extra per-row button that posts to a non-CRUD endpoint — e.g. substituting
+ * a reserve bus onto a route for one day.
+ *
+ * Deliberately declarative. A config is data and mappers; handing it services to
+ * call would make every screen a place logic can hide. MasterPageComponent owns
+ * the dialog, the POST and the refresh; this only describes them.
+ */
+export interface MasterRowAction<TRow = any> {
+  /** Button text in the row's action column. */
+  label: string;
+  /** Rows the action does not apply to are left without a button. */
+  visibleFor?: (row: TRow) => boolean;
+  /** Dialog heading. */
+  title: (row: TRow) => string;
+  /** Defaults to the label. */
+  saveButtonText?: string;
+  /** Dialog fields; `optionsFrom` resolves against the same `lookups` map. */
+  fields: MasterFieldConfig[];
+  /** Row -> dialog prefill. */
+  toFormData?: (row: TRow) => Record<string, unknown>;
+  /** Message to confirm before posting, or null to post straight away. */
+  confirmBefore?: (row: TRow, result: any) => string | null;
+  /** Row + dialog result -> the request to send. */
+  request: (row: TRow, result: any) => { path: string; body: unknown };
+  /** Toast on success. The server's own message is used when this is absent. */
+  successMessage?: string;
 }
 
 export interface MasterPageConfig<TItem = any, TRow = any> {
@@ -130,6 +213,9 @@ export interface MasterPageConfig<TItem = any, TRow = any> {
    * setting a new current academic year, or renaming a role.
    */
   confirmBeforeSave?: (result: any, mode: 'create' | 'edit') => string | null;
+
+  /** An extra per-row button beside view/edit/delete. */
+  rowAction?: MasterRowAction<TRow>;
 
   /** Hides Add/Edit/Delete entirely. */
   readOnly?: boolean;

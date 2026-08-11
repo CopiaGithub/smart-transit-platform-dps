@@ -69,13 +69,13 @@
           />
 
           <div *ngSwitchCase="'masterSelect'" class="grid-master-cell">
-            <cds-select
+            <cds-autocomplete-dropdown
               [label]="' '"
-              [isAstRequired]="false"
-              [optionsList]="getMasterOptions(col)"
+              [required]="false"
+              [options]="getMasterOptions(col)"
               [formControlName]="col.key"
               [placeholder]="col.placeholder ?? 'Select'"
-            ></cds-select>
+            ></cds-autocomplete-dropdown>
           </div>
 
           <div *ngSwitchCase="'masterAutocomplete'" class="grid-master-cell">

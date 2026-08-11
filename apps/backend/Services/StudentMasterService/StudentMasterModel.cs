@@ -11,7 +11,7 @@ public class StudentMasterCreateModel
     /// <summary>Defaults to the current academic year when omitted.</summary>
     public int? AcademicYearId { get; set; }
     public int? ClassTeacherId { get; set; }
-    public int? BusId { get; set; }
+    /// <summary>The child rides a route. The bus is the allocation's business.</summary>
     public int? RouteId { get; set; }
     public int? ExitGateId { get; set; }
     public string? PhotoUrl { get; set; }
@@ -32,7 +32,7 @@ public class StudentMasterUpdateModel
     public string? Division { get; set; }
     public int? AcademicYearId { get; set; }
     public int? ClassTeacherId { get; set; }
-    public int? BusId { get; set; }
+    /// <summary>The child rides a route. The bus is the allocation's business.</summary>
     public int? RouteId { get; set; }
     public int? ExitGateId { get; set; }
     public string? PhotoUrl { get; set; }

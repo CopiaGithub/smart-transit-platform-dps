@@ -1,4 +1,4 @@
-<div class="sidebar-container">
+<div class="sidebar-container" [class.collapsed]="isCollapsed">
   <aside
     class="sidebar"
     [ngClass]="{
@@ -19,10 +19,12 @@
         </div>
       </div>
       <div *ngIf="!isCollapsed" class="sidebar-header-text">
-        <div class="brand-title truncate">
+        <div class="brand-title truncate" [title]="appTitle">
           {{ appTitle }}
         </div>
-        <div class="sidebar-user-name truncate">{{ userName }}</div>
+        <div class="sidebar-user-name truncate" [title]="userName">
+          {{ userName }}
+        </div>
       </div>
 
       <button
@@ -45,6 +47,20 @@
       >
         <mat-icon>close</mat-icon>
       </button>
+
+      <!-- Desktop hide/show. On tablet the close button above and the backdrop
+           already do this, and the sidebar is off-canvas rather than a rail. -->
+      <button
+        *ngIf="!isTablet"
+        type="button"
+        class="collapse-btn"
+        (click)="toggleCollapse()"
+        [attr.aria-label]="isCollapsed ? 'Show menu' : 'Hide menu'"
+        [attr.aria-expanded]="!isCollapsed"
+        [title]="isCollapsed ? 'Show menu' : 'Hide menu'"
+      >
+        <mat-icon>{{ isCollapsed ? "menu" : "menu_open" }}</mat-icon>
+      </button>
     </div>
 
     <nav class="sidebar-menu" role="navigation">
@@ -65,9 +81,7 @@
           <div class="menu-item-inner">
             <div class="left">
               <div class="icon-circle">
-                <mat-icon [style.color]="menuIconColor(item)">{{
-                  item.icon
-                }}</mat-icon>
+                <mat-icon>{{ item.icon }}</mat-icon>
               </div>
               <span class="label">{{ item.name }}</span>
             </div>
@@ -128,11 +142,9 @@
                   >
                     <div class="submenu-item-inner">
                       <div class="submenu-label-wrap">
-                        <mat-icon
-                          class="submenu-item-icon"
-                          [style.color]="submenuIconColor(gc)"
-                          >{{ gc.icon }}</mat-icon
-                        >
+                        <mat-icon class="submenu-item-icon">{{
+                          gc.icon
+                        }}</mat-icon>
                         <span class="submenu-label">{{ gc.name }}</span>
                       </div>
                     </div>
@@ -188,8 +200,8 @@
         type="button"
         class="sidebar-logout"
         (click)="logout()"
-        title="Log out"
-        [attr.aria-label]="'Log out'"
+        [attr.title]="isCollapsed ? 'Log out' : null"
+        aria-label="Log out"
       >
         <mat-icon class="sidebar-logout-icon">logout</mat-icon>
         <span *ngIf="!isCollapsed" class="sidebar-logout-label">Log out</span>

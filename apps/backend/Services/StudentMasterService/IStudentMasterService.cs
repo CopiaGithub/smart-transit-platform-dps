@@ -11,7 +11,8 @@ public interface IStudentMasterService
         string? division = null,
         int? busId = null,
         int? exitGateId = null,
-        bool? status = null);
+        bool? status = null,
+        int? classTeacherId = null);
 
     Task<ServiceResponseDto<StudentMasterListModel>> GetByIdAsync(int id);
     Task<ServiceResponseDto<StudentMasterListModel>> GetByRfidTagAsync(string rfidTag);

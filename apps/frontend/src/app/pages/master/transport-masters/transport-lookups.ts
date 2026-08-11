@@ -15,6 +15,16 @@ export const BUS_LOOKUP: LookupConfig = {
 };
 
 /**
+ * The buses a substitution may draw on. The server accepts any bus for a
+ * substitution — it checks only that the id exists — so narrowing to a reserve
+ * that is actually in service is this list's job, not the endpoint's.
+ */
+export const RESERVE_BUS_LOOKUP: LookupConfig = {
+  ...BUS_LOOKUP,
+  extraParams: { busType: 'Reserve', serviceStatus: 'InService' },
+};
+
+/**
  * Server-accepted enum values. These strings are also baked into filtered unique
  * index predicates in ApplicationDbContext, so they are not free text — see
  * apps/backend/Schema/BoardingStatus.cs and the BusKind / BusServiceState

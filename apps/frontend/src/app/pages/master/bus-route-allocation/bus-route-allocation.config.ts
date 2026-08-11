@@ -3,6 +3,7 @@ import { IS_ACTIVE_FIELD, activeLabel, toId } from '../location-masters/location
 import {
   ALLOCATION_TYPE_OPTIONS,
   BUS_LOOKUP,
+  RESERVE_BUS_LOOKUP,
   ROUTE_LOOKUP,
 } from '../transport-masters/transport-lookups';
 
@@ -17,11 +18,13 @@ import {
  *                EffectiveFrom, which is how a last-minute reserve substitution
  *                is recorded without disturbing the permanent allocation.
  *
- * Two extras from the docx are deliberately NOT on this screen, because neither
- * is a list-and-form and both need their own UI:
- *   - the "for a date" view  (GET /api/BusRouteAllocation/for-date?date=)
- *   - the "substitute" one-click action (POST /api/BusRouteAllocation/substitute)
- * Both endpoints exist and are ready to bind.
+ * The "substitute" action from the docx is the per-row Substitute button below
+ * (POST /api/BusRouteAllocation/substitute) — it records today's reserve swap as
+ * an Override without touching the Standing row.
+ *
+ * Still not on this screen: the "for a date" view
+ * (GET /api/BusRouteAllocation/for-date?date=), which is not a list-and-form and
+ * needs its own UI. The endpoint exists and is ready to bind.
  */
 export const BUS_ROUTE_ALLOCATION_CONFIG: MasterPageConfig = {
   title: 'Bus-Route Allocation',
@@ -69,7 +72,46 @@ export const BUS_ROUTE_ALLOCATION_CONFIG: MasterPageConfig = {
     { name: 'status', label: 'Status', type: 'status', queryParam: 'IsActive' },
   ],
 
-  lookups: { route: ROUTE_LOOKUP, bus: BUS_LOOKUP },
+  lookups: { route: ROUTE_LOOKUP, bus: BUS_LOOKUP, reserveBus: RESERVE_BUS_LOOKUP },
+
+  /**
+   * The 11th-hour reserve swap. Only the bus is asked for — the route comes from
+   * the row, and the date is always today, which is what "substitution" means
+   * here: the Override covers exactly one date and the Standing row is untouched,
+   * so the route reverts to its usual bus tomorrow on its own.
+   */
+  rowAction: {
+    label: 'Substitute',
+    title: (row) => `Substitute bus on ${row.RouteName}`,
+    saveButtonText: 'Substitute',
+    fields: [
+      {
+        name: 'ReplacementBusId',
+        label: 'Reserve Bus',
+        type: 'dropdown',
+        required: true,
+        optionsFrom: 'reserveBus',
+        hint: 'Reserve buses that are currently in service.',
+      },
+      { name: 'Reason', label: 'Reason', type: 'text', maxLength: 200 },
+    ],
+    confirmBefore: (row) =>
+      `Run ${row.RouteName} with the selected reserve for today only? ` +
+      `${row.BusNumber} stays the standing allocation.`,
+    request: (row, result) => ({
+      path: '/BusRouteAllocation/substitute',
+      body: {
+        RouteId: row.RouteId,
+        ReplacementBusId: toId(result.ReplacementBusId),
+        // Sent explicitly rather than left to the server: substitute defaults to
+        // the school clock while GET /for-date defaults to UTC, so before
+        // 05:30 IST an omitted date can file the override under yesterday.
+        Date: todayIsoDate(),
+        Reason: result.Reason || null,
+      },
+    }),
+    successMessage: 'Substitution recorded for today.',
+  },
 
   fields: [
     {
@@ -159,6 +201,18 @@ function effectiveTo(result: any): string | null {
     return result.EffectiveTo || result.EffectiveFrom || null;
   }
   return null;
+}
+
+/**
+ * Today as 'YYYY-MM-DD' in the browser's own timezone. Built from the local
+ * parts rather than toISOString(), which converts to UTC and would send
+ * yesterday's date for anyone acting after 18:30 IST.
+ */
+function todayIsoDate(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
 }
 
 /** DateOnly arrives as 'YYYY-MM-DD'; show it the way the school writes dates. */
