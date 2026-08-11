@@ -7,12 +7,15 @@ changing anything in `src/api/` or `src/services/apiClient.ts`.
 
 | APP_ENV | apiUrl |
 |---|---|
-| `dev` | `http://10.0.2.2:5199/api/` — Android emulator's loopback to the host |
-| `qa` | `https://qa.example.com/api/` — placeholder |
-| `production` | `https://api.example.com/api/` — placeholder |
+| `dev` | `http://localhost:5199/api/` — the backend on this laptop |
+| `qa` | `https://tdpdev.copiacs.com/tpddevapi/api/` |
+| `production` | `https://tdpdev.copiacs.com/tpddevapi/api/` — placeholder |
 
-Set in `app.config.ts`. **On a physical device** swap `10.0.2.2` for the dev
-machine's LAN IP; the emulator alias means nothing on real hardware.
+Set in `app.config.ts`. The `localhost` in the dev URL is never used as-is:
+`resolveBaseUrl()` swaps in whatever host Metro is served from, so emulator and
+physical device both work with nothing to edit. Only in `--tunnel` mode does
+that fall apart — the borrowed host is then an `exp.direct` domain. Run
+`/localbackendconnect` to set the whole thing up.
 
 The API listens on **5199**. `launchSettings.json` and the Postman collection
 were disagreeing (5133 vs 5199); both now say 5199. Run it with:
