@@ -133,6 +133,42 @@ public class BusRouteAllocationService : IBusRouteAllocationService
         return match?.BusId;
     }
 
+    public async Task<Dictionary<int, int>> ResolveBusesForRoutesAsync(
+        IReadOnlyCollection<int> routeIds, DateOnly date)
+    {
+        if (routeIds.Count == 0)
+            return new Dictionary<int, int>();
+
+        var candidates = await InForceOn(date)
+            .Where(a => routeIds.Contains(a.RouteId))
+            .Select(a => new { a.RouteId, a.BusId, a.AllocationType, a.EffectiveFrom })
+            .ToListAsync();
+
+        // Same precedence as ResolveAsync, applied per route in memory so the whole
+        // set costs one round trip.
+        return candidates
+            .GroupBy(a => a.RouteId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(a => a.AllocationType == AllocationKind.Override)
+                      .ThenByDescending(a => a.EffectiveFrom)
+                      .First().BusId);
+    }
+
+    public async Task<List<int>> ResolveRoutesForBusAsync(int busId, DateOnly date)
+    {
+        var candidateRoutes = await InForceOn(date)
+            .Where(a => a.BusId == busId)
+            .Select(a => a.RouteId)
+            .Distinct()
+            .ToListAsync();
+
+        // A standing row is not enough: if an override handed that route to another
+        // bus for the date, it is not this bus's route. Resolve and keep what lands back.
+        var resolved = await ResolveBusesForRoutesAsync(candidateRoutes, date);
+        return resolved.Where(pair => pair.Value == busId).Select(pair => pair.Key).ToList();
+    }
+
     /// <summary>
     /// The single rule used everywhere: an Override covering the date wins; failing
     /// that, the Standing row whose range contains it. Kept in one place so gate-in
@@ -141,15 +177,19 @@ public class BusRouteAllocationService : IBusRouteAllocationService
     private async Task<BusRouteAllocation?> ResolveAsync(
         System.Linq.Expressions.Expression<Func<BusRouteAllocation, bool>> match, DateOnly date)
     {
-        return await _context.BusRouteAllocations
-            .Where(a => !a.IsDeleted && a.IsActive
-                     && a.EffectiveFrom <= date
-                     && (a.EffectiveTo == null || a.EffectiveTo >= date))
+        return await InForceOn(date)
             .Where(match)
             .OrderByDescending(a => a.AllocationType == AllocationKind.Override)
             .ThenByDescending(a => a.EffectiveFrom)
             .FirstOrDefaultAsync();
     }
+
+    /// <summary>Allocations alive on a date, before precedence is applied.</summary>
+    private IQueryable<BusRouteAllocation> InForceOn(DateOnly date) =>
+        _context.BusRouteAllocations
+            .Where(a => !a.IsDeleted && a.IsActive
+                     && a.EffectiveFrom <= date
+                     && (a.EffectiveTo == null || a.EffectiveTo >= date));
 
     // ------------------------------------------------------------------- writes
 

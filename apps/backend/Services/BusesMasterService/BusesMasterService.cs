@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using transit_display_platform_api.Common;
 using transit_display_platform_api.Data;
 using transit_display_platform_api.Schema;
+using transit_display_platform_api.Services.BusRouteAllocationService;
 
 namespace transit_display_platform_api.Services.BusesMasterService;
 
@@ -9,11 +10,19 @@ public class BusesMasterService : IBusesMasterService
 {
     private readonly ApplicationDbContext _context;
     private readonly IJwtTokenUtility _jwtTokenUtility;
+    private readonly IBusRouteAllocationService _allocations;
+    private readonly ISchoolClock _clock;
 
-    public BusesMasterService(ApplicationDbContext context, IJwtTokenUtility jwtTokenUtility)
+    public BusesMasterService(
+        ApplicationDbContext context,
+        IJwtTokenUtility jwtTokenUtility,
+        IBusRouteAllocationService allocations,
+        ISchoolClock clock)
     {
         _context = context;
         _jwtTokenUtility = jwtTokenUtility;
+        _allocations = allocations;
+        _clock = clock;
     }
 
     public async Task<ServiceResponseDto<PagedResult<BusesMasterListModel>>> GetAllAsync(
@@ -241,10 +250,14 @@ public class BusesMasterService : IBusesMasterService
         if (bus == null)
             return new ServiceResponseDto<bool> { Success = false, Message = "Bus not found." };
 
-        // The same hole routes had: children carry a BusId, so deleting the bus
-        // leaves them pointing at a vehicle that is not there — and the parent
-        // screen would still print its number.
-        bool hasRiders = await _context.StudentMasters.AnyAsync(s => s.BusId == id && !s.IsDeleted);
+        // Children are enrolled on routes, not buses, so "has riders" means the bus
+        // is allocated to a route that someone travels on. Deleting it would leave
+        // that route without a vehicle and the parent screen with nothing to print.
+        var servedRoutes = await _allocations.ResolveRoutesForBusAsync(id, _clock.Today);
+        bool hasRiders = servedRoutes.Count > 0
+            && await _context.StudentMasters.AnyAsync(
+                s => s.UsesTransport && s.RouteId != null
+                     && servedRoutes.Contains(s.RouteId.Value) && !s.IsDeleted);
         if (hasRiders)
             return new ServiceResponseDto<bool>
             {

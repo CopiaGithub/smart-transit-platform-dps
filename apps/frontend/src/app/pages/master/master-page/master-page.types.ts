@@ -16,7 +16,9 @@ export type MasterFieldType =
   | 'autocomplete'
   | 'date'
   | 'toggle'
-  | 'file';
+  | 'file'
+  /** A list of linked child records — see `columns` and `collection`. */
+  | 'collection';
 
 export interface MasterFieldConfig {
   /** Form control name, and the key on the dialog result. */
@@ -59,6 +61,51 @@ export interface MasterFieldConfig {
    */
   accept?: string;
   maxFileSizeMb?: number;
+  /** `collection` fields only: the per-row editors. */
+  columns?: MasterCollectionColumn[];
+  /** `collection` fields only: how rows are read back and written. */
+  collection?: MasterCollectionSync;
+  /** `collection` fields only: the add-row button's text. */
+  addRowLabel?: string;
+  emptyText?: string;
+}
+
+export interface MasterCollectionColumn {
+  key: string;
+  label: string;
+  /** 'radio' is a boolean only one row may hold, e.g. the primary contact. */
+  type: 'dropdown' | 'text' | 'number' | 'toggle' | 'radio';
+  optionsList?: DropdownModel[];
+  /** Key into MasterPageConfig.lookups. */
+  optionsFrom?: string;
+  required?: boolean;
+  width?: string;
+  value?: unknown;
+}
+
+/**
+ * A collection is not part of the parent's own payload — its rows are separate
+ * records with their own endpoint. This describes how to read them back and how
+ * to turn edits into requests; MasterPageComponent owns the sequencing, including
+ * the case where the parent saves and a row does not.
+ */
+export interface MasterCollectionSync {
+  /** GET path for an existing parent's rows. */
+  load: (parentId: number) => string;
+  /** A row from that response -> a form row. */
+  toRow: (item: any) => Record<string, unknown>;
+  /**
+   * The row's own record id, or null for a row the user has just added. Drives
+   * whether a row is created, patched or deleted.
+   */
+  rowId: (row: Record<string, unknown>) => number | null;
+  /** Human label for one row, used in error messages. */
+  rowLabel: (row: Record<string, unknown>) => string;
+  /** Skips rows the user added but never filled in. */
+  isComplete: (row: Record<string, unknown>) => boolean;
+  create: (parentId: number, row: Record<string, unknown>) => { path: string; body: unknown };
+  update?: (rowId: number, row: Record<string, unknown>) => { path: string; body: unknown };
+  remove?: (rowId: number) => string;
 }
 
 export type MasterFilterType = 'search' | 'dropdown' | 'status';

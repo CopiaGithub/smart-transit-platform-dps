@@ -32,12 +32,16 @@ public partial class StudentMaster : BaseEntity
 
     public int? ClassTeacherId { get; set; }
 
+    /// <summary>
+    /// Historical only — nothing reads or writes this any more. The bus a child rides
+    /// is resolved from <see cref="RouteId"/> through bus_route_allocation at read
+    /// time, because a reserve substitution changes the bus without changing the
+    /// route, and no process rewrites every rider's row when that happens. Kept until
+    /// a migration drops the column.
+    /// </summary>
     public int? BusId { get; set; }
 
-    /// <summary>
-    /// Held alongside <see cref="BusId"/> rather than derived from it: when a reserve
-    /// bus substitutes, the bus changes but the child's route does not.
-    /// </summary>
+    /// <summary>The route the child is enrolled on — the durable fact.</summary>
     public int? RouteId { get; set; }
 
     /// <summary>Which student exit this child leaves by, so the right indoor panel shows them.</summary>

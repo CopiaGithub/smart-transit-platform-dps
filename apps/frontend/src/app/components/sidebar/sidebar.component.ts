@@ -13,7 +13,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import {
   resolveSidebarMenuIcon,
-  resolveSidebarMenuIconColor,
 } from './sidebar-menu-icons';
 import {
   trigger,
@@ -343,19 +342,6 @@ export class SidebarComponent implements OnInit, OnChanges {
     return this.activeMenuIndex === index;
   }
 
-  /** Accent colour for a top-level icon; suppressed while the item is active so the white/blue state shows. */
-  menuIconColor(item: any): string | null {
-    return this.isMenuItemActive(item) ? null : (item?.iconColor ?? null);
-  }
-
-  /** Accent colour for a submenu icon; suppressed while the item is active or route-highlighted. */
-  submenuIconColor(item: any): string | null {
-    if (this.isMenuItemActive(item) || this.isRouteHighlighted(item)) {
-      return null;
-    }
-    return item?.iconColor ?? null;
-  }
-
   toggleLevel(item: any, siblings: any[]): void {
     if (!item.children?.length) return;
 
@@ -415,8 +401,6 @@ export class SidebarComponent implements OnInit, OnChanges {
         item.icon && item.icon.trim() !== ''
           ? item.icon
           : resolveSidebarMenuIcon(item);
-
-      item.iconColor = resolveSidebarMenuIconColor(item);
 
       if (item.children?.length) {
         this.initializeMenuItems(item.children);

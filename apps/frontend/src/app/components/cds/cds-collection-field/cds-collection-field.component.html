@@ -1,0 +1,114 @@
+<div class="cds-collection">
+  <div class="mb-[6px] mt-[2px]">
+    <cds-label [isAstRequired]="required" [label]="label" />
+  </div>
+
+  @if (rows.length) {
+    <div class="cds-collection-grid" role="table">
+      <div
+        class="cds-collection-head"
+        role="row"
+        [style.grid-template-columns]="gridTemplateColumns"
+      >
+        @for (column of columns; track column.key) {
+          <div class="cds-collection-th" role="columnheader">
+            {{ column.label }}
+            @if (column.required) {
+              <span class="text-red-500">*</span>
+            }
+          </div>
+        }
+        <div class="cds-collection-th" aria-label="Remove"></div>
+      </div>
+
+      @for (row of rows.controls; track trackByIndex($index); let i = $index) {
+        <div
+          class="cds-collection-row"
+          role="row"
+          [formGroup]="rowAt(i)"
+          [style.grid-template-columns]="gridTemplateColumns"
+        >
+          @for (column of columns; track column.key) {
+            <div class="cds-collection-cell" role="cell">
+              @switch (column.type) {
+                @case ('dropdown') {
+                  <cds-autocomplete-dropdown
+                    [label]="' '"
+                    [required]="!!column.required"
+                    [options]="column.optionsList || []"
+                    [valueOnly]="true"
+                    [showNoRecords]="true"
+                    [formControlName]="column.key"
+                    [placeholder]="'Search…'"
+                    (selectionChange)="onCellChange()"
+                  ></cds-autocomplete-dropdown>
+                }
+                @case ('number') {
+                  <input
+                    type="number"
+                    class="cds-collection-input"
+                    [formControlName]="column.key"
+                    (change)="onCellChange()"
+                  />
+                }
+                @case ('toggle') {
+                  <label class="cds-collection-check">
+                    <input
+                      type="checkbox"
+                      [formControlName]="column.key"
+                      (change)="onCellChange()"
+                    />
+                    <span class="sr-only">{{ column.label }}</span>
+                  </label>
+                }
+                @case ('radio') {
+                  <label class="cds-collection-check">
+                    <input
+                      type="radio"
+                      [checked]="rowAt(i).get(column.key)?.value === true"
+                      [disabled]="isDisabled()"
+                      (change)="selectExclusive(column, i)"
+                    />
+                    <span class="sr-only">{{ column.label }}</span>
+                  </label>
+                }
+                @default {
+                  <input
+                    type="text"
+                    class="cds-collection-input"
+                    [formControlName]="column.key"
+                    (change)="onCellChange()"
+                  />
+                }
+              }
+            </div>
+          }
+
+          <div class="cds-collection-cell" role="cell">
+            <button
+              type="button"
+              class="cds-collection-remove"
+              [disabled]="isDisabled()"
+              [attr.aria-label]="'Remove row ' + (i + 1)"
+              (click)="removeRow(i)"
+            >
+              <mat-icon aria-hidden="true">close</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <p class="cds-collection-empty">{{ emptyText }}</p>
+  }
+
+  <button
+    type="button"
+    class="cds-collection-add"
+    [disabled]="isDisabled()"
+    (click)="addRow()"
+  >
+    <mat-icon aria-hidden="true">add</mat-icon>
+    {{ addRowLabel }}
+  </button>
+</div>

@@ -60,22 +60,19 @@
             [disabled]="readonly"
           />
 
-          <select
+          <cds-inline-master-cell
             *ngSwitchCase="'select'"
-            class="cell-input"
-            [ngModel]="row[col.key]"
-            (ngModelChange)="onCellChange(row, col.key, $event)"
+            [mode]="'autocomplete'"
+            [options]="getSelectOptions(col)"
+            [value]="asSelectValue(row, col)"
+            [placeholder]="col.placeholder ?? 'Search…'"
             [disabled]="readonly"
-          >
-            <option value="">— Select —</option>
-            <option *ngFor="let opt of col.options" [ngValue]="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
+            (valueChange)="onSelectCellChange(row, col.key, $event)"
+          ></cds-inline-master-cell>
 
           <cds-inline-master-cell
             *ngSwitchCase="'masterSelect'"
-            [mode]="'select'"
+            [mode]="'autocomplete'"
             [options]="getMasterOptions(col)"
             [value]="asDropdownValue(row, col.key)"
             [placeholder]="col.placeholder ?? 'Select'"

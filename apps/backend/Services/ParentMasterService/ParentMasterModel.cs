@@ -82,6 +82,13 @@ public class ParentMasterListModel
 /// <summary>A child as seen from the parent side — what the parent app lists.</summary>
 public class ParentChildModel
 {
+    /// <summary>
+    /// The student_parent_mapping row's own id. Callers that edit the link — the
+    /// Students tab on Parent Master — need it to patch or remove the right row;
+    /// without it an existing link is indistinguishable from a new one.
+    /// </summary>
+    public int MappingId { get; set; }
+
     public int StudentId { get; set; }
     public string AdmissionNumber { get; set; } = string.Empty;
     public string StudentName { get; set; } = string.Empty;
@@ -92,7 +99,9 @@ public class ParentChildModel
 
     public string Relation { get; set; } = string.Empty;
     public bool IsPrimaryContact { get; set; }
+    public bool IsEmergencyContact { get; set; }
     public bool IsAuthorisedForPickup { get; set; }
+    public bool ReceivesNotifications { get; set; }
     public string? BusNumber { get; set; }
     public string? RouteName { get; set; }
     public string? ExitGateName { get; set; }

@@ -4,7 +4,7 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { debounceTime, distinctUntilChanged, take } from 'rxjs';
+import { Observable, debounceTime, distinctUntilChanged, take } from 'rxjs';
 
 import { TableComponent } from '../../../components/cds/cds-table/table.component';
 import { CdsContainerComponent } from '../../../components/cds/cds-container/cds-container.component';
@@ -306,13 +306,14 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
 
   onAddNew(): void {
     const fields = this.config.fields.filter((f) => !f.omitOnCreate);
-    this.resolveFieldOptions(fields, {}, 'create').then((descriptors) => {
+    this.resolveFieldOptions(fields, {}, 'create').then(async (descriptors) => {
+      const collections = await this.loadCollections(null);
       const dialogRef = this.dialog.open(EditModelComponent, {
         width: this.dialogWidth,
         data: {
           title: `Add New ${this.singular}`,
           formFields: descriptors,
-          formData: defaultFormData(fields),
+          formData: { ...defaultFormData(fields), ...collections },
           allData: this.tableData(),
           duplicateCheckFields: this.config.duplicateCheckFields ?? [],
         },
@@ -334,13 +335,23 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
     const formData = this.config.toFormData(row);
     // Child options must exist before the dialog opens, or the record's current
     // value has no matching option and renders blank.
-    this.resolveFieldOptions(this.config.fields, formData, 'edit').then((descriptors) => {
+    this.resolveFieldOptions(this.config.fields, formData, 'edit').then(async (descriptors) => {
+      let collections: Record<string, unknown>;
+      try {
+        collections = await this.loadCollections(row.id);
+      } catch (error: unknown) {
+        // Opening with an empty list would look like "this record has none", and
+        // saving would then re-post every existing row as a duplicate.
+        this.showError(error, 'Could not load the linked records for this row.');
+        return;
+      }
+
       const dialogRef = this.dialog.open(EditModelComponent, {
         width: this.dialogWidth,
         data: {
           title: `Edit ${this.singular}`,
           formFields: descriptors,
-          formData: { ...formData, id: row.id },
+          formData: { ...formData, ...collections, id: row.id },
           allData: this.tableData(),
           duplicateCheckFields: this.config.duplicateCheckFields ?? [],
         },
@@ -360,6 +371,11 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
 
   /** A wider dialog once the form is tabbed, since those forms are large. */
   private get dialogWidth(): string {
+    // A collection is a grid of controls on one line; 760px squeezes it to the
+    // point the dropdowns cannot show a name.
+    if (this.config.fields.some((f) => f.type === 'collection')) {
+      return '960px';
+    }
     return this.config.fields.some((f) => f.tab) ? '760px' : '640px';
   }
 
@@ -387,13 +403,16 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
 
   onViewRow(row: any): void {
     const formData = this.config.toFormData(row);
-    this.resolveFieldOptions(this.config.fields, formData, 'edit').then((descriptors) => {
+    this.resolveFieldOptions(this.config.fields, formData, 'edit').then(async (descriptors) => {
+      // A failed load is not worth blocking a read-only view: show what loaded.
+      const collections = await this.loadCollections(row.id).catch(() => ({}));
+
       this.dialog.open(EditModelComponent, {
         width: this.dialogWidth,
         data: {
           title: `View ${this.singular}`,
           formFields: descriptors.map((f) => ({ ...f, disabled: true })),
-          formData,
+          formData: { ...formData, ...collections },
           allData: [],
           duplicateCheckFields: [],
           viewMode: true,
@@ -437,9 +456,15 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
       .create(this.config.toCreate(result))
       .pipe(take(1))
       .subscribe({
-        next: () => {
-          spinner.close();
-          this.afterWrite(`${this.singular} created.`);
+        next: (created: any) => {
+          // Linked rows can only be posted now — they need the id the server has
+          // just minted. See finishWrite for what happens when one of them fails.
+          void this.finishWrite(
+            spinner,
+            created?.Id ?? created?.id ?? null,
+            result,
+            `${this.singular} created.`,
+          );
         },
         error: (error: unknown) => {
           spinner.close();
@@ -455,8 +480,7 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
       .pipe(take(1))
       .subscribe({
         next: () => {
-          spinner.close();
-          this.afterWrite(`${this.singular} updated.`);
+          void this.finishWrite(spinner, id, result, `${this.singular} updated.`);
         },
         error: (error: unknown) => {
           spinner.close();
@@ -543,6 +567,156 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
       });
   }
 
+  // ── Collections (linked child records) ───────────────────────────────────
+
+  /**
+   * What the server said the rows were when the dialog opened. The diff on save
+   * is against this, not against the form's own starting state, so a row the user
+   * deleted can be told apart from one that was never there.
+   */
+  private collectionSnapshot: Record<string, Record<string, unknown>[]> = {};
+
+  private get collectionFields(): MasterFieldConfig[] {
+    return this.config.fields.filter((f) => f.type === 'collection' && f.collection);
+  }
+
+  /**
+   * Rows for the dialog to start from. A create has no parent id yet, so it starts
+   * empty and everything is posted after the parent exists.
+   */
+  private async loadCollections(parentId: number | null): Promise<Record<string, unknown>> {
+    const formData: Record<string, unknown> = {};
+    this.collectionSnapshot = {};
+
+    for (const field of this.collectionFields) {
+      const rows =
+        parentId == null ? [] : await this.fetchCollectionRows(field, parentId);
+      formData[field.name] = rows;
+      this.collectionSnapshot[field.name] = rows;
+    }
+
+    return formData;
+  }
+
+  private fetchCollectionRows(
+    field: MasterFieldConfig,
+    parentId: number,
+  ): Promise<Record<string, unknown>[]> {
+    const sync = field.collection!;
+    return new Promise((resolve, reject) => {
+      this.api
+        .get<any[]>(sync.load(parentId))
+        .pipe(take(1))
+        .subscribe({
+          next: (items) => resolve((items ?? []).map((item) => sync.toRow(item))),
+          // Never resolve to [] here. An empty list reads as "this record has no
+          // parents", and saving would then re-post every one of them.
+          error: (error: unknown) => reject(error),
+        });
+    });
+  }
+
+  /**
+   * Applies the dialog's rows to the server. Returns one message per row that
+   * failed; the parent itself is already saved by this point, so a failure here
+   * is partial, and the caller has to say so rather than claim success.
+   */
+  private async syncCollections(
+    parentId: number,
+    result: Record<string, any>,
+  ): Promise<string[]> {
+    const failures: string[] = [];
+
+    for (const field of this.collectionFields) {
+      const sync = field.collection!;
+      const submitted = Array.isArray(result[field.name])
+        ? (result[field.name] as Record<string, unknown>[])
+        : [];
+      // A row the user added and left blank is not an error, it is a no-op.
+      const rows = submitted.filter((row) => sync.isComplete(row));
+      const before = this.collectionSnapshot[field.name] ?? [];
+      const keptIds = new Set(
+        rows.map((row) => sync.rowId(row)).filter((id): id is number => id != null),
+      );
+
+      // Removals go first: they free the unique (parent, child) slot, so a row
+      // that was deleted and re-added in one sitting does not collide with itself.
+      if (sync.remove) {
+        for (const old of before) {
+          const id = sync.rowId(old);
+          if (id == null || keptIds.has(id)) continue;
+
+          const error = await this.sendCollectionRequest(() =>
+            this.api.delete<unknown>(sync.remove!(id)),
+          );
+          if (error) failures.push(`Could not remove ${sync.rowLabel(old)} — ${error}`);
+        }
+      }
+
+      for (const row of rows) {
+        const id = sync.rowId(row);
+
+        if (id == null) {
+          const { path, body } = sync.create(parentId, row);
+          const error = await this.sendCollectionRequest(() =>
+            this.api.post<unknown>(path, body),
+          );
+          if (error) failures.push(`Could not add ${sync.rowLabel(row)} — ${error}`);
+        } else if (sync.update) {
+          const { path, body } = sync.update(id, row);
+          const error = await this.sendCollectionRequest(() =>
+            this.api.patch<unknown>(path, body),
+          );
+          if (error) failures.push(`Could not update ${sync.rowLabel(row)} — ${error}`);
+        }
+      }
+    }
+
+    return failures;
+  }
+
+  /** Resolves to the server's message on failure, or null on success. */
+  private sendCollectionRequest(run: () => Observable<unknown>): Promise<string | null> {
+    return new Promise((resolve) => {
+      run()
+        .pipe(take(1))
+        .subscribe({
+          next: () => resolve(null),
+          error: (error: unknown) => resolve(resolveErrorMessage(error, 'the server refused it')),
+        });
+    });
+  }
+
+  /**
+   * Closes out a write: sync the collections, then report honestly. The parent is
+   * saved either way, so a row failure is a warning, not an error — telling the
+   * user it failed outright would send them back to re-enter a record that exists.
+   */
+  private async finishWrite(
+    spinner: MatDialogRef<unknown>,
+    parentId: number | null,
+    result: Record<string, any>,
+    successMessage: string,
+  ): Promise<void> {
+    let failures: string[] = [];
+
+    if (parentId != null && this.collectionFields.length) {
+      failures = await this.syncCollections(parentId, result);
+    }
+
+    spinner.close();
+
+    if (failures.length) {
+      this.showWarning(`${successMessage} But: ${failures.join(' ')}`);
+      this.lookups.invalidate(this.config.resource);
+      this.loadRootLookups();
+      this.loadData(this.filter.currentPage);
+      return;
+    }
+
+    this.afterWrite(successMessage);
+  }
+
   private afterWrite(message: string): void {
     this.lookups.invalidate(this.config.resource);
     this.loadRootLookups();
@@ -595,6 +769,20 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
           ? (formData[field.dependsOn] as number | null | undefined) ?? null
           : null;
         descriptor.optionsList = await this.fetchLookup(field.optionsFrom, parentId);
+      }
+
+      if (field.type === 'collection') {
+        descriptor.addRowLabel = field.addRowLabel;
+        descriptor.emptyText = field.emptyText;
+        descriptor.columns = [];
+        for (const column of field.columns ?? []) {
+          descriptor.columns.push({
+            ...column,
+            optionsList: column.optionsList ?? (
+              column.optionsFrom ? await this.fetchLookup(column.optionsFrom, null) : []
+            ),
+          });
+        }
       }
 
       descriptors.push(descriptor);

@@ -2,6 +2,7 @@ import { MasterPageConfig } from '../master-page/master-page.types';
 import { IS_ACTIVE_FIELD, activeLabel, toId } from '../location-masters/location-lookups';
 import { DropdownModel } from '../../../components/constants';
 import { LookupConfig } from '../../../core/api/lookup.service';
+import { RELATION_OPTIONS, STUDENT_LOOKUP } from '../people-masters/people-lookups';
 
 const STATE_LOOKUP: LookupConfig = {
   resource: 'StateMaster',
@@ -30,6 +31,7 @@ const ID_PROOF_OPTIONS: DropdownModel[] = [
 
 const CONTACT = 'Contact';
 const ADDRESS = 'Address';
+const CHILDREN = 'Children';
 
 /**
  * C3 — Parent Master (WEB-APP-SCREENS.docx §Group C).
@@ -79,6 +81,7 @@ export const PARENT_MASTER_CONFIG: MasterPageConfig = {
     state: STATE_LOOKUP,
     city: CITY_BY_STATE_LOOKUP,
     pinCode: PINCODE_BY_CITY_LOOKUP,
+    student: STUDENT_LOOKUP,
   },
 
   fields: [
@@ -139,6 +142,98 @@ export const PARENT_MASTER_CONFIG: MasterPageConfig = {
     { name: 'IdProofNumber', label: 'ID Proof Number', type: 'text', maxLength: 50, tab: ADDRESS },
     // Value on the wire stays the stored path, so maxLength still guards the column.
     { name: 'PhotoUrl', label: 'Photo', type: 'file', maxLength: 500, tab: ADDRESS },
+
+    // ── Children ──
+    {
+      name: 'Children',
+      label: 'Children',
+      type: 'collection',
+      tab: CHILDREN,
+      addRowLabel: 'Link a child',
+      emptyText: 'No child linked yet — link this parent to their children here.',
+      hint:
+        'The same link as the Parents tab on Student Master, seen from this side. ' +
+        'Primary is per child, so one parent can be primary for several — but each ' +
+        'child has only one, and ticking it here demotes whoever holds it now.',
+      columns: [
+        {
+          key: 'StudentId',
+          label: 'Student',
+          type: 'dropdown',
+          optionsFrom: 'student',
+          required: true,
+          width: '2.2fr',
+        },
+        {
+          key: 'Relation',
+          label: 'Relation',
+          type: 'dropdown',
+          optionsList: RELATION_OPTIONS,
+          required: true,
+          width: '1.4fr',
+        },
+        // A toggle, not the radio used on the student side: the one-primary rule
+        // is per student, so a mother may be primary for every child she has.
+        { key: 'IsPrimaryContact', label: 'Primary', type: 'toggle', width: '4.5rem' },
+        { key: 'IsEmergencyContact', label: 'Emergency', type: 'toggle', width: '5.5rem' },
+        {
+          key: 'IsAuthorisedForPickup',
+          label: 'Can collect',
+          type: 'toggle',
+          value: true,
+          width: '5.5rem',
+        },
+        {
+          key: 'ReceivesNotifications',
+          label: 'Notify',
+          type: 'toggle',
+          value: true,
+          width: '4.5rem',
+        },
+      ],
+      collection: {
+        load: (parentId) => `/ParentMaster/${parentId}/children`,
+        toRow: (item) => ({
+          MappingId: item.MappingId,
+          StudentId: item.StudentId,
+          Relation: item.Relation,
+          IsPrimaryContact: item.IsPrimaryContact,
+          IsEmergencyContact: item.IsEmergencyContact,
+          IsAuthorisedForPickup: item.IsAuthorisedForPickup,
+          ReceivesNotifications: item.ReceivesNotifications,
+        }),
+        rowId: (row) => (row['MappingId'] as number) ?? null,
+        rowLabel: (row) => `the ${String(row['Relation'] || 'parent').toLowerCase()} link`,
+        isComplete: (row) => row['StudentId'] != null && !!row['Relation'],
+        create: (parentId, row) => ({
+          path: '/StudentParentMapping',
+          body: {
+            StudentId: toId(row['StudentId']),
+            ParentId: parentId,
+            Relation: row['Relation'],
+            IsPrimaryContact: !!row['IsPrimaryContact'],
+            IsEmergencyContact: !!row['IsEmergencyContact'],
+            IsAuthorisedForPickup: !!row['IsAuthorisedForPickup'],
+            ReceivesNotifications: !!row['ReceivesNotifications'],
+            ContactPriority: row['IsPrimaryContact'] ? 1 : 2,
+          },
+        }),
+        // No StudentId or ParentId — the server's update model has neither, so a
+        // link cannot be re-pointed. Change the child by removing and re-adding.
+        update: (mappingId, row) => ({
+          path: `/StudentParentMapping/${mappingId}`,
+          body: {
+            Relation: row['Relation'],
+            IsPrimaryContact: !!row['IsPrimaryContact'],
+            IsEmergencyContact: !!row['IsEmergencyContact'],
+            IsAuthorisedForPickup: !!row['IsAuthorisedForPickup'],
+            ReceivesNotifications: !!row['ReceivesNotifications'],
+            ContactPriority: row['IsPrimaryContact'] ? 1 : 2,
+          },
+        }),
+        remove: (mappingId) => `/StudentParentMapping/${mappingId}`,
+      },
+    },
   ],
 
   duplicateCheckFields: ['MobileNumber'],

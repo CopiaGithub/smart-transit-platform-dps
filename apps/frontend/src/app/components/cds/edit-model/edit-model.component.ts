@@ -23,6 +23,7 @@ import { DatepickerComponent } from '../../datepicker/datepicker.component';
 import { CdsInputComponent } from '../cds-input/cds-input.component';
 import { CdsTextareaComponent } from '../cds-textarea/cds-textarea.component';
 import { CdsAutocompleteDropdownComponent } from '../cds-autocomplete-dropdown/cds-autocomplete-dropdown.component';
+import { CdsCollectionFieldComponent } from '../cds-collection-field/cds-collection-field.component';
 import { CdsButtonComponent } from '../cds-button/cds-button.component';
 import { CdsFileAttachComponent } from '../cds-file-attach/cds-file-attach.component';
 import { MatIconModule } from '@angular/material/icon';
@@ -38,6 +39,7 @@ import { AttachmentService } from '../../../core/api/attachment.service';
     CdsInputComponent,
     CdsTextareaComponent,
     CdsAutocompleteDropdownComponent,
+    CdsCollectionFieldComponent,
     CdsButtonComponent,
     CdsFileAttachComponent,
     MatIconModule,
@@ -111,6 +113,19 @@ export class EditModelComponent {
       // A checkbox needs a real boolean — '' would silently read back as '' on save.
       if (field.type === 'toggle') {
         initialValue = !!initialValue;
+      }
+
+      // A collection is always a list, never ''. Validators.required then reads an
+      // empty list as missing, which is what "at least one row" means.
+      if (field.type === 'collection' && !Array.isArray(initialValue)) {
+        initialValue = [];
+      }
+
+      // The autocomplete binds `optionsList` directly, so it must be a stable
+      // array reference — a `|| []` in the template would re-fire ngOnChanges
+      // on every change-detection pass.
+      if (field.type === 'dropdown' && !Array.isArray(field.optionsList)) {
+        field.optionsList = [];
       }
 
       if (field.type === 'dropdown' && Array.isArray(field.optionsList)) {
@@ -254,7 +269,9 @@ export class EditModelComponent {
   //   // }
   // }
 onFieldChange(fieldName: string, event: any) {
-  const value = event.target?.value ?? event.value;
+  // `event` is a DOM event for inputs, a selected option for dropdowns, and
+  // null when an autocomplete selection is cleared by typing over it.
+  const value = event?.target?.value ?? event?.value ?? null;
   this.fieldValueChanged.emit({
     fieldName,
     value,
@@ -592,16 +609,24 @@ private recalculateApprovedDays() {
     }
 
     // Name-based fallbacks, kept for descriptors that declare nothing explicit.
-    if (!field.pattern && field.name.toLowerCase().includes('pincode')) {
-      validators.push(Validators.pattern(/^[0-9]{6}$/));
-    }
+    //
+    // Only ever for fields the user types into. A dropdown's control value is the
+    // chosen record's id, not the text on screen, so matching on the name alone
+    // pointed these at the wrong thing entirely: Parent Master's `PinCodeId` picks
+    // a PinCodeMaster row, and the 6-digit rule was being run against its id while
+    // the box displayed the pincode itself — "400614" reported as not 6 digits.
+    if (isTextEntryField(field)) {
+      if (!field.pattern && field.name.toLowerCase().includes('pincode')) {
+        validators.push(Validators.pattern(/^[0-9]{6}$/));
+      }
 
-    if (field.minLength === undefined && field.name.includes('phoneNo')) {
-      validators.push(Validators.minLength(10), Validators.maxLength(10));
-    }
+      if (field.minLength === undefined && field.name.includes('phoneNo')) {
+        validators.push(Validators.minLength(10), Validators.maxLength(10));
+      }
 
-    if (field.name.toLowerCase().includes('email')) {
-      validators.push(Validators.email);
+      if (field.name.toLowerCase().includes('email')) {
+        validators.push(Validators.email);
+      }
     }
 
     return validators;
@@ -615,7 +640,13 @@ private recalculateApprovedDays() {
       }
 
       if (!this.isFieldVisible(field) && resetHiddenFields) {
-        control.reset(field.multiple ? [] : field.type === 'toggle' ? false : '');
+        control.reset(
+          field.multiple || field.type === 'collection'
+            ? []
+            : field.type === 'toggle'
+              ? false
+              : '',
+        );
       }
 
       control.setValidators(this.getFieldValidators(field));
@@ -716,4 +747,17 @@ private recalculateApprovedDays() {
         spaceBelow < panelHeight && spaceAbove > spaceBelow ? 'above' : 'below';
     });
   }
+}
+
+/**
+ * Fields whose control value is the text the user typed.
+ *
+ * Everything else holds something else entirely — a dropdown holds the selected
+ * record's id, a collection holds an array of rows, a file field holds a stored
+ * path — so a rule written for typed text must never be aimed at one.
+ */
+const TEXT_ENTRY_TYPES = ['text', 'password', 'number', 'email', 'textarea'];
+
+function isTextEntryField(field: { type?: string }): boolean {
+  return TEXT_ENTRY_TYPES.includes(field.type ?? 'text');
 }

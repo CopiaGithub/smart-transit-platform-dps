@@ -54,8 +54,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 6px;
   cursor: pointer;
   color: var(--argon-gray-700);
@@ -131,28 +131,33 @@ body,
 
 .submenu {
   list-style: none;
-  margin: 0.1rem 0 0.2rem 1.05rem;
+  /* Aligns the guide rail under the centre of the parent's icon. */
+  margin: 0.125rem 0 0.25rem 1.1rem;
   padding: 0 0 0 0.5rem;
   background-color: transparent;
   border: 0;
-  border-left: 1px solid var(--argon-gray-300);
+  border-left: 1px solid var(--argon-gray-200);
   border-radius: 0;
 }
 
 .submenu-item {
-  padding: 0.1rem 0;
+  padding: 1px 0;
 }
 
 .submenu-item .submenu-item-inner {
+  /* Anchors the active rail drawn on ::before. */
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  min-height: 2.1rem;
-  padding: 0.4rem 0.6rem;
-  font-size: 0.92rem;
+  min-height: 2rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--argon-gray-800);
+  color: var(--argon-gray-700);
+  border-radius: 0.375rem;
+  transition: background-color 120ms ease, color 120ms ease;
 }
 
 .submenu-label-wrap {
@@ -165,25 +170,18 @@ body,
 
 .second-level-menu-item > .submenu-item-inner {
   margin-right: 0;
-  padding: 0.35rem 0.75rem 0.35rem 0.5rem;
+  padding: 0.35rem 0.5rem;
   border: 0;
-  border-radius: 0.5rem;
-  font-size: 0.84rem;
+  border-radius: 0.375rem;
 }
 
+/* No bullet. A dot in front of every child was decoration standing in for
+   structure — the indent and the guide rail already say "these belong to the
+   item above", and the dots just added visual noise to scan past. */
 .second-level-menu-label {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-}
-
-.second-level-menu-label::before {
-  content: "";
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background-color: var(--argon-gray-600);
+  line-height: 1.3;
 }
 
 .submenu-item-icon {
@@ -203,9 +201,6 @@ body,
   flex-shrink: 0;
 }
 
-.submenu-item.route-active > .submenu-item-inner .second-level-menu-label::before {
-  background-color: var(--argon-primary);
-}
 
 .submenu-item.active > .submenu-item-inner .submenu-item-icon,
 .submenu-item.route-active > .submenu-item-inner .submenu-item-icon {
@@ -222,7 +217,7 @@ body,
 }
 
 .submenu-item-inner > mat-icon.chev {
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--argon-gray-500);
   flex-shrink: 0;
 }
 
@@ -249,17 +244,20 @@ body,
   color: var(--argon-primary-dark);
 }
 
+/* A 2px primary edge on the row itself, drawn as an inset shadow rather than a
+   bar positioned over the guide line: it cannot drift out of alignment when the
+   submenu's indent changes, which is exactly what a hand-tuned offset did. */
 .submenu .submenu-item.route-active > .submenu-item-inner {
-  background-color: rgba(18, 133, 92, 0.16);
+  background-color: var(--argon-primary-muted);
   color: var(--argon-primary-dark);
   font-weight: 600;
   border: 0;
-  box-shadow: none;
-  border-radius: 6px;
+  box-shadow: inset 2px 0 0 0 var(--argon-primary);
+  border-radius: 0.375rem;
 }
 
 .submenu.nested .submenu-item.route-active > .submenu-item-inner {
-  background-color: rgba(18, 133, 92, 0.16);
+  background-color: var(--argon-primary-muted);
   color: var(--argon-primary-dark);
   font-weight: 600;
   border: 0;
@@ -274,7 +272,7 @@ body,
   border-radius: 4px;
 }
 .submenu-flyout .submenu-item.route-active > .submenu-item-inner {
-  background-color: rgba(18, 133, 92, 0.16);
+  background-color: var(--argon-primary-muted);
   color: var(--argon-primary-dark);
   font-weight: 600;
   border: 0;
@@ -308,8 +306,11 @@ body,
 .sidebar-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
+  /* The avatar, two lines of text and two icon buttons share 16rem. Every
+     0.25rem here comes straight off the title, which is what was clipping
+     "Transit Display" to "Transit Dis…". */
+  gap: 0.375rem;
+  padding: 0.6rem 0.5rem;
   border-bottom: 1px solid var(--argon-border-color);
   position: sticky;
   top: 0;
@@ -331,8 +332,8 @@ body,
 }
 
 .sidebar-avatar {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -347,10 +348,10 @@ body,
 }
 
 .sidebar-user-name {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  color: var(--argon-gray-700);
-  line-height: 1.3;
+  color: var(--argon-gray-600);
+  line-height: 1.25;
 }
 
 .sidebar-profile-btn {
@@ -358,8 +359,8 @@ body,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   border: none;
   border-radius: 8px;
   background: transparent;
@@ -419,10 +420,14 @@ body,
 .brand-title {
   font-weight: 600;
   color: var(--argon-heading-color);
-  font-size: 0.95rem;
-  letter-spacing: 0.01em;
-  line-height: 1.3;
+  font-size: 0.875rem;
+  letter-spacing: -0.005em;
+  line-height: 1.25;
   max-width: 100%;
+}
+
+.sidebar-user-name {
+  letter-spacing: 0.01em;
 }
 
 .sidebar-menu {
@@ -441,7 +446,7 @@ body,
 }
 
 .menu-item {
-  padding: 0.075rem 0.5rem;
+  padding: 1px 0.375rem;
   border-radius: 0.5rem;
   cursor: pointer;
 }
@@ -450,15 +455,17 @@ body,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  min-height: 2.2rem;
-  padding: 0.25rem 0.55rem;
+  gap: 0.375rem;
+  min-height: 2.25rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.5rem;
+  transition: background-color 120ms ease, color 120ms ease;
 }
 
 .menu-item .left {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.625rem;
   flex: 1;
   min-width: 0;
 }
@@ -484,21 +491,27 @@ body,
   justify-content: center;
 }
 
+/* One tone for every icon, inherited from the row.
+   These used to carry a per-item accent from MENU_ICON_RULES — indigo, pink,
+   teal, orange — which was ported from a different product and read as a
+   rainbow here. A nav icon's job is to be recognisable, not to be colourful;
+   colour now means one thing only, "this is where you are". */
 .icon-circle {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  color: var(--argon-gray-700);
+  flex-shrink: 0;
+  color: var(--argon-gray-600);
 }
 
 .icon-circle mat-icon {
-  width: 16px;
-  height: 16px;
-  font-size: 16px;
-  line-height: 16px;
+  width: 19px;
+  height: 19px;
+  font-size: 19px;
+  line-height: 19px;
+  color: inherit;
 }
 
 .sidebar.collapsed .icon-circle mat-icon {
@@ -509,46 +522,41 @@ body,
 }
 
 .label {
-  font-size: 0.875rem;
-  color: inherit;
+  font-size: 0.8125rem;
+  color: var(--argon-gray-800);
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.3;
+  letter-spacing: -0.003em;
 }
 
 .chev {
-  color: rgba(0,0,0,0.45);
+  color: var(--argon-gray-500);
   font-size: 16px;
+  transition: transform 150ms ease;
 }
 
 .menu-item:hover > .menu-item-inner {
   background-color: var(--argon-gray-100);
-  border-radius: 0.5rem;
 }
 
+/* Tint only. The old rule drew a tinted pill *and* a 4px bar down its left
+   edge, so a selected row carried two separate "you are here" signals and read
+   as louder than the thing it was pointing at. One signal per level: a tint
+   here, a rail on the submenu child. */
 .menu-item.active > .menu-item-inner {
-  position: relative;
-  background-color: rgba(18, 133, 92, 0.16);
+  background-color: var(--argon-primary-muted);
   color: var(--argon-primary-dark);
   font-weight: 600;
-  border-radius: 0.5rem;
-  box-shadow: none;
-}
-
-.menu-item.active > .menu-item-inner::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.35rem;
-  bottom: 0.35rem;
-  width: 4px;
-  border-radius: 0 4px 4px 0;
-  background-color: var(--argon-primary-dark);
 }
 
 .menu-item.active > .menu-item-inner .icon-circle,
 .menu-item.active > .menu-item-inner .label,
 .menu-item.active > .menu-item-inner .chev {
   color: var(--argon-primary-dark);
+}
+
+.menu-item:hover > .menu-item-inner .icon-circle {
+  color: var(--argon-gray-700);
 }
 
 .menu-item.parent-active:not(.active) > .menu-item-inner {

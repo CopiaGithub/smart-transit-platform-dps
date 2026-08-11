@@ -19,10 +19,12 @@
         </div>
       </div>
       <div *ngIf="!isCollapsed" class="sidebar-header-text">
-        <div class="brand-title truncate">
+        <div class="brand-title truncate" [title]="appTitle">
           {{ appTitle }}
         </div>
-        <div class="sidebar-user-name truncate">{{ userName }}</div>
+        <div class="sidebar-user-name truncate" [title]="userName">
+          {{ userName }}
+        </div>
       </div>
 
       <button
@@ -79,9 +81,7 @@
           <div class="menu-item-inner">
             <div class="left">
               <div class="icon-circle">
-                <mat-icon [style.color]="menuIconColor(item)">{{
-                  item.icon
-                }}</mat-icon>
+                <mat-icon>{{ item.icon }}</mat-icon>
               </div>
               <span class="label">{{ item.name }}</span>
             </div>
@@ -142,11 +142,9 @@
                   >
                     <div class="submenu-item-inner">
                       <div class="submenu-label-wrap">
-                        <mat-icon
-                          class="submenu-item-icon"
-                          [style.color]="submenuIconColor(gc)"
-                          >{{ gc.icon }}</mat-icon
-                        >
+                        <mat-icon class="submenu-item-icon">{{
+                          gc.icon
+                        }}</mat-icon>
                         <span class="submenu-label">{{ gc.name }}</span>
                       </div>
                     </div>

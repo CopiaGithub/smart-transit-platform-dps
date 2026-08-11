@@ -2,18 +2,33 @@ using Microsoft.EntityFrameworkCore;
 using transit_display_platform_api.Common;
 using transit_display_platform_api.Data;
 using transit_display_platform_api.Schema;
+using transit_display_platform_api.Services.BusRouteAllocationService;
 
 namespace transit_display_platform_api.Services.StudentMasterService;
 
+/// <summary>
+/// A student is enrolled on a <em>route</em>, never on a bus. Which bus serves that
+/// route is the allocation's business and changes whenever a reserve substitutes,
+/// so BusId/BusNumber are resolved on read rather than stored per child — otherwise
+/// every substitution would mean rewriting every rider's row, which nothing does.
+/// </summary>
 public class StudentMasterService : IStudentMasterService
 {
     private readonly ApplicationDbContext _context;
     private readonly IJwtTokenUtility _jwtTokenUtility;
+    private readonly IBusRouteAllocationService _allocations;
+    private readonly ISchoolClock _clock;
 
-    public StudentMasterService(ApplicationDbContext context, IJwtTokenUtility jwtTokenUtility)
+    public StudentMasterService(
+        ApplicationDbContext context,
+        IJwtTokenUtility jwtTokenUtility,
+        IBusRouteAllocationService allocations,
+        ISchoolClock clock)
     {
         _context = context;
         _jwtTokenUtility = jwtTokenUtility;
+        _allocations = allocations;
+        _clock = clock;
     }
 
     public async Task<ServiceResponseDto<PagedResult<StudentMasterListModel>>> GetAllAsync(
@@ -23,7 +38,8 @@ public class StudentMasterService : IStudentMasterService
         string? division = null,
         int? busId = null,
         int? exitGateId = null,
-        bool? status = null)
+        bool? status = null,
+        int? classTeacherId = null)
     {
         var (pageNumber, pageSize) = filter.Normalize();
 
@@ -36,7 +52,17 @@ public class StudentMasterService : IStudentMasterService
         if (academicYearId.HasValue) query = query.Where(s => s.AcademicYearId == academicYearId.Value);
         if (!string.IsNullOrWhiteSpace(grade)) query = query.Where(s => s.Grade == grade);
         if (!string.IsNullOrWhiteSpace(division)) query = query.Where(s => s.Division == division);
-        if (busId.HasValue) query = query.Where(s => s.BusId == busId.Value);
+        if (classTeacherId.HasValue) query = query.Where(s => s.ClassTeacherId == classTeacherId.Value);
+        if (busId.HasValue)
+        {
+            // "Who rides bus 12?" is now answered through the routes that bus is
+            // running today, since the child is enrolled on the route, not the bus.
+            var routeIds = await _allocations.ResolveRoutesForBusAsync(busId.Value, _clock.Today);
+            query = routeIds.Count == 0
+                ? query.Where(_ => false)
+                : query.Where(s => s.UsesTransport && s.RouteId != null && routeIds.Contains(s.RouteId.Value));
+        }
+
         if (exitGateId.HasValue) query = query.Where(s => s.ExitGateId == exitGateId.Value);
 
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
@@ -168,11 +194,17 @@ public class StudentMasterService : IStudentMasterService
         if (exists)
             return Fail("A student with this admission number already exists for that academic year.");
 
-        var validationError = await ValidateReferencesAsync(model.ClassTeacherId, model.BusId, model.RouteId, model.ExitGateId, academicYearId);
+        var validationError = await ValidateReferencesAsync(model.ClassTeacherId, model.RouteId, model.ExitGateId, academicYearId);
         if (validationError != null)
             return Fail(validationError);
 
-        var rfidTag = string.IsNullOrWhiteSpace(model.RfidTag) ? null : model.RfidTag.Trim();
+        bool usesTransport = model.UsesTransport ?? true;
+
+        // A tag on a child who is not on transport is discarded below, so do not
+        // reject the create over a clash with a value that will never be stored.
+        var rfidTag = usesTransport && !string.IsNullOrWhiteSpace(model.RfidTag)
+            ? model.RfidTag.Trim()
+            : null;
         if (rfidTag != null && await _context.StudentMasters.AnyAsync(s => s.RfidTag == rfidTag && !s.IsDeleted))
             return Fail("This RFID tag is already assigned to another student.");
 
@@ -187,14 +219,13 @@ public class StudentMasterService : IStudentMasterService
             Division = model.Division.Trim(),
             AcademicYearId = academicYearId.Value,
             ClassTeacherId = model.ClassTeacherId,
-            BusId = model.BusId,
             RouteId = model.RouteId,
             ExitGateId = model.ExitGateId,
             PhotoUrl = model.PhotoUrl,
             PickupStop = model.PickupStop,
             DropStop = model.DropStop,
             RfidTag = rfidTag,
-            UsesTransport = model.UsesTransport ?? true,
+            UsesTransport = usesTransport,
             IsActive = model.IsActive ?? true,
             IsDeleted = false,
             CreatedById = currentUserId,
@@ -202,6 +233,8 @@ public class StudentMasterService : IStudentMasterService
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
+
+        ClearTransportIfUnused(student);
 
         _context.StudentMasters.Add(student);
         await _context.SaveChangesAsync();
@@ -236,12 +269,16 @@ public class StudentMasterService : IStudentMasterService
         }
 
         var validationError = await ValidateReferencesAsync(
-            model.ClassTeacherId, model.BusId, model.RouteId, model.ExitGateId,
+            model.ClassTeacherId, model.RouteId, model.ExitGateId,
             model.AcademicYearId.HasValue ? academicYearId : null);
         if (validationError != null)
             return new ServiceResponseDto<bool> { Success = false, Message = validationError };
 
-        if (model.RfidTag != null)
+        // What the record will say once this patch is applied — the flag may be
+        // absent, in which case the stored one still governs.
+        bool usesTransport = model.UsesTransport ?? student.UsesTransport;
+
+        if (usesTransport && model.RfidTag != null)
         {
             var rfidTag = string.IsNullOrWhiteSpace(model.RfidTag) ? null : model.RfidTag.Trim();
             if (rfidTag != null && await _context.StudentMasters.AnyAsync(s => s.RfidTag == rfidTag && s.Id != id && !s.IsDeleted))
@@ -257,14 +294,16 @@ public class StudentMasterService : IStudentMasterService
         if (model.Division != null) student.Division = model.Division.Trim();
         if (model.AcademicYearId.HasValue) student.AcademicYearId = academicYearId;
         if (model.ClassTeacherId.HasValue) student.ClassTeacherId = model.ClassTeacherId;
-        if (model.BusId.HasValue) student.BusId = model.BusId;
         if (model.RouteId.HasValue) student.RouteId = model.RouteId;
         if (model.ExitGateId.HasValue) student.ExitGateId = model.ExitGateId;
         if (model.PhotoUrl != null) student.PhotoUrl = model.PhotoUrl;
         if (model.PickupStop != null) student.PickupStop = model.PickupStop;
         if (model.DropStop != null) student.DropStop = model.DropStop;
-        if (model.UsesTransport.HasValue) student.UsesTransport = model.UsesTransport.Value;
+        student.UsesTransport = usesTransport;
         if (model.IsActive.HasValue) student.IsActive = model.IsActive.Value;
+
+        ClearTransportIfUnused(student);
+
         student.UpdatedById = _jwtTokenUtility.GetUserId();
         student.UpdatedAt = DateTime.UtcNow;
 
@@ -306,22 +345,45 @@ public class StudentMasterService : IStudentMasterService
         _context.StudentMasters
             .Include(s => s.AcademicYear)
             .Include(s => s.ClassTeacher)
-            .Include(s => s.Bus)
             .Include(s => s.Route)
             .Include(s => s.ExitGate)
             .Where(s => !s.IsDeleted);
 
+    /// <summary>
+    /// A child who does not use school transport has no route, exit gate, stops or
+    /// tag — and must not keep the ones they had, or the student list goes on
+    /// showing a bus for a child who walks home.
+    ///
+    /// This has to live here rather than in the caller. Update is PATCH-shaped: a
+    /// null field means "leave alone", so no client can express "clear this", and
+    /// turning the flag off is the only signal there is. Applied after the patch so
+    /// it holds however the record got into this state — including a record already
+    /// carrying stale values from before this rule existed.
+    ///
+    /// BusId goes too. It is a legacy column nothing reads any more (the bus is
+    /// resolved from the route), but stale is stale.
+    /// </summary>
+    private static void ClearTransportIfUnused(StudentMaster student)
+    {
+        if (student.UsesTransport)
+            return;
+
+        student.RouteId = null;
+        student.ExitGateId = null;
+        student.PickupStop = null;
+        student.DropStop = null;
+        student.RfidTag = null;
+        student.BusId = null;
+    }
+
     private async Task<string?> ValidateReferencesAsync(
-        int? classTeacherId, int? busId, int? routeId, int? exitGateId, int? academicYearId)
+        int? classTeacherId, int? routeId, int? exitGateId, int? academicYearId)
     {
         if (academicYearId.HasValue && !await _context.AcademicYearMasters.AnyAsync(a => a.Id == academicYearId && !a.IsDeleted))
             return "The selected academic year does not exist.";
 
         if (classTeacherId.HasValue && !await _context.UserMasters.AnyAsync(u => u.Id == classTeacherId && !u.IsDeleted))
             return "The selected class teacher does not exist.";
-
-        if (busId.HasValue && !await _context.BusesMasters.AnyAsync(b => b.Id == busId && !b.IsDeleted))
-            return "The selected bus does not exist.";
 
         if (routeId.HasValue && !await _context.RoutesMasters.AnyAsync(r => r.Id == routeId && !r.IsDeleted))
             return "The selected route does not exist.";
@@ -333,8 +395,8 @@ public class StudentMasterService : IStudentMasterService
     }
 
     /// <summary>
-    /// Resolves parent counts and the primary contact for a page of students in two
-    /// queries rather than two per row.
+    /// Resolves parent counts, the primary contact, and today's bus for a page of
+    /// students in a handful of queries rather than a handful per row.
     /// </summary>
     private async Task<List<StudentMasterListModel>> MapManyAsync(List<StudentMaster> students)
     {
@@ -349,10 +411,30 @@ public class StudentMasterService : IStudentMasterService
         var grouped = mappings.GroupBy(m => m.StudentId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
+        // A child who is not on transport has no bus even if a stale route lingers.
+        var routeIds = students
+            .Where(s => s.UsesTransport && s.RouteId.HasValue)
+            .Select(s => s.RouteId!.Value)
+            .Distinct()
+            .ToList();
+
+        var busByRoute = await _allocations.ResolveBusesForRoutesAsync(routeIds, _clock.Today);
+        var busIds = busByRoute.Values.Distinct().ToList();
+        var busNumbers = busIds.Count == 0
+            ? new Dictionary<int, string>()
+            : await _context.BusesMasters
+                .Where(b => busIds.Contains(b.Id) && !b.IsDeleted)
+                .ToDictionaryAsync(b => b.Id, b => b.BusNumber);
+
         return students.Select(s =>
         {
             grouped.TryGetValue(s.Id, out var links);
             var primary = links?.FirstOrDefault(l => l.IsPrimaryContact);
+
+            int? busId = s.UsesTransport && s.RouteId.HasValue
+                         && busByRoute.TryGetValue(s.RouteId.Value, out var resolvedBusId)
+                ? resolvedBusId
+                : null;
 
             return new StudentMasterListModel
             {
@@ -371,8 +453,10 @@ public class StudentMasterService : IStudentMasterService
                 AcademicYearName = s.AcademicYear?.YearName,
                 ClassTeacherId = s.ClassTeacherId,
                 ClassTeacherName = s.ClassTeacher?.Name,
-                BusId = s.BusId,
-                BusNumber = s.Bus?.BusNumber,
+                BusId = busId,
+                BusNumber = busId.HasValue && busNumbers.TryGetValue(busId.Value, out var busNumber)
+                    ? busNumber
+                    : null,
                 RouteId = s.RouteId,
                 RouteName = s.Route?.RouteName,
                 ExitGateId = s.ExitGateId,

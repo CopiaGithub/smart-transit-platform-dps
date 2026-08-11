@@ -109,7 +109,28 @@ export class CdsInlineGridComponent implements OnChanges {
   }
 
   getMasterMode(col: InlineGridColumn): 'select' | 'autocomplete' {
-    return col.type === 'masterSelect' ? 'select' : 'autocomplete';
+    return 'autocomplete';
+  }
+
+  /** Static `options` are {value,label}; the cell speaks {name,value}. */
+  getSelectOptions(col: InlineGridColumn): DropdownModel[] {
+    return (col.options ?? []).map((o) => ({ name: o.label, value: o.value }));
+  }
+
+  asSelectValue(row: InlineGridRow, col: InlineGridColumn): DropdownModel | null {
+    const val = row[col.key];
+    if (val == null || val === '') return null;
+    const match = (col.options ?? []).find((o) => o.value === val);
+    return match ? { name: match.label, value: match.value } : null;
+  }
+
+  /** A `select` column keeps its scalar value — unwrap what the cell emits. */
+  onSelectCellChange(
+    row: InlineGridRow,
+    key: string,
+    value: DropdownModel | null,
+  ): void {
+    this.onCellChange(row, key, value?.value ?? null);
   }
 
   asDropdownValue(row: InlineGridRow, key: string): DropdownModel | null {

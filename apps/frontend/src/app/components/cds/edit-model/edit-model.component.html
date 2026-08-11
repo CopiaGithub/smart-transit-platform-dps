@@ -41,7 +41,11 @@
           class="edit-modal-grid grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5"
         >
           <ng-container *ngFor="let field of fieldsForActiveTab()">
-            <div *ngIf="isFieldVisible(field)" class="space-y-1">
+            <div
+              *ngIf="isFieldVisible(field)"
+              class="space-y-1"
+              [class.md:col-span-2]="field.type === 'collection'"
+            >
               <!-- TEXT / PASSWORD / NUMBER / EMAIL -->
               <cds-input
                 *ngIf="
@@ -65,32 +69,31 @@
                 (input)="onFieldChange(field.name, $event)"
               ></app-cds-textarea>
 
-              <!-- DROPDOWN -->
-              <div *ngIf="field.type === 'dropdown'" class="space-y-1 relative">
+              <!-- DROPDOWN — single select is a searchable autocomplete -->
+              <cds-autocomplete-dropdown
+                *ngIf="field.type === 'dropdown' && !field.multiple"
+                [label]="field.label"
+                [placeholder]="field.placeholder || 'Select ' + field.label"
+                [options]="field.optionsList"
+                [required]="!!field.required"
+                [showNoRecords]="true"
+                [valueOnly]="true"
+                [formControlName]="field.name"
+                (selectionChange)="onFieldChange(field.name, $event)"
+              ></cds-autocomplete-dropdown>
+
+              <div
+                *ngIf="field.type === 'dropdown' && field.multiple"
+                class="space-y-1 relative"
+              >
                 <label class="edit-modal-field-label">
                   {{ field.label }}
                   <span *ngIf="field.required" class="text-red-500">*</span>
                 </label>
 
-                <!-- NORMAL SINGLE SELECT -->
-                <select
-                  *ngIf="!field.multiple"
-                  class="edit-modal-select"
-                  [formControlName]="field.name"
-                  (change)="onFieldChange(field.name, $event)"
-                >
-                  <option value="" disabled>Select {{ field.label }}</option>
-                  <option
-                    *ngFor="let option of field.optionsList"
-                    [value]="option.value"
-                  >
-                    {{ option.name }}
-                  </option>
-                </select>
-
                 <!-- CHECKBOX MULTI SELECT -->
                 <div
-                  *ngIf="field.multiple && field.ui === 'checkbox'"
+                  *ngIf="field.ui === 'checkbox'"
                   class="edit-modal-dropdown-wrapper relative"
                   [class.edit-modal-dropdown-wrapper--open]="
                     dropdownOpenMap[field.name]
@@ -198,6 +201,17 @@
                 [formControlName]="field.name"
                 (fileSelected)="onFileSelected(field.name, $event)"
               ></cds-file-attach>
+
+              <!-- COLLECTION (linked child records, e.g. a student's parents) -->
+              <cds-collection-field
+                *ngIf="field.type === 'collection'"
+                [label]="field.label"
+                [columns]="field.columns || []"
+                [required]="!!field.required"
+                [addRowLabel]="field.addRowLabel || 'Add row'"
+                [emptyText]="field.emptyText || 'Nothing added yet.'"
+                [formControlName]="field.name"
+              ></cds-collection-field>
 
               <!-- HINT -->
               <p *ngIf="field.hint" class="edit-modal-hint">{{ field.hint }}</p>
