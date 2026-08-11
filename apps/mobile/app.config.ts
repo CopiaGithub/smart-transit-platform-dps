@@ -13,24 +13,22 @@ const ENV: Record<AppEnv, { apiUrl: string; appName: string; debug: boolean }> =
       // served from, so the same line works on the emulator and on a phone over
       // Wi-Fi — port and path are kept as written.
       //
-      // Hosted dev, for when the server is back up. Note the host and the path
-      // are nearly anagrams of each other — the site is tdpdev, the application
-      // under it is tpddevapi — and getting them the same way round is a 404
-      // that looks like a routing bug:
-      //   "https://tdpdev.copiacs.com/tpddevapi/api/"
+      // Hosted dev, for when the server is back up — the same backend the web
+      // frontend points at in apps/frontend/src/app/environments/environment.dev.ts:
+      //   "https://tdpdev.copiacs.com/tdpdevapi/api/"
       apiUrl: "http://localhost:5199/api/",
       // appName: "Transit Display (Dev)",
       appName: "Transit Display",
       debug: true,
     },
     qa: {
-      apiUrl: "https://tdpdev.copiacs.com/tpddevapi/api/",
+      apiUrl: "https://tdpdev.copiacs.com/tdpdevapi/api/",
       // appName: "Transit Display (QA)",
       appName: "Transit Display",
       debug: false,
     },
     production: {
-      apiUrl: "https://tdpdev.copiacs.com/tpddevapi/api/",
+      apiUrl: "https://tdpdev.copiacs.com/tdpdevapi/api/",
       appName: "Transit Display",
       debug: false,
     },

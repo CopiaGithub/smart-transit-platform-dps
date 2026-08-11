@@ -8,8 +8,8 @@ changing anything in `src/api/` or `src/services/apiClient.ts`.
 | APP_ENV | apiUrl |
 |---|---|
 | `dev` | `http://localhost:5199/api/` — the backend on this laptop |
-| `qa` | `https://tdpdev.copiacs.com/tpddevapi/api/` |
-| `production` | `https://tdpdev.copiacs.com/tpddevapi/api/` — placeholder |
+| `qa` | `https://tdpdev.copiacs.com/tdpdevapi/api/` |
+| `production` | `https://tdpdev.copiacs.com/tdpdevapi/api/` — placeholder |
 
 Set in `app.config.ts`. The `localhost` in the dev URL is never used as-is:
 `resolveBaseUrl()` swaps in whatever host Metro is served from, so emulator and

@@ -23,7 +23,7 @@ Work through these in order and skip anything already true.
 http://localhost:5199/api/
 ```
 
-The hosted dev URL (`https://tdpdev.copiacs.com/tpddevapi/api/`) is kept in the
+The hosted dev URL (`https://tdpdev.copiacs.com/tdpdevapi/api/`) is kept in the
 comment right above it — swap them back when that server returns. Do not
 "fix" the hostname to a LAN IP; the Metro swap handles it.
 
