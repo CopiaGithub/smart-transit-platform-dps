@@ -1,9 +1,14 @@
+using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Serilog.Events;
 using transit_display_platform_api.Common;
 using transit_display_platform_api.Data;
 using transit_display_platform_api.Extensions;
@@ -147,24 +152,99 @@ try
 
     var app = builder.Build();
 
+    var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+
+    // On a deployed server the log file is the only thing we can look at, so it
+    // has to say which build of the app this is, which appsettings file won, and
+    // where it is reading from. Every "it works locally" question starts here.
+    startupLogger.LogInformation(
+        "Starting {Application} | Environment: {Environment} | ContentRoot: {ContentRoot} | Runtime: {Runtime} | Process: {ProcessId} {ProcessPath}",
+        app.Environment.ApplicationName,
+        app.Environment.EnvironmentName,
+        app.Environment.ContentRootPath,
+        RuntimeInformation.FrameworkDescription,
+        Environment.ProcessId,
+        Environment.ProcessPath);
+
+    // Server and database only — the password never goes near the log file.
+    var connectionString = app.Configuration.GetConnectionString("DefaultConnection");
+    if (!string.IsNullOrWhiteSpace(connectionString))
+    {
+        var connection = new SqlConnectionStringBuilder(connectionString);
+        startupLogger.LogInformation(
+            "Database target {Server}/{Database}",
+            connection.DataSource,
+            connection.InitialCatalog);
+    }
+    else
+    {
+        startupLogger.LogError("No DefaultConnection connection string is configured; every request that touches the database will fail.");
+    }
+
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        var addresses = app.Services.GetService<IServer>()?.Features.Get<IServerAddressesFeature>()?.Addresses;
+        startupLogger.LogInformation(
+            "Application started, listening on {Addresses}",
+            addresses is { Count: > 0 } ? string.Join(", ", addresses) : "the address supplied by the host");
+    });
+    app.Lifetime.ApplicationStopping.Register(() => startupLogger.LogInformation("Application stopping"));
+    app.Lifetime.ApplicationStopped.Register(() => startupLogger.LogInformation("Application stopped"));
+
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        await DatabaseSeeder.ResetLegacyPasswordsAsync(db, app.Configuration, logger);
-        await DemoDataSeeder.SeedAsync(db, app.Configuration, logger);
-        // Last, so it overwrites whatever the demo seeder just created.
-        await DevLoginsSeeder.ApplyAsync(db, app.Configuration, app.Environment, logger);
-        await DevLoginsSeeder.ClearOpenSessionBoardAsync(db, app.Configuration, app.Environment, logger);
+
+        try
+        {
+            await DatabaseSeeder.ResetLegacyPasswordsAsync(db, app.Configuration, logger);
+            await DemoDataSeeder.SeedAsync(db, app.Configuration, logger);
+            // Last, so it overwrites whatever the demo seeder just created.
+            await DevLoginsSeeder.ApplyAsync(db, app.Configuration, app.Environment, logger);
+            await DevLoginsSeeder.ClearOpenSessionBoardAsync(db, app.Configuration, app.Environment, logger);
+        }
+        catch (Exception ex)
+        {
+            // Startup seeding runs before the first request, so a failure here
+            // takes the whole process down. Naming it beats reading a stack
+            // trace whose top frame is the host builder.
+            logger.LogCritical(ex, "Database startup work failed; the application cannot serve requests.");
+            throw;
+        }
     }
 
     // Envelope for unhandled exceptions and un-routed (404) requests.
     app.UseMiddleware<ApiResponseMiddleware>();
 
+    // Inside the envelope middleware, so the status recorded here is the real
+    // one rather than the 200 the envelope rewrites it to, and ahead of
+    // everything else so Swagger, CORS preflights and 404s are all logged.
+    app.UseSerilogRequestLogging(options =>
+    {
+        options.MessageTemplate =
+            "{RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms for {ClientIp} as {User}";
+
+        options.GetLevel = (httpContext, elapsedMs, exception) =>
+            exception is not null || httpContext.Response.StatusCode >= 500 ? LogEventLevel.Error
+            : httpContext.Response.StatusCode >= 400 || elapsedMs > 2000 ? LogEventLevel.Warning
+            : LogEventLevel.Information;
+
+        options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        {
+            var request = httpContext.Request;
+            diagnosticContext.Set("ClientIp", httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+            diagnosticContext.Set("User", httpContext.User.Identity?.Name ?? "anonymous");
+            diagnosticContext.Set("Host", request.Host.Value);
+            diagnosticContext.Set("Scheme", request.Scheme);
+            diagnosticContext.Set("QueryString", request.QueryString.Value);
+            diagnosticContext.Set("UserAgent", request.Headers.UserAgent.ToString());
+            diagnosticContext.Set("Endpoint", httpContext.GetEndpoint()?.DisplayName ?? "none");
+        };
+    });
+
     app.UseSwagger();
     app.UseSwaggerUI();
-
-    app.UseSerilogRequestLogging();
 
     app.UseHttpsRedirection();
 
@@ -177,7 +257,6 @@ try
 
     app.MapControllers();
 
-    Log.Information("Application starting");
     app.Run();
 }
 catch (Exception ex)

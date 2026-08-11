@@ -40,6 +40,15 @@ public class ApiResponseMiddleware
             if (context.Response is { HasStarted: false, StatusCode: StatusCodes.Status404NotFound }
                 && context.GetEndpoint() is null)
             {
+                // The envelope reports 404 over an HTTP 200, so a caller looking
+                // at status codes alone sees nothing wrong. The log is where a
+                // wrong base path or a missing route actually shows up.
+                _logger.LogWarning(
+                    "No endpoint matched {Method} {Url} (PathBase {PathBase})",
+                    context.Request.Method,
+                    context.Request.GetDisplayUrl(),
+                    context.Request.PathBase.HasValue ? context.Request.PathBase.Value : "/");
+
                 await WriteEnvelopeAsync(
                     context,
                     StatusCodes.Status404NotFound,
@@ -48,7 +57,11 @@ public class ApiResponseMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception processing {Path}", context.Request.Path);
+            _logger.LogError(
+                ex,
+                "Unhandled exception processing {Method} {Url}",
+                context.Request.Method,
+                context.Request.GetDisplayUrl());
 
             if (context.Response.HasStarted)
                 throw;
