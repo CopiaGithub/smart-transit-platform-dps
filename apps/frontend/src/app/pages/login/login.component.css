@@ -197,11 +197,137 @@
   background: var(--argon-success);
 }
 
-/* Input focus - Argon primary ring */
-input:focus {
-  border-color: var(--argon-primary) !important;
-  box-shadow: 0 3px 9px rgba(50, 50, 9, 0), 3px 4px 8px rgba(94, 114, 228, 0.15);
+/* ---------- Form fields ---------- */
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.login-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #4a5568;
+  letter-spacing: 0.01em;
+}
+
+.login-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  color: #32325d;
+  background: #fbfcfe;
+  border: 1px solid var(--argon-border-color);
+  border-radius: 0.75rem;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.login-input-password {
+  padding-right: 3rem;
+}
+
+.login-input::placeholder {
+  color: #adb5bd;
+}
+
+.login-input:focus {
   outline: none;
+  background: #fff;
+  border-color: var(--argon-primary);
+  /* Ring rather than a drop shadow, so the focused field reads clearly against
+     the tinted card background. */
+  box-shadow: 0 0 0 3px rgba(18, 133, 92, 0.15);
+}
+
+.login-input-error {
+  border-color: var(--argon-danger);
+  background: #fff7f8;
+}
+
+.login-input-error:focus {
+  border-color: var(--argon-danger);
+  box-shadow: 0 0 0 3px rgba(245, 54, 92, 0.15);
+}
+
+/* Show/hide password toggle */
+.login-eye {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0.5rem;
+  display: flex;
+  align-items: center;
+  padding: 0 0.375rem;
+  color: #8898aa;
+  border-radius: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.login-eye:hover {
+  color: var(--argon-primary);
+}
+
+.login-eye:focus-visible {
+  outline: 2px solid var(--argon-primary);
+  outline-offset: 2px;
+}
+
+/* ---------- Validation feedback ---------- */
+.login-error-text {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--argon-danger);
+}
+
+.login-error-icon {
+  font-size: 0.9375rem !important;
+}
+
+/* Form-level failure banner */
+.login-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #a61b3c;
+  background: #fdeaee;
+  border: 1px solid rgba(245, 54, 92, 0.25);
+  border-radius: 0.75rem;
+  animation: fadeInUp 0.25s ease-out both;
+}
+
+.login-alert-icon {
+  font-size: 1.125rem !important;
+  flex-shrink: 0;
+  color: var(--argon-danger);
+}
+
+/* ---------- Remember me ---------- */
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #525f7f;
+  cursor: pointer;
+  user-select: none;
+}
+
+.login-checkbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--argon-primary);
+  border-radius: 0.25rem;
+  cursor: pointer;
 }
 
 /* Powered by */
@@ -248,11 +374,71 @@ input:focus {
 /* Brand actions — driven by the theme tokens rather than a hardcoded hex, so a
    palette change reaches the login page too. */
 .login-submit {
-  background-color: var(--argon-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.8125rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #fff;
+  background: var(--argon-gradient-primary);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(18, 133, 92, 0.28);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
 }
 
 .login-submit:hover:not(:disabled) {
-  background-color: var(--argon-primary-dark);
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(18, 133, 92, 0.34);
+}
+
+.login-submit:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(18, 133, 92, 0.28);
+}
+
+.login-submit:focus-visible {
+  outline: 2px solid var(--argon-primary-dark);
+  outline-offset: 2px;
+}
+
+.login-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* In-flight indicator on the submit button */
+.login-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: loginSpin 0.6s linear infinite;
+}
+
+@keyframes loginSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-spinner {
+    animation-duration: 1.5s;
+  }
+  .login-submit:hover:not(:disabled) {
+    transform: none;
+  }
 }
 
 .login-link {
