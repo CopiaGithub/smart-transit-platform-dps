@@ -133,11 +133,12 @@ export const STUDENT_MASTER_CONFIG: MasterPageConfig = {
     },
     {
       name: 'PhotoUrl',
-      label: 'Photo URL',
-      type: 'text',
+      label: 'Photo',
+      type: 'file',
+      // The value on the wire is still the stored path, so the column's
+      // nvarchar(500) limit still applies.
       maxLength: 500,
       tab: BASIC,
-      hint: 'A URL for now — there is no upload endpoint yet.',
     },
     { ...IS_ACTIVE_FIELD, tab: BASIC },
 

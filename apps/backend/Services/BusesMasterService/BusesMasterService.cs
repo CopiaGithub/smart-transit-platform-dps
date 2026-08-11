@@ -17,7 +17,8 @@ public class BusesMasterService : IBusesMasterService
     }
 
     public async Task<ServiceResponseDto<PagedResult<BusesMasterListModel>>> GetAllAsync(
-        PaginationFilterDto filter, int? routeId = null, bool? status = null)
+        PaginationFilterDto filter, int? routeId = null, bool? status = null,
+        string? busType = null, string? serviceStatus = null)
     {
         var (pageNumber, pageSize) = filter.Normalize();
 
@@ -31,6 +32,14 @@ public class BusesMasterService : IBusesMasterService
 
         if (routeId.HasValue)
             query = query.Where(b => b.RouteId == routeId.Value);
+
+        // Exact match, unlike SearchTerm below which does a fuzzy Contains over
+        // BusType among other columns — "Reserve" here must mean only Reserve.
+        if (!string.IsNullOrWhiteSpace(busType))
+            query = query.Where(b => b.BusType == busType);
+
+        if (!string.IsNullOrWhiteSpace(serviceStatus))
+            query = query.Where(b => b.ServiceStatus == serviceStatus);
 
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {

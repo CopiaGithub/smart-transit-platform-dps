@@ -137,7 +137,8 @@ export const PARENT_MASTER_CONFIG: MasterPageConfig = {
       hint: 'Checked when a guardian collects a child at the gate.',
     },
     { name: 'IdProofNumber', label: 'ID Proof Number', type: 'text', maxLength: 50, tab: ADDRESS },
-    { name: 'PhotoUrl', label: 'Photo URL', type: 'text', maxLength: 500, tab: ADDRESS },
+    // Value on the wire stays the stored path, so maxLength still guards the column.
+    { name: 'PhotoUrl', label: 'Photo', type: 'file', maxLength: 500, tab: ADDRESS },
   ],
 
   duplicateCheckFields: ['MobileNumber'],

@@ -22,6 +22,13 @@ export interface LookupConfig {
   codeField?: string;
   /** Query param naming the parent, e.g. 'countryId' on RegionMaster. */
   parentParam?: string;
+  /**
+   * Fixed query params narrowing the list, e.g. { busType: 'Reserve' }. Unlike
+   * `parentParam` these never vary at runtime, so they are part of the identity
+   * of the lookup — two configs on the same resource with different extras are
+   * two different option lists and are cached separately.
+   */
+  extraParams?: Record<string, string | number | boolean>;
 }
 
 /** Options are fetched once per (resource, parent) pair and cached for the session. */
@@ -42,7 +49,8 @@ export class LookupService {
       return of([]);
     }
 
-    const key = `${config.resource}:${parentId ?? ''}`;
+    // The `resource:` prefix has to stay leading — invalidate() matches on it.
+    const key = `${config.resource}:${parentId ?? ''}:${extrasKey(config.extraParams)}`;
     const cached = this.cache.get(key);
     if (cached) {
       return cached;
@@ -52,6 +60,7 @@ export class LookupService {
     if (config.parentParam && parentId != null) {
       query[config.parentParam] = parentId;
     }
+    Object.assign(query, config.extraParams ?? {});
 
     const request = this.api
       .get<PagedResult<Record<string, unknown>>>(`/${config.resource}`, query)
@@ -76,6 +85,17 @@ export class LookupService {
   invalidateAll(): void {
     this.cache.clear();
   }
+}
+
+/** Stable regardless of key order, so the same extras always hit one cache entry. */
+function extrasKey(extras: Record<string, string | number | boolean> | undefined): string {
+  if (!extras) {
+    return '';
+  }
+  return Object.keys(extras)
+    .sort()
+    .map((key) => `${key}=${extras[key]}`)
+    .join('&');
 }
 
 function toOption(item: Record<string, unknown>, config: LookupConfig): DropdownModel {

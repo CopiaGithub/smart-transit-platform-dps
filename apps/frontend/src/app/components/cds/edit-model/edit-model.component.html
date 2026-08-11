@@ -186,6 +186,19 @@
                 </label>
               </div>
 
+              <!-- FILE ATTACHMENT -->
+              <cds-file-attach
+                *ngIf="field.type === 'file'"
+                [label]="field.label"
+                [isAstRequired]="!!field.required"
+                [isDisabled]="!!field.disabled"
+                [accept]="field.accept || 'image/png,image/jpeg'"
+                [maxFileSizeMb]="field.maxFileSizeMb || 2"
+                [unavailableNote]="attachmentNote"
+                [formControlName]="field.name"
+                (fileSelected)="onFileSelected(field.name, $event)"
+              ></cds-file-attach>
+
               <!-- HINT -->
               <p *ngIf="field.hint" class="edit-modal-hint">{{ field.hint }}</p>
 
@@ -226,76 +239,12 @@
             </div>
           </ng-container>
 
-          <!-- PROFILE IMAGE SECTION -->
-          <div
-            *ngIf="displayUserProfileSection"
-            class="col-span-1 md:col-span-2 mt-4"
-          >
-            <div class="edit-modal-profile">
-              <h3 class="edit-modal-profile-title">Profile Picture</h3>
-
-              <div class="grid md:grid-cols-2 gap-6 items-start">
-                <!-- Upload -->
-                <div class="edit-modal-upload">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    (change)="onChangeFile($event)"
-                    class="hidden"
-                    #fileInput
-                  />
-                  <button
-                    type="button"
-                    class="edit-modal-upload-btn"
-                    (click)="fileInput.click()"
-                  >
-                    Choose Image
-                  </button>
-                  <p class="text-xs text-gray-500 mt-2">Max 2MB • JPG, PNG</p>
-                  <p *ngIf="errorMsg" class="text-xs text-red-500 mt-1">
-                    {{ errorMsg }}
-                  </p>
-                </div>
-
-                <!-- Preview -->
-                <div class="flex flex-col items-start gap-2">
-                  <span class="text-xs text-gray-500">Preview</span>
-                  <div
-                    *ngIf="previewUrl"
-                    (click)="openImageModal()"
-                    class="edit-modal-preview hover:shadow-md transition"
-                  >
-                    <img
-                      [src]="previewUrl"
-                      class="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
-        @if (showImageModal) {
-          <div class="edit-modal-image-overlay" (click)="closeImageModal()">
-            <div
-              class="edit-modal-image-panel"
-              (click)="$event.stopPropagation()"
-            >
-              <button
-                type="button"
-                class="edit-modal-image-close"
-                (click)="closeImageModal()"
-              >
-                ✕
-              </button>
-              <img
-                [src]="previewUrl"
-                [alt]="'No Image Uploaded'"
-                class="max-w-full max-h-[80vh] object-contain"
-              />
-            </div>
-          </div>
-        }
+      </div>
+
+      <!-- SAVE-TIME FAILURE (e.g. a picked file that cannot be uploaded yet) -->
+      <div *ngIf="saveError()" class="edit-modal-save-error" role="alert">
+        {{ saveError() }}
       </div>
 
       <!-- FOOTER -->

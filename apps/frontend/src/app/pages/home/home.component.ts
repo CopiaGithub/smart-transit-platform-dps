@@ -11,6 +11,7 @@ import { ApiError, PagedResult } from '../../core/api/api.types';
 import { AuthService } from '../../services/auth/auth.service';
 import { PageHeaderService } from '../../services/page-header.service';
 import { BaseComponent, resolveErrorMessage } from '../common/base/BaseComponent';
+import { HOME_SHORTCUTS } from './home-shortcuts';
 
 /** apps/backend/Services/DispersalSessionService/DispersalSessionModel.cs */
 interface DispersalSession {
@@ -267,4 +268,8 @@ export class HomeComponent extends BaseComponent implements OnInit, OnDestroy {
   go(route: string): void {
     this.router.navigate([route]);
   }
+
+  // ── Quick access ──────────────────────────────────────────────────────────
+
+  readonly shortcuts = HOME_SHORTCUTS;
 }

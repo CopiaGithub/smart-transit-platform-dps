@@ -59,14 +59,21 @@
   </app-cds-container>
 
   <!-- List -->
-  <div class="relative mt-4">
-    <div class="absolute top-2 right-12 z-10">
-      <cds-button [variant]="'success'" (click)="onDownloadExcel()">
+  <div class="mt-4">
+    <app-cds-container [title]="config.listTitle" icon="table_chart">
+      <!-- Export sits in the container header, beside the collapse toggle.
+           Only offered when there is actually something to export — during
+           loading, an error, or an empty result it would only fail. -->
+      <cds-button
+        header-actions
+        *ngIf="!isLoading() && !loadError() && tableData().length"
+        [variant]="'success'"
+        [testid]="'btn-' + config.resource + '-export'"
+        (click)="onDownloadExcel()"
+      >
         Export to Excel
       </cds-button>
-    </div>
 
-    <app-cds-container [title]="config.listTitle" icon="table_chart">
       <!-- Loading: a skeleton, not a spinner -->
       <div *ngIf="isLoading()" class="master-skeleton" aria-busy="true">
         <div class="master-skeleton-row" *ngFor="let _ of [1, 2, 3, 4, 5]"></div>
@@ -101,6 +108,11 @@
         [showViewAction]="true"
         [showEditAction]="canWrite"
         [showDeleteAction]="canWrite"
+        [showCustomAction]="!!config.rowAction && canWrite"
+        [customActionLabel]="config.rowAction?.label ?? ''"
+        [customActionClass]="
+          'px-2 py-1 text-xs font-semibold rounded-md border border-amber-500 text-amber-600 hover:bg-amber-50 whitespace-nowrap'
+        "
         [showPagination]="true"
         [itemsPerPage]="filter.pageSize"
         [isServerSidePagination]="true"
@@ -114,6 +126,7 @@
         (view)="onViewRow($event)"
         (edit)="onEditRow($event)"
         (delete)="onDeleteRow($event)"
+        (customAction)="onRowAction($event)"
         (selectionChange)="onSelectionChange($event)"
       ></app-table>
     </app-cds-container>

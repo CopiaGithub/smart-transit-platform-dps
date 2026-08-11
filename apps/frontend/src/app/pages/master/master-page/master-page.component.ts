@@ -240,7 +240,9 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
       .subscribe({
         next: (page) => {
           this.isLoading.set(false);
-          this.tableData.set((page?.Items ?? []).map((item) => this.config.toRow(item)));
+          this.tableData.set(
+            (page?.Items ?? []).map((item) => this.decorate(this.config.toRow(item))),
+          );
           this.totalCount.set(page?.TotalRecords ?? 0);
           this.selectedRows = [];
         },
@@ -464,6 +466,83 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
   }
 
   /** Re-read after every write; never patch local state. */
+  // ── Custom row action ────────────────────────────────────────────────────
+
+  /** TableComponent reads per-row `showCustomAction` to hide the button on a row. */
+  private decorate(row: any): any {
+    const visibleFor = this.config.rowAction?.visibleFor;
+    return visibleFor ? { ...row, showCustomAction: visibleFor(row) } : row;
+  }
+
+  /**
+   * Opens the action's dialog, then posts to its endpoint. Mirrors onEditRow,
+   * except the body and path come from the action rather than from toUpdate.
+   */
+  onRowAction(row: any): void {
+    const action = this.config.rowAction;
+    if (!action) {
+      return;
+    }
+
+    const formData = action.toFormData?.(row) ?? {};
+    this.resolveFieldOptions(action.fields, formData, 'create').then((descriptors) => {
+      const dialogRef = this.dialog.open(EditModelComponent, {
+        width: '520px',
+        data: {
+          title: action.title(row),
+          formFields: descriptors,
+          formData,
+          allData: [],
+          duplicateCheckFields: [],
+          saveButtonText: action.saveButtonText ?? action.label,
+        },
+      });
+
+      dialogRef
+        .afterClosed()
+        .pipe(take(1))
+        .subscribe((result) => {
+          if (!result) {
+            return;
+          }
+
+          const message = action.confirmBefore?.(row, result) ?? null;
+          if (!message) {
+            this.runRowAction(row, result);
+            return;
+          }
+
+          this.confirm('Please confirm', message, 'Continue')
+            .pipe(take(1))
+            .subscribe((confirmed) => {
+              if (confirmed) {
+                this.runRowAction(row, result);
+              }
+            });
+        });
+    });
+  }
+
+  private runRowAction(row: any, result: any): void {
+    const action = this.config.rowAction!;
+    const { path, body } = action.request(row, result);
+    const spinner = this.showSpinner();
+
+    this.api
+      .post<unknown>(path, body)
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          spinner.close();
+          this.afterWrite(action.successMessage ?? `${action.label} completed.`);
+        },
+        error: (error: unknown) => {
+          spinner.close();
+          this.showError(error, `${action.label} failed.`);
+        },
+      });
+  }
+
   private afterWrite(message: string): void {
     this.lookups.invalidate(this.config.resource);
     this.loadRootLookups();
@@ -502,6 +581,8 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
         hint: field.hint,
         onLabel: field.onLabel,
         offLabel: field.offLabel,
+        accept: field.accept,
+        maxFileSizeMb: field.maxFileSizeMb,
         visibleWhen: field.visibleWhen
           ? { field: field.visibleWhen.field, equals: field.visibleWhen.equals }
           : undefined,
