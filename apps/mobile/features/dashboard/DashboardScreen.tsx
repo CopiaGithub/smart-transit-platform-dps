@@ -67,6 +67,12 @@ export default function DashboardScreen() {
           color={STATUS_COLOR.Departed}
           icon="log-out"
         />
+        <Tile
+          value={stats.replaced}
+          label={STATUS.replaced}
+          color={STATUS_COLOR.Replaced}
+          icon="repeat"
+        />
       </View>
 
       <View style={styles.progressCard}>
@@ -76,7 +82,6 @@ export default function DashboardScreen() {
           </Text>
           <Text style={styles.progressSub}>
             {stats.onCampus}/{stats.platformCount} {LABELS.slotPlural.toLowerCase()} in use
-            {stats.waiting > 0 ? ` · ${stats.waiting} waiting` : ""}
           </Text>
         </View>
         <View style={styles.track}>
@@ -171,7 +176,10 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
-    padding: SPACING.md,
+    // Four across a 360dp phone leaves ~76dp a tile; at the old md padding
+    // "Boarding" wrapped onto a second line and took every tile's height with
+    // it, since the row stretches them to match.
+    padding: SPACING.sm,
     ...SHADOW.card,
   },
   tileIcon: {

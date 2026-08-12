@@ -60,13 +60,6 @@ export default function SessionCard() {
         </View>
       </View>
 
-      <View style={styles.counts}>
-        <Count value={current.InYard} label="In yard" />
-        <Count value={current.Waiting} label="Waiting" />
-        <Count value={current.Departed} label="Departed" />
-        <Count value={current.TotalBuses} label="Total" />
-      </View>
-
       {!!error && (
         <View style={styles.alert}>
           <Feather name="alert-circle" size={15} color={COLORS.danger} />
@@ -91,15 +84,6 @@ export default function SessionCard() {
   );
 }
 
-function Count({ value, label }: { value: number; label: string }) {
-  return (
-    <View style={styles.count}>
-      <Text style={styles.countVal}>{value}</Text>
-      <Text style={styles.countCap}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
@@ -114,17 +98,6 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.success },
   title: { fontSize: 15, fontWeight: "900", color: COLORS.text },
   sub: { fontSize: 12, color: COLORS.textMuted, marginTop: 1 },
-
-  counts: { flexDirection: "row", gap: SPACING.sm },
-  count: {
-    flex: 1,
-    alignItems: "center",
-    backgroundColor: COLORS.surfaceAlt,
-    borderRadius: RADIUS.md,
-    paddingVertical: SPACING.sm,
-  },
-  countVal: { fontSize: 18, fontWeight: "900", color: COLORS.text },
-  countCap: { fontSize: 10, color: COLORS.textMuted, fontWeight: "600" },
 
   alert: {
     flexDirection: "row",

@@ -322,5 +322,9 @@ export const selectOpsStats = (s: RootState) => {
     arrived: rows.filter((r) => r.Status === STATUS.arrived).length,
     boarding: rows.filter((r) => r.Status === STATUS.boarding).length,
     departed: rows.filter((r) => r.Status === STATUS.departed).length,
+    // The fifth state, and the reason the dashboard's numbers used to look
+    // wrong: a replaced bus is still one of the day's events, so the server
+    // counts it in the session total while no tile accounted for it.
+    replaced: rows.filter((r) => r.Status === STATUS.replaced).length,
   };
 };
