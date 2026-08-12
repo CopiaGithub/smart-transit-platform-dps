@@ -1,15 +1,28 @@
 // Single source of truth for colours/spacing. Screens must not hardcode hex.
+//
+// The palette is the web's, ported token for token from
+// `apps/frontend/src/theme/argon-tokens.css` so the two products read as one
+// system. When a colour changes, change it there first and follow here — the
+// web is the reference, this is the copy.
 export const COLORS = {
-  primary: "#1E5F9E",
-  primaryDark: "#154878",
+  primary: "#12855C", // --argon-primary
+  primaryDark: "#0D6B49", // --argon-primary-dark
+  // Warm amber against the emerald: it marks reserve buses at the gate, which
+  // must never be mistaken for a normal one. Green-on-green would do exactly that.
   accent: "#F2A93B",
-  statusBar: "#0F3557",
-  screenBg: "#F4F6FB",
+  statusBar: "#0A3A2A", // --argon-tw-blue-900, the darkest step of the brand scale
+  screenBg: "#F8F9FE", // --argon-body-bg
   surface: "#FFFFFF",
-  surfaceAlt: "#EEF2F9",
-  border: "#E2E8F0",
-  text: "#1A202C",
-  textMuted: "#6B7280",
+  surfaceAlt: "#F6F9FC", // --argon-gray-100
+  border: "#E9ECEF", // --argon-border-color
+  text: "#32325D", // --argon-heading-color
+  textMuted: "#525F7F", // --argon-body-color
+  // These three deliberately keep their own values instead of --argon-success /
+  // --argon-danger. On the web those are badge *fills* with their own text on
+  // top; here the same tokens are used as text colours on white, and the web
+  // pair does not survive that: #2dce89 reads ~2:1 and #f5365c ~3.8:1, both
+  // under the 4.5:1 a 12px label needs. These stay legible. `success` is told
+  // apart from `primary` by lightness rather than hue.
   success: "#2E9E5B",
   warning: "#E6A700",
   danger: "#D64545",
@@ -17,12 +30,13 @@ export const COLORS = {
 };
 
 /**
- * Brand gradient, deep navy -> mid blue -> bright blue. Used by the sign-in
- * hero and the primary CTA so the two read as one surface.
+ * Brand gradient, deep emerald -> mid green. Used by the sign-in hero and the
+ * primary CTA so the two read as one surface. Mirrors the web's
+ * --argon-gradient-primary (#12855c -> #1aa06b).
  */
 export const GRADIENT = {
-  brand: ["#0F4C81", "#2A6FD6"] as const,
-  brandWide: ["#0F4C81", "#2A6FD6", "#4F8EF7"] as const,
+  brand: ["#12855C", "#1AA06B"] as const,
+  brandWide: ["#0C6043", "#12855C", "#1AA06B"] as const,
 };
 
 // Separate palette for the LED board mirror — it mimics a real departure
@@ -46,10 +60,15 @@ export const BOARD = {
  * Same rule for `opacity` on an elevated view — dim the text, not the card.
  */
 export const TINT = {
-  primary: "#EEF4FC",
+  primary: "#E7F6EF", // --argon-primary-muted
   success: "#EFF8F2",
   warning: "#FFF8E7",
   danger: "#FDF2F2",
+  // Not a brand tint. Once `primary` went green, "Arrived" and "Departed" on the
+  // parent's card were both pale green — two states of one card that a parent
+  // reads at a glance. Arrived keeps this blue, which also matches its own
+  // STATUS_COLOR.Arrived label rather than fighting it.
+  info: "#EEF4FC",
 };
 
 export const SPACING = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };

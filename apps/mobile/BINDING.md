@@ -7,15 +7,21 @@ changing anything in `src/api/` or `src/services/apiClient.ts`.
 
 | APP_ENV | apiUrl |
 |---|---|
-| `dev` | `http://localhost:5199/api/` — the backend on this laptop |
-| `qa` | `https://tdpdev.copiacs.com/tpddevapi/api/` |
-| `production` | `https://tdpdev.copiacs.com/tpddevapi/api/` — placeholder |
+| `dev` | `https://tdpdev.copiacs.com/tdpdevapi/api/` — swap the commented `http://localhost:5199/api/` back in to work against the laptop |
+| `qa` | `https://tdpdev.copiacs.com/tdpdevapi/api/` |
+| `production` | `https://tdpdev.copiacs.com/tdpdevapi/api/` — placeholder |
 
-Set in `app.config.ts`. The `localhost` in the dev URL is never used as-is:
+**The path is `tdpdevapi`, not `tpddevapi`.** Site and application repeat the
+same three letters, so the transposition is easy to make and hard to see; the
+wrong one returns a 404 that reads like a routing bug. Confirmed against the
+live server — `/tdpdevapi/api/BusOperations/board` answers 200, the other 404s.
+
+Set in `app.config.ts`. A `localhost` dev URL is never used as-is:
 `resolveBaseUrl()` swaps in whatever host Metro is served from, so emulator and
 physical device both work with nothing to edit. Only in `--tunnel` mode does
-that fall apart — the borrowed host is then an `exp.direct` domain. Run
-`/localbackendconnect` to set the whole thing up.
+that fall apart — the borrowed host is then an `exp.direct` domain. That swap is
+limited to loopback hosts, so a hosted URL in `dev` is left alone. Run
+`/localbackendconnect` to set the local backend up.
 
 The API listens on **5199**. `launchSettings.json` and the Postman collection
 were disagreeing (5133 vs 5199); both now say 5199. Run it with:

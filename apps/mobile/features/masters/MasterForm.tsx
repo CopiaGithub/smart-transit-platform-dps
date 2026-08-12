@@ -136,11 +136,20 @@ export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onC
         "Capacity must be greater than zero",
         (v) => !v?.trim() || Number(v) > 0,
       ),
-      driverPhone: Yup.string().test(
-        "mobile",
-        "Enter the 10-digit mobile number",
-        (v) => !v?.trim() || /^\d{10}$/.test(v.trim()),
-      ),
+      // Required so every bus carries a contact the gate can reach when it breaks
+      // down mid-dispersal (BusesMaster.DriverPhone). Nothing displays the number
+      // yet, so a wrong one goes unnoticed — worth re-checking once the gate
+      // console shows it and the number starts being used.
+      driverName: Yup.string().trim().required("Driver name is required"),
+      driverPhone: Yup.string()
+        .trim()
+        .required("Driver mobile is required")
+        // Empty is left to `required` above, so only one message shows at a time.
+        .test(
+          "mobile",
+          "Enter the 10-digit mobile number",
+          (v) => !v?.trim() || /^\d{10}$/.test(v.trim()),
+        ),
       outOfServiceReason: Yup.string().when("serviceStatus", {
         is: (s: string) => s !== SERVICE_STATUS.inService,
         then: (s) => s.trim().required("Say why the bus is off the road"),
@@ -187,8 +196,10 @@ export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onC
       onClose={onClose}
       onSave={form.handleSubmit}
       onDelete={bus ? confirmDelete : undefined}
+      invalid={form.submitCount > 0 && !form.isValid}
     >
       <Field
+        required
         label={LABELS.vehicleNo.toUpperCase()}
         info={
           `The number a guard types at the entry gate and the number the LED board ` +
@@ -199,16 +210,14 @@ export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onC
         onChangeText={form.handleChange("busNumber")}
         onBlur={form.handleBlur("busNumber")}
         error={form.touched.busNumber ? form.errors.busNumber : undefined}
-        placeholder="24"
         maxLength={20}
       />
       {/* Deliberately not the gate identifier — that is the bus number above. */}
       <Field
-        label="REGISTRATION NUMBER (OPTIONAL)"
+        label="REGISTRATION NUMBER"
         info="The RTO plate. A fleet record only — it is never used to identify a bus at the gate or on the board."
         value={form.values.registrationNumber}
         onChangeText={form.handleChange("registrationNumber")}
-        placeholder="MH-43-AB-1234"
         autoCapitalize="characters"
         maxLength={20}
       />
@@ -257,12 +266,12 @@ export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onC
 
       {outOfService && (
         <Field
+          required
           label="WHY IT IS OFF THE ROAD"
           value={form.values.outOfServiceReason}
           onChangeText={form.handleChange("outOfServiceReason")}
           onBlur={form.handleBlur("outOfServiceReason")}
           error={form.touched.outOfServiceReason ? form.errors.outOfServiceReason : undefined}
-          placeholder="Gearbox failure"
         />
       )}
 
@@ -272,23 +281,24 @@ export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onC
         onChangeText={form.handleChange("capacity")}
         onBlur={form.handleBlur("capacity")}
         error={form.touched.capacity ? form.errors.capacity : undefined}
-        placeholder="40"
         keyboardType="number-pad"
         maxLength={3}
       />
       <Field
+        required
         label="DRIVER NAME"
         value={form.values.driverName}
         onChangeText={form.handleChange("driverName")}
-        placeholder="R. Shinde"
+        onBlur={form.handleBlur("driverName")}
+        error={form.touched.driverName ? form.errors.driverName : undefined}
       />
       <Field
+        required
         label="DRIVER MOBILE"
         value={form.values.driverPhone}
         onChangeText={form.handleChange("driverPhone")}
         onBlur={form.handleBlur("driverPhone")}
         error={form.touched.driverPhone ? form.errors.driverPhone : undefined}
-        placeholder="9820011000"
         keyboardType="number-pad"
         maxLength={10}
       />
@@ -330,11 +340,20 @@ export function UserForm({
     },
     validationSchema: Yup.object({
       name: Yup.string().trim().required("Name is required"),
-      contact: Yup.string().test(
-        "mobile",
-        "Enter the 10-digit mobile number",
-        (v) => !v?.trim() || /^\d{10}$/.test(v.trim()),
-      ),
+      // All three are usernames at sign-in — the server ORs them (AuthService:
+      // EmailId == username || EmployeeCode == username || Contact == username).
+      // Code and mobile are required by policy so every account has a handle to
+      // type; email is left optional because not every driver or guard has one.
+      employeeCode: Yup.string().trim().required("Employee code is required"),
+      contact: Yup.string()
+        .trim()
+        .required("Mobile number is required")
+        // Empty is left to `required` above, so only one message shows at a time.
+        .test(
+          "mobile",
+          "Enter the 10-digit mobile number",
+          (v) => !v?.trim() || /^\d{10}$/.test(v.trim()),
+        ),
       emailId: Yup.string().test(
         "email",
         "Enter a valid email address",
@@ -382,10 +401,10 @@ export function UserForm({
       onClose={onClose}
       onSave={form.handleSubmit}
       onDelete={user ? confirmDelete : undefined}
+      invalid={form.submitCount > 0 && !form.isValid}
     >
-      {/* No placeholders anywhere on this form: a sample name in an empty box
-          reads as a real value the operator has to clear. */}
       <Field
+        required
         label="NAME"
         value={form.values.name}
         onChangeText={form.handleChange("name")}
@@ -394,6 +413,7 @@ export function UserForm({
       />
 
       <Select
+        required
         label="ROLE"
         info={
           `Decides what this person sees when they open the app. A guard's post is part ` +
@@ -408,13 +428,21 @@ export function UserForm({
 
       {/* Any of these three can be used as the username at sign-in (§3.2). */}
       <Field
+        required
         label="EMPLOYEE CODE"
-        info="The employee code, mobile number and email are all usernames — this person can sign in with whichever of the three they remember."
+        info={
+          `The employee code, mobile number and email are all usernames — this person ` +
+          `can sign in with whichever of the three they remember. Email is the only one ` +
+          `that may be left blank.`
+        }
         value={form.values.employeeCode}
         onChangeText={form.handleChange("employeeCode")}
+        onBlur={form.handleBlur("employeeCode")}
+        error={form.touched.employeeCode ? form.errors.employeeCode : undefined}
         autoCapitalize="characters"
       />
       <Field
+        required
         label="MOBILE NUMBER"
         value={form.values.contact}
         onChangeText={form.handleChange("contact")}
@@ -435,6 +463,7 @@ export function UserForm({
 
       {!user && (
         <Field
+          required
           label="TEMPORARY PASSWORD"
           info="Given to them once, changed on first sign-in."
           value={form.values.password}
@@ -537,8 +566,10 @@ export function PlatformForm({
       onClose={onClose}
       onSave={form.handleSubmit}
       onDelete={platform ? confirmDelete : undefined}
+      invalid={form.submitCount > 0 && !form.isValid}
     >
       <Field
+        required
         label="PLATFORM NUMBER (PAINTED ON THE GROUND)"
         info={
           `Fixed — a child is told to walk to it and the LED board prints it. This is ` +
@@ -549,11 +580,11 @@ export function PlatformForm({
         onBlur={form.handleBlur("platformNumber")}
         error={form.touched.platformNumber ? form.errors.platformNumber : undefined}
         keyboardType="number-pad"
-        placeholder="23"
         maxLength={3}
       />
 
       <Field
+        required
         label="ALLOCATION ORDER"
         info={
           `Buses are given the lowest free number here, not the lowest platform. The yard ` +
@@ -566,19 +597,17 @@ export function PlatformForm({
         onBlur={form.handleBlur("sortOrder")}
         error={form.touched.sortOrder ? form.errors.sortOrder : undefined}
         keyboardType="number-pad"
-        placeholder="1"
         maxLength={3}
       />
 
       <Field
-        label="NAME (OPTIONAL)"
+        label="NAME"
         info={
           `A label for staff — it shows in this list and on the yard map instead of ` +
           `"${LABELS.slot} 23". The LED board and the children still go by the number.`
         }
         value={form.values.platformName}
         onChangeText={form.handleChange("platformName")}
-        placeholder="Station 23"
         maxLength={50}
       />
 
@@ -652,33 +681,32 @@ export function RouteForm({
       onClose={onClose}
       onSave={form.handleSubmit}
       onDelete={route ? confirmDelete : undefined}
+      invalid={form.submitCount > 0 && !form.isValid}
     >
       <Field
+        required
         label={`${LABELS.route.toUpperCase()} NAME`}
         value={form.values.routeName}
         onChangeText={form.handleChange("routeName")}
         onBlur={form.handleBlur("routeName")}
         error={form.touched.routeName ? form.errors.routeName : undefined}
-        placeholder="Seawoods — Palm Beach Road"
         maxLength={100}
       />
 
       <Field
-        label="CODE (OPTIONAL)"
+        label="CODE"
         info="A short tag for staff — it is the badge in this list and it can be searched on. It is not what the LED board prints; that is the next field."
         value={form.values.routeCode}
         onChangeText={form.handleChange("routeCode")}
-        placeholder="R04"
         autoCapitalize="characters"
         maxLength={20}
       />
 
       <Field
-        label="LED BOARD NAME (OPTIONAL)"
+        label="LED BOARD NAME"
         info="The short form the LED wall shows. Left blank, the wall falls back to the full route name — which is usually too long to read across the compound."
         value={form.values.ledDisplayName}
         onChangeText={form.handleChange("ledDisplayName")}
-        placeholder="SEAWOODS"
         autoCapitalize="characters"
         maxLength={50}
       />
@@ -699,6 +727,7 @@ function Sheet({
   visible,
   title,
   saving,
+  invalid,
   children,
   onClose,
   onSave,
@@ -707,6 +736,8 @@ function Sheet({
   visible: boolean;
   title: string;
   saving: boolean;
+  /** A rejected Save. The field that failed is usually scrolled out of sight. */
+  invalid?: boolean;
   children: ReactNode;
   onClose: () => void;
   onSave: () => void;
@@ -734,6 +765,13 @@ function Sheet({
             {children}
           </ScrollView>
 
+          {invalid && (
+            <Text style={styles.formError}>
+              Fill the fields marked <Text style={styles.req}>*</Text> — scroll up to the ones in
+              red.
+            </Text>
+          )}
+
           <View style={styles.actions}>
             <Pressable style={[styles.btn, styles.btnGhost]} onPress={onClose} disabled={saving}>
               <Text style={styles.btnGhostText}>Cancel</Text>
@@ -753,24 +791,28 @@ function Sheet({
   );
 }
 
+/**
+ * No placeholders on any master form. A sample value sitting in an empty box
+ * reads as a real one — an admin cannot tell an untouched New form from a
+ * filled-in edit at a glance, and grey text is not the difference they notice.
+ * The sheet title is what says which one it is. Explain a field with `info`.
+ */
 function Field({
   label,
   info,
   error,
+  required,
   ...input
 }: React.ComponentProps<typeof TextInput> & {
   label: string;
   info?: string;
   error?: string;
+  required?: boolean;
 }) {
   return (
     <View style={styles.field}>
-      <Label text={label} info={info} />
-      <TextInput
-        style={[styles.input, !!error && styles.inputBad]}
-        placeholderTextColor={COLORS.textMuted}
-        {...input}
-      />
+      <Label text={label} info={info} required={required} />
+      <TextInput style={[styles.input, !!error && styles.inputBad]} {...input} />
       {!!error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
@@ -788,6 +830,7 @@ function Select<T extends string | number | boolean | null>({
   options,
   onPick,
   error,
+  required,
 }: {
   label: string;
   info?: string;
@@ -795,13 +838,14 @@ function Select<T extends string | number | boolean | null>({
   options: { value: T; label: string }[];
   onPick: (value: T) => void;
   error?: string;
+  required?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const current = options.find((o) => o.value === value);
 
   return (
     <View style={styles.field}>
-      <Label text={label} info={info} />
+      <Label text={label} info={info} required={required} />
 
       <Pressable
         style={({ pressed }) => [
@@ -856,10 +900,22 @@ function Select<T extends string | number | boolean | null>({
   );
 }
 
-function Label({ text, info }: { text: string; info?: string }) {
+/**
+ * `required` is the only mandatory marker on these forms — an optional field
+ * carries nothing at all. Saying "(optional)" in the label as well would be the
+ * same fact told twice, and the two drift apart the first time one is edited.
+ */
+function Label({ text, info, required }: { text: string; info?: string; required?: boolean }) {
   return (
     <View style={styles.labelRow}>
-      <Text style={styles.cap}>{text}</Text>
+      <Text style={styles.cap}>
+        {text}
+        {required && (
+          <Text style={styles.req} accessibilityLabel="required">
+            {" *"}
+          </Text>
+        )}
+      </Text>
       {!!info && <Info text={info} />}
     </View>
   );
@@ -932,8 +988,16 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     backgroundColor: COLORS.surface,
   },
+  req: { color: COLORS.danger, fontWeight: "900" },
   inputBad: { borderColor: COLORS.danger, backgroundColor: TINT.danger },
   error: { color: COLORS.danger, fontSize: 12, fontWeight: "600" },
+  formError: {
+    color: COLORS.danger,
+    fontSize: 12,
+    fontWeight: "700",
+    paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.xs,
+  },
 
   // Reads as an input rather than a button: it holds a value, and lining it up
   // with the text fields is what keeps the form from looking like two forms.

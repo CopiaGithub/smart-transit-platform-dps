@@ -23,9 +23,12 @@ Work through these in order and skip anything already true.
 http://localhost:5199/api/
 ```
 
-The hosted dev URL (`https://tdpdev.copiacs.com/tpddevapi/api/`) is kept in the
-comment right above it — swap them back when that server returns. Do not
-"fix" the hostname to a LAN IP; the Metro swap handles it.
+`ENV.dev.apiUrl` now holds the hosted dev URL
+(`https://tdpdev.copiacs.com/tdpdevapi/api/` — note `tdp`, not `tpd`; the other
+spelling 404s), with the localhost line kept in the comment above it. This skill
+is about the local backend, so put the localhost URL back while you use it. Do
+not "fix" the hostname to a LAN IP; the Metro swap handles it, and it only
+touches loopback hosts so a hosted URL left there is passed through untouched.
 
 ## 2. Backend running on 0.0.0.0
 
