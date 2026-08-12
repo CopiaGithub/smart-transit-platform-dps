@@ -32,6 +32,19 @@ the right logic in `DevLoginsSeeder.ClearOpenSessionBoardAsync` — but it only
 runs at startup, behind `Seed:ClearBoardOnStart`, Development only. This skill
 does the same thing without restarting anything.
 
+## Run it *after* the local backend, never before
+
+`DemoDataSeeder.SeedDispersalDemoAsync` re-creates today's session with **five
+buses already on the board** whenever no session exists for today +
+"Afternoon Pickup". It runs on every startup of the local backend, so a reset
+followed by `dotnet run` puts the mess straight back.
+
+Only the local backend does this: `Seed:EnableDemoData` is set in
+`appsettings.Development.json`, and `appsettings.json` has no `Seed` section at
+all, so the hosted API never re-seeds.
+
+Order for a demo: start whatever backend you need **first**, reset **last**.
+
 ## Before you run it
 
 **The dev database is shared** (`4.240.53.172`, `transit_display_platform_dev`)
@@ -46,8 +59,13 @@ this file or any other. Parse them:
 $b = "<repo>\apps\backend"
 $c = @{}
 ((Get-Content "$b\appsettings.json" -Raw | ConvertFrom-Json).ConnectionStrings.DefaultConnection -split ';' | Where-Object { $_ }) | ForEach-Object { $k, $v = $_ -split '=', 2; $c[$k.Trim()] = $v }
-function Sql($q) { sqlcmd -S $c['Server'] -d $c['Database'] -U $c['User Id'] -P $c['Password'] -C -h -1 -W -s "|" -Q $q }
+function Sql($q) { sqlcmd -S $c['Server'] -d $c['Database'] -U $c['User Id'] -P $c['Password'] -C -I -h -1 -W -s "|" -Q $q }
 ```
+
+**`-I` is not optional.** sqlcmd runs with `QUOTED_IDENTIFIER` **off**, and these
+tables carry filtered indexes, so every `UPDATE` below fails with
+`Msg 1934 ... SET options have incorrect settings: 'QUOTED_IDENTIFIER'`. Reads
+succeed without it, so the preview in step 1 passes and only the clear breaks.
 
 ## 1. Preview — what would go
 
@@ -67,7 +85,7 @@ Only after the user confirms the preview.
 
 ```powershell
 $d = Get-Date -Format 'yyyy-MM-dd'
-Sql "SET NOCOUNT ON; DECLARE @d date='$d';
+Sql "SET NOCOUNT ON; SET XACT_ABORT ON; DECLARE @d date='$d';
 BEGIN TRAN;
 UPDATE e SET e.IsDeleted=1, e.UpdatedAt=SYSUTCDATETIME() FROM boarding_events e
   JOIN dispersal_sessions s ON s.Id=e.SessionId
@@ -77,10 +95,14 @@ UPDATE student_attendance SET IsDeleted=1, UpdatedAt=SYSUTCDATETIME()
 UPDATE dispersal_sessions SET IsDeleted=1, UpdatedAt=SYSUTCDATETIME()
   WHERE IsDeleted=0 AND (SessionDate=@d OR Status='Open');
 COMMIT;
-SELECT 'remaining-sessions', COUNT(*) FROM dispersal_sessions WHERE IsDeleted=0 AND Status='Open';"
+SELECT 'remaining-open-sessions', COUNT(*) FROM dispersal_sessions WHERE IsDeleted=0 AND Status='Open';"
 ```
 
-`remaining-sessions | 0` is the check that it worked.
+`remaining-open-sessions | 0` is the check that it worked.
+
+`XACT_ABORT ON` is what makes the transaction honest: without it sqlcmd carries
+on to the next statement after a failed one and reaches `COMMIT`, committing a
+half-done wipe.
 
 Date is taken from **this laptop**, matching `SchoolClock`'s local-date rule —
 the SQL box's own clock is not assumed to agree.

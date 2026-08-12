@@ -112,6 +112,17 @@ public class UserMasterService : IUserMasterService
                 return new ServiceResponseDto<UserMasterListModel> { Success = false, Message = "A user with this email already exists." };
         }
 
+        // Login accepts an employee code as the username, so a duplicate makes two
+        // people answer to one sign-in. The unique index catches it either way, but
+        // only as an unhandled exception the caller reads as "unexpected error".
+        if (!string.IsNullOrWhiteSpace(model.EmployeeCode))
+        {
+            bool codeExists = await _context.UserMasters
+                .AnyAsync(u => u.EmployeeCode == model.EmployeeCode && !u.IsDeleted);
+            if (codeExists)
+                return new ServiceResponseDto<UserMasterListModel> { Success = false, Message = "A user with this employee code already exists." };
+        }
+
         var currentUserId = _jwtTokenUtility.GetUserId();
 
         var user = new UserMaster
@@ -156,6 +167,14 @@ public class UserMasterService : IUserMasterService
                 .AnyAsync(u => u.EmailId == model.EmailId && u.Id != id && !u.IsDeleted);
             if (emailExists)
                 return new ServiceResponseDto<bool> { Success = false, Message = "A user with this email already exists." };
+        }
+
+        if (!string.IsNullOrWhiteSpace(model.EmployeeCode) && model.EmployeeCode != user.EmployeeCode)
+        {
+            bool codeExists = await _context.UserMasters
+                .AnyAsync(u => u.EmployeeCode == model.EmployeeCode && u.Id != id && !u.IsDeleted);
+            if (codeExists)
+                return new ServiceResponseDto<bool> { Success = false, Message = "A user with this employee code already exists." };
         }
 
         if (model.Name != null) user.Name = model.Name.Trim();
