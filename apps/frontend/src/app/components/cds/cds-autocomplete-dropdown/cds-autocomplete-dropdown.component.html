@@ -1,8 +1,10 @@
 @if (control) {
   <div class="dvs-form-control">
-    <div class="mb-[6px] mt-[2px]">
-      <cds-label [isAstRequired]="required || isRequired" [label]="label" />
-    </div>
+    @if (!hideLabel) {
+      <div class="mb-[6px] mt-[2px]">
+        <cds-label [isAstRequired]="required || isRequired" [label]="label" />
+      </div>
+    }
 
     <div
       #dropdownAnchor

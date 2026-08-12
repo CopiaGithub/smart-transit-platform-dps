@@ -1,8 +1,13 @@
+/* Reads as the right-hand half of one bar running across the top of the app:
+   same surface, same hairline and the same height as .sidebar-header, which is
+   what --app-shell-header-height is for. It used to sit on the body grey with no
+   border, so the two halves met at a visible seam. */
 :host {
   display: block;
   flex-shrink: 0;
   z-index: 30;
-  background: var(--argon-body-bg);
+  background: var(--argon-sidebar-bg);
+  border-bottom: 1px solid var(--argon-border-color);
 }
 
 .page-header-shell {
@@ -15,14 +20,25 @@
   }
 }
 
+/* Below this the sidebar is off-canvas, so there is no header to line up with —
+   matching its height would only cost vertical space on the smallest screens. */
+@media (max-width: 1024px) {
+  .page-title-bar {
+    min-height: 0;
+  }
+}
+
 .page-title-bar {
   display: flex;
-  align-items: flex-end;
+  /* Centred, like the sidebar's avatar and brand block, so the two headers
+     share one optical centre line rather than one sitting lower. */
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin-top: 0;
-  padding: 0.7rem 0 0.75rem;
+  padding: 0.6rem 0;
   margin-bottom: 0;
+  min-height: var(--app-shell-header-height, 4.25rem);
   box-sizing: border-box;
 }
 
@@ -187,4 +203,274 @@
     width: 100%;
     justify-content: flex-end;
   }
+}
+
+/* Dispersal session pill.
+
+   Neutral by default and brand-green only when a session is open: "no session"
+   is the ordinary morning state, not a fault, so it must not read as an alarm. */
+.page-session {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--argon-border-color);
+  border-radius: 999px;
+  background: var(--argon-white);
+  font-size: 0.75rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-gray-600);
+  white-space: nowrap;
+}
+
+.page-session-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--argon-gray-400);
+  flex-shrink: 0;
+}
+
+.page-session--open {
+  border-color: var(--argon-primary-subtle);
+  background: var(--argon-primary-muted);
+  color: var(--argon-primary-dark);
+}
+
+.page-session--open .page-session-dot {
+  background: var(--argon-primary);
+}
+
+.page-session-elapsed {
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+/* The pill is context, not the page's identity — on a phone the title and its
+   action button come first. */
+@media (max-width: 640px) {
+  .page-session-elapsed {
+    display: none;
+  }
+}
+
+/* Signed-in user. Sits between the session pill and the page's own actions,
+   with a divider so it reads as "who you are", not another button. */
+.page-user {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-left: 0.875rem;
+  border-left: 1px solid var(--argon-border-color);
+  min-width: 0;
+}
+
+.page-user-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.25rem 0.375rem 0.25rem 0.25rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.page-user-trigger:hover,
+.page-user-trigger--open {
+  background: var(--argon-gray-100, #f6f9fc);
+}
+
+.page-user-caret {
+  flex-shrink: 0;
+  font-size: 1.125rem !important;
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+  line-height: 1.125rem !important;
+  color: var(--argon-gray-500);
+  transition: transform 0.15s ease;
+}
+
+.page-user-trigger--open .page-user-caret {
+  transform: rotate(180deg);
+}
+
+.page-user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--argon-primary);
+  color: var(--argon-white);
+  font-size: 0.75rem;
+  font-weight: var(--argon-font-weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+.page-user-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.page-user-name {
+  font-size: 0.8125rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-heading-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 12rem;
+}
+
+.page-user-role {
+  font-size: 0.6875rem;
+  color: var(--argon-gray-600);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 12rem;
+}
+
+/* Tight widths: the avatar alone still says who is signed in, and the sidebar
+   header carries the full name. */
+@media (max-width: 1024px) {
+  .page-user-text {
+    display: none;
+  }
+
+  .page-user {
+    padding-left: 0.625rem;
+  }
+}
+
+/* The menu anchors to the user block, which therefore has to be a positioning
+   context. The header itself must not clip it. */
+.page-user {
+  position: relative;
+}
+
+.page-user-menu {
+  position: absolute;
+  top: calc(100% + 0.625rem);
+  right: 0;
+  z-index: 60;
+  min-width: 15rem;
+  max-width: 20rem;
+  padding: 0.375rem;
+  border: 1px solid var(--argon-border-color);
+  border-radius: 0.625rem;
+  background: var(--argon-white);
+  box-shadow: var(--argon-card-shadow);
+  text-align: left;
+}
+
+.page-user-menu-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  padding: 0.5rem 0.625rem 0.375rem;
+}
+
+.page-user-menu-name {
+  font-size: 0.8125rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-heading-color);
+}
+
+.page-user-menu-role {
+  font-size: 0.6875rem;
+  color: var(--argon-primary-dark);
+}
+
+.page-user-menu-facts {
+  margin: 0;
+  padding: 0.25rem 0.625rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.page-user-menu-facts dt {
+  color: var(--argon-gray-500);
+  font-size: 0.6875rem;
+}
+
+.page-user-menu-facts dd {
+  margin: 0 0 0.375rem;
+  color: var(--argon-body-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-user-menu-facts dd:last-child {
+  margin-bottom: 0;
+}
+
+.page-user-menu-sep {
+  height: 1px;
+  margin: 0.25rem 0.375rem;
+  background: var(--argon-border-color);
+}
+
+.page-user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--argon-body-color);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.page-user-menu-item:hover:not(:disabled) {
+  background: var(--argon-primary-muted);
+  color: var(--argon-primary-dark);
+}
+
+.page-user-menu-item:disabled {
+  color: var(--argon-gray-500);
+  cursor: not-allowed;
+}
+
+.page-user-menu-item mat-icon {
+  font-size: 1.0625rem !important;
+  width: 1.0625rem !important;
+  height: 1.0625rem !important;
+  line-height: 1.0625rem !important;
+  flex-shrink: 0;
+}
+
+/* Danger held back to hover, so signing out never shouts from a resting menu. */
+.page-user-menu-item--danger:hover:not(:disabled) {
+  background: rgba(245, 54, 92, 0.1);
+  color: var(--argon-danger);
+}
+
+.page-user-menu-soon {
+  margin-left: auto;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 999px;
+  background: var(--argon-gray-100, #f6f9fc);
+  color: var(--argon-gray-500);
+  font-size: 0.625rem;
+  font-weight: var(--argon-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }

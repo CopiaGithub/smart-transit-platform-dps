@@ -16,6 +16,11 @@ import {
  * to narrow the state list.
  */
 export const CITY_MASTER_CONFIG: MasterPageConfig = {
+  // Location data is reference data — the Country -> Region -> State -> City ->
+  // PinCode chain every other master points at. It is seeded, not maintained
+  // here: editing a row would silently re-point live records, so this screen
+  // is browse-and-view only (hides Add/Edit/Delete).
+  readOnly: true,
   title: 'City Master',
   listTitle: 'City Master List',
   resource: 'CityMaster',

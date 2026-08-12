@@ -7,36 +7,24 @@
     }"
   >
     <div class="sidebar-header">
+      <!-- Brand, not identity. Who is signed in lives in the page header on the
+           right; this corner says which product you are in, and shows the same
+           mark as the browser tab. -->
       <div class="avatar-wrapper">
-        <div class="sidebar-avatar" title="{{ userName }}">
-          <img
-            *ngIf="previewUrl"
-            [src]="previewUrl"
-            alt="{{ userName }}"
-            class="w-full h-full object-cover"
-          />
-          <span *ngIf="!previewUrl">{{ userName[0]?.toUpperCase() }}</span>
-        </div>
+        <img
+          class="sidebar-brand-mark"
+          src="favicon.svg"
+          alt=""
+          aria-hidden="true"
+          width="34"
+          height="34"
+        />
       </div>
       <div *ngIf="!isCollapsed" class="sidebar-header-text">
         <div class="brand-title truncate" [title]="appTitle">
           {{ appTitle }}
         </div>
-        <div class="sidebar-user-name truncate" [title]="userName">
-          {{ userName }}
-        </div>
       </div>
-
-      <button
-        *ngIf="!isCollapsed"
-        type="button"
-        class="sidebar-profile-btn"
-        (click)="redirectToProfile()"
-        title="Profile"
-        aria-label="Profile"
-      >
-        <mat-icon>person_outline</mat-icon>
-      </button>
 
       <button
         *ngIf="isTablet && !isCollapsed"
@@ -195,18 +183,6 @@
       </ul>
     </nav>
 
-    <div class="sidebar-footer">
-      <button
-        type="button"
-        class="sidebar-logout"
-        (click)="logout()"
-        [attr.title]="isCollapsed ? 'Log out' : null"
-        aria-label="Log out"
-      >
-        <mat-icon class="sidebar-logout-icon">logout</mat-icon>
-        <span *ngIf="!isCollapsed" class="sidebar-logout-label">Log out</span>
-      </button>
-    </div>
   </aside>
   <div
     class="sidebar-backdrop"

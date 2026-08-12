@@ -331,53 +331,14 @@ body,
   overflow: hidden;
 }
 
-.sidebar-avatar {
+/* The product mark, same artwork as the browser tab. Square with a soft radius
+   rather than a circle: it is a logo, not a person. */
+.sidebar-brand-mark {
   width: 34px;
   height: 34px;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 50%;
-  background-color: var(--argon-primary);
-  color: var(--argon-white);
-  font-size: 1.05rem;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.sidebar-user-name {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--argon-gray-600);
-  line-height: 1.25;
-}
-
-.sidebar-profile-btn {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--argon-gray-600);
-  cursor: pointer;
-}
-
-.sidebar-profile-btn:hover {
-  background-color: var(--argon-primary-subtle);
-  color: var(--argon-primary);
-}
-
-.sidebar-profile-btn mat-icon {
-  width: 19px;
-  height: 19px;
-  font-size: 19px;
-  line-height: 19px;
+  display: block;
+  border-radius: 9px;
 }
 
 .sidebar-close-btn {
@@ -417,17 +378,14 @@ body,
   color: var(--argon-primary-dark);
 }
 
+/* Carries the header alone now, so it can hold the weight the wordmark wants. */
 .brand-title {
   font-weight: 600;
   color: var(--argon-heading-color);
-  font-size: 0.875rem;
-  letter-spacing: -0.005em;
-  line-height: 1.25;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
   max-width: 100%;
-}
-
-.sidebar-user-name {
-  letter-spacing: 0.01em;
 }
 
 .sidebar-menu {
@@ -596,84 +554,6 @@ body,
   background-color: var(--argon-gray-600);
 }
 
-.sidebar-footer {
-  flex-shrink: 0;
-  margin-top: auto;
-  padding: 0.5rem 0.75rem max(0.75rem, env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--argon-border-color);
-  background-color: inherit;
-}
-
-/* Reads as a button rather than one more menu row — bordered, centred, with the
-   label in the same uppercase-ish key as the rest of the chrome. Deliberately
-   understated: the danger colour is held back for hover, focus and press, so
-   signing out never competes with navigation for attention. */
-.sidebar-logout {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--argon-border-color);
-  border-radius: 0.5rem;
-  background: transparent;
-  cursor: pointer;
-  color: var(--argon-gray-700);
-  font-size: 0.8125rem;
-  font-weight: var(--argon-font-weight-semibold);
-  letter-spacing: 0.01em;
-  line-height: 1.25;
-  transition:
-    background-color 120ms ease,
-    border-color 120ms ease,
-    color 120ms ease;
-}
-
-.sidebar.collapsed .sidebar-logout {
-  gap: 0;
-  padding: 0.5rem 0.35rem;
-}
-
-.sidebar-logout:hover {
-  background-color: rgba(245, 54, 92, 0.06);
-  border-color: rgba(245, 54, 92, 0.35);
-  color: var(--argon-danger);
-}
-
-.sidebar-logout:active {
-  background-color: rgba(245, 54, 92, 0.12);
-  border-color: rgba(245, 54, 92, 0.45);
-}
-
-/* Keyboard users had no indication at all before. */
-.sidebar-logout:focus-visible {
-  outline: 2px solid var(--argon-danger);
-  outline-offset: 2px;
-}
-
-.sidebar-logout-icon {
-  flex-shrink: 0;
-  width: 17px;
-  height: 17px;
-  font-size: 17px;
-  line-height: 1;
-  /* Inherit so the icon travels with the button's hover/press colour instead of
-     needing its own rules — the pair that used to do that set a background and
-     then immediately unset it. */
-  color: inherit;
-}
-
-.sidebar-logout-label {
-  text-align: left;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-logout {
-    transition: none;
-  }
-}
-
 .sidebar.overlay {
   position: fixed;
   top: 0;
@@ -812,10 +692,6 @@ body,
 
   .brand-title {
     font-size: 0.95rem;
-  }
-
-  .sidebar-user-name {
-    font-size: 0.75rem;
   }
 }
 

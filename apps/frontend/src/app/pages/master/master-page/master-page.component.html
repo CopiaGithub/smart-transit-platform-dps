@@ -1,7 +1,10 @@
 <div>
+  <!-- "Add Display", not "Add New" — the button sits in a shared header beside
+       the user block and a session pill, far from the list it acts on, so on its
+       own it has to say what it adds. -->
   <app-cds-title
     [title]="config.title"
-    [buttonText]="'Add New'"
+    [buttonText]="'Add ' + singular"
     [showButton]="canWrite"
     (buttonClick)="onAddNew()"
   ></app-cds-title>
@@ -38,22 +41,27 @@
           ></cds-autocomplete-dropdown>
         </ng-container>
 
-        <div class="flex justify-end items-end gap-2">
-          <cds-button
-            [variant]="'search'"
-            [buttonType]="'submit'"
-            [testid]="'btn-' + config.resource + '-search'"
-          >
-            Search
-          </cds-button>
-          <cds-button
-            [variant]="'clear'"
-            (click)="onClear()"
-            [testid]="'btn-' + config.resource + '-clear'"
-          >
-            Clear
-          </cds-button>
-        </div>
+      </div>
+
+      <!-- Actions on their own row rather than as a grid cell. As a cell they
+           landed in a different spot on every screen — beside the last filter,
+           or alone on a ragged second row — depending on how many filters that
+           master declares. -->
+      <div class="master-filter-actions">
+        <cds-button
+          [variant]="'search'"
+          [buttonType]="'submit'"
+          [testid]="'btn-' + config.resource + '-search'"
+        >
+          Search
+        </cds-button>
+        <cds-button
+          [variant]="'clear'"
+          (click)="onClear()"
+          [testid]="'btn-' + config.resource + '-clear'"
+        >
+          Clear
+        </cds-button>
       </div>
     </form>
   </app-cds-container>
@@ -117,6 +125,7 @@
         [itemsPerPage]="filter.pageSize"
         [isServerSidePagination]="true"
         [totalRecords]="totalCount()"
+        [page]="currentPage()"
         [pageReset]="pageResetCounter()"
         [enableHorizontalScroll]="true"
         [fixedHeader]="true"

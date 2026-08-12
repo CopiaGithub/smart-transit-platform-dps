@@ -2,12 +2,32 @@
   display: inline-flex;
 }
 
+/* Fills the host rather than sitting inside it. No effect while the host is
+   sized to its content; it only matters where a layout stretches the host,
+   e.g. the full-width filter actions on a phone. */
+:host > button {
+  width: 100%;
+}
+
 /* Mobile only: guarantee breathing room between adjacent buttons
    (e.g. filter Search/Clear rows) regardless of the parent's gap. */
 @media (max-width: 640px) {
   :host + :host {
     margin-left: 0.5rem;
   }
+}
+
+/* Primary and Search: the brand emerald, not a Tailwind blue. These sit beside
+   the brand's own green chrome on every screen, and a stray blue read as a
+   different product. */
+.cds-btn-primary {
+  background: var(--argon-gradient-primary);
+  box-shadow: var(--argon-btn-shadow);
+  transition: filter 0.15s ease;
+}
+
+.cds-btn-primary:hover:not(:disabled) {
+  filter: brightness(0.95);
 }
 
 /* Gradient from the theme tokens rather than a Tailwind green, so a palette

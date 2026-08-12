@@ -156,3 +156,45 @@ table thead tr th {
   color: #3f4a5a;
   background: #e8ebf0;
 }
+
+/* Interactive accents come from the brand tokens. They were Tailwind blue,
+   which put a second accent colour next to the emerald filter panel and
+   buttons on the very same screen. */
+.cds-table-iconbtn {
+  color: var(--argon-primary);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.cds-table-iconbtn:hover {
+  color: var(--argon-primary-dark);
+  background: var(--argon-primary-muted);
+}
+
+.cds-table-check {
+  accent-color: var(--argon-primary);
+}
+
+.cds-table-check:focus-visible,
+.cds-table-input:focus {
+  outline: 2px solid var(--argon-primary);
+  outline-offset: 1px;
+}
+
+.cds-table-link {
+  color: var(--argon-primary);
+}
+
+.cds-table-link:hover {
+  color: var(--argon-primary-dark);
+}
+
+/* Delete keeps its own colour — it is the one row action that cannot be undone
+   from the grid, so it must not look like View and Edit. */
+.cds-table-iconbtn--danger {
+  color: var(--argon-danger);
+}
+
+.cds-table-iconbtn--danger:hover {
+  color: var(--argon-danger);
+  background: rgba(245, 54, 92, 0.1);
+}

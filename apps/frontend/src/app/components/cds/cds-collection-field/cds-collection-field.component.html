@@ -11,7 +11,11 @@
         [style.grid-template-columns]="gridTemplateColumns"
       >
         @for (column of columns; track column.key) {
-          <div class="cds-collection-th" role="columnheader">
+          <div
+            class="cds-collection-th"
+            [class.cds-collection-th--center]="isBoolean(column)"
+            role="columnheader"
+          >
             {{ column.label }}
             @if (column.required) {
               <span class="text-red-500">*</span>
@@ -33,13 +37,13 @@
               @switch (column.type) {
                 @case ('dropdown') {
                   <cds-autocomplete-dropdown
-                    [label]="' '"
+                    [hideLabel]="true"
                     [required]="!!column.required"
                     [options]="column.optionsList || []"
                     [valueOnly]="true"
                     [showNoRecords]="true"
                     [formControlName]="column.key"
-                    [placeholder]="'Search…'"
+                    [placeholder]="'Select ' + column.label.toLowerCase() + '…'"
                     (selectionChange)="onCellChange()"
                   ></cds-autocomplete-dropdown>
                 }

@@ -1,5 +1,9 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { BreadcrumbItem } from './page-breadcrumb.service';
+
+/** Product name, and the tab title on its own when no page has claimed one. */
+const APP_NAME = 'Transit Display';
 
 export interface PageHeaderState {
   visible: boolean;
@@ -36,8 +40,15 @@ const hiddenState: PageHeaderState = {
 @Injectable({ providedIn: 'root' })
 export class PageHeaderService {
   readonly state = signal<PageHeaderState>(hiddenState);
+  private readonly title = inject(Title);
   private owner: object | null = null;
   private actions: PageHeaderActions = {};
+
+  /** "Student Master · Transit Display" — where you are, then what you are in. */
+  private setDocumentTitle(pageTitle?: string): void {
+    const page = pageTitle?.trim();
+    this.title.setTitle(page ? `${page} · ${APP_NAME}` : APP_NAME);
+  }
 
   setHeader(
     owner: object,
@@ -52,6 +63,7 @@ export class PageHeaderService {
       visible: !!state.title?.trim(),
       breadcrumbs: state.breadcrumbs ?? [],
     });
+    this.setDocumentTitle(state.title);
   }
 
   clearHeader(owner: object): void {
@@ -61,6 +73,7 @@ export class PageHeaderService {
     this.owner = null;
     this.actions = {};
     this.state.set(hiddenState);
+    this.setDocumentTitle();
   }
 
   triggerButtonClick(): void {

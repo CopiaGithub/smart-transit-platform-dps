@@ -1,13 +1,13 @@
 <div class="border border-gray-200 rounded-lg mb-1" [ngClass]="customClass">
   <div
-    class="bg-blue-50 flex flex-wrap justify-between items-center px-3 py-2 sm:px-4 rounded-t-lg mt-0 gap-y-2 gap-x-2"
+    class="cds-panel-head flex flex-wrap justify-between items-center px-3 py-2 sm:px-4 rounded-t-lg mt-0 gap-y-2 gap-x-2"
   >
     <div class="flex items-center gap-2 min-w-0">
-      <mat-icon *ngIf="icon" class="text-blue-600 shrink-0">{{
+      <mat-icon *ngIf="icon" class="cds-panel-icon shrink-0">{{
         icon
       }}</mat-icon>
 
-      <h2 class="text-[17px] text-blue-600">
+      <h2 class="cds-panel-title">
         {{ title }}
       </h2>
 
@@ -18,7 +18,7 @@
       <button
         *ngIf="actionText"
         type="button"
-        class="inline-flex items-center gap-1 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium py-1.5 px-3 rounded-md shadow transition"
+        class="cds-panel-action inline-flex items-center gap-1 text-sm text-white font-medium py-1.5 px-3 rounded-md shadow transition"
         (click)="onActionClick()"
       >
         <mat-icon
@@ -31,7 +31,7 @@
       <button
         *ngIf="secondaryIcon"
         (click)="onSecondaryIconClick()"
-        class="text-blue-600 hover:text-blue-700 focus:outline-none flex items-center"
+        class="cds-panel-iconbtn focus:outline-none flex items-center"
         type="button"
         [attr.title]="secondaryIconTooltip"
       >
@@ -43,7 +43,7 @@
       <button
         *ngIf="collapsible"
         (click)="toggleCollapse($event)"
-        class="text-blue-600 hover:text-blue-700 focus:outline-none flex items-center"
+        class="cds-panel-iconbtn focus:outline-none flex items-center"
         type="button"
         aria-label="Toggle collapse"
         [attr.aria-expanded]="!isCollapsed"

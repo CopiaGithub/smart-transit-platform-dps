@@ -4,11 +4,16 @@ import { IS_ACTIVE_FIELD, activeLabel } from '../location-masters/location-looku
 /**
  * A1 — Country Master (WEB-APP-SCREENS.docx §Group A).
  *
- * CountryMasterController exposes GET only today; POST/PATCH/DELETE are on the
- * way. The UI is built as full CRUD as specified, so nothing needs rewriting
- * when they land — until then a write surfaces the server's own refusal.
+ * CountryMasterController exposes GET only today. The screen is read-only in any
+ * case (see `readOnly` below), so the create/edit field definitions below are
+ * kept only for the view dialog and for the day writes are turned back on.
  */
 export const COUNTRY_MASTER_CONFIG: MasterPageConfig = {
+  // Location data is reference data — the Country -> Region -> State -> City ->
+  // PinCode chain every other master points at. It is seeded, not maintained
+  // here: editing a row would silently re-point live records, so this screen
+  // is browse-and-view only (hides Add/Edit/Delete).
+  readOnly: true,
   title: 'Country Master',
   listTitle: 'Country Master List',
   resource: 'CountryMaster',

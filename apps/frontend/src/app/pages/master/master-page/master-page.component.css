@@ -1,3 +1,27 @@
+/* Filter actions. Same place on every master — right-aligned under the fields,
+   separated by a hairline so the panel reads as "criteria, then act". */
+.master-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--argon-border-color);
+}
+
+@media (max-width: 640px) {
+  /* Full width and thumb-reachable, rather than two small buttons crowding
+     the right edge. */
+  .master-filter-actions {
+    justify-content: stretch;
+  }
+
+  .master-filter-actions cds-button {
+    flex: 1;
+  }
+}
+
 /* Loading skeleton — the docx asks for a skeleton, not a spinner, so the page
    keeps its shape while the first page of rows arrives. */
 .master-skeleton {

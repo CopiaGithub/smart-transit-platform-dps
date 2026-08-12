@@ -9,6 +9,11 @@ import {
 
 /** A3 — State Master. Cascade: Country -> Region. */
 export const STATE_MASTER_CONFIG: MasterPageConfig = {
+  // Location data is reference data — the Country -> Region -> State -> City ->
+  // PinCode chain every other master points at. It is seeded, not maintained
+  // here: editing a row would silently re-point live records, so this screen
+  // is browse-and-view only (hides Add/Edit/Delete).
+  readOnly: true,
   title: 'State Master',
   listTitle: 'State Master List',
   resource: 'StateMaster',
