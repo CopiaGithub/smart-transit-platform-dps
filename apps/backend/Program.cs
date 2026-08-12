@@ -266,28 +266,48 @@ try
     // appsettings.json and the Logs directory sitting next to it. Nothing here
     // is executed: FileServer only reads, and every stored name is a GUID with
     // an image extension the server chose.
-    // An allow-list of exactly the three image types the uploader accepts, not
-    // the framework's default map. ServeUnknownFileTypes=false alone is not the
-    // same thing: .txt, .html and .svg are all *known* types, so a stray file in
-    // this folder would happily be served. With only these three mapped,
-    // anything else is unknown and refused.
-    var uploadContentTypes = new FileExtensionContentTypeProvider(
-        new Dictionary<string, string>
+    //
+    // Every step is failure-tolerant on purpose. Creating this folder used to run
+    // unguarded during startup and took the entire API down with a 500.30 on IIS,
+    // where the app pool identity cannot write beside the deployed site. Photos
+    // are one field on two screens; they are not worth the dispersal board.
+    var uploadRoot = AttachmentService.ResolveRoot(app.Configuration, app.Environment);
+    if (!AttachmentService.TryPrepareRoot(uploadRoot, out var uploadRootError))
+    {
+        startupLogger.LogWarning(
+            "Photo uploads are disabled: the upload folder {UploadRoot} could not be created ({Error}). " +
+            "Point Uploads:RootPath at a folder the app pool can write to, or grant it write access. " +
+            "Everything else runs normally.",
+            uploadRoot, uploadRootError);
+    }
+    else
+    {
+        // An allow-list of exactly the image types the uploader accepts, not the
+        // framework's default map. ServeUnknownFileTypes=false alone is not the
+        // same thing: .txt, .html and .svg are all *known* types, so a stray file
+        // in this folder would happily be served. With only these mapped,
+        // anything else is unknown and refused.
+        var uploadContentTypes = new FileExtensionContentTypeProvider(
+            new Dictionary<string, string>
+            {
+                [".jpg"] = "image/jpeg",
+                [".jpeg"] = "image/jpeg",
+                [".png"] = "image/png",
+                [".webp"] = "image/webp",
+            });
+
+        app.UseStaticFiles(new StaticFileOptions
         {
-            [".jpg"] = "image/jpeg",
-            [".jpeg"] = "image/jpeg",
-            [".png"] = "image/png",
-            [".webp"] = "image/webp",
+            FileProvider = new PhysicalFileProvider(uploadRoot),
+            RequestPath = AttachmentService.RequestPath,
+            ContentTypeProvider = uploadContentTypes,
+            ServeUnknownFileTypes = false,
         });
 
-    app.UseStaticFiles(new StaticFileOptions
-    {
-        FileProvider = new PhysicalFileProvider(
-            AttachmentService.ResolveRoot(app.Configuration, app.Environment)),
-        RequestPath = AttachmentService.RequestPath,
-        ContentTypeProvider = uploadContentTypes,
-        ServeUnknownFileTypes = false,
-    });
+        startupLogger.LogInformation(
+            "Photo uploads enabled, serving {RequestPath} from {UploadRoot}",
+            AttachmentService.RequestPath, uploadRoot);
+    }
 
     app.MapControllers();
 

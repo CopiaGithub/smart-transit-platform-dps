@@ -53,7 +53,8 @@ public class AttachmentService : IAttachmentService
     }
 
     /// <summary>
-    /// The folder uploads live in, created if absent.
+    /// Where uploads live. Pure path arithmetic — this touches no disk, so it is
+    /// safe to call during startup.
     ///
     /// Static because Program.cs needs the same path to point UseStaticFiles at,
     /// and it runs before there is a request scope to resolve this service from.
@@ -63,12 +64,36 @@ public class AttachmentService : IAttachmentService
     public static string ResolveRoot(IConfiguration configuration, IWebHostEnvironment environment)
     {
         var configured = configuration["Uploads:RootPath"];
-        var root = string.IsNullOrWhiteSpace(configured)
+        return string.IsNullOrWhiteSpace(configured)
             ? Path.Combine(environment.ContentRootPath, "uploads")
             : configured;
+    }
 
-        Directory.CreateDirectory(root);
-        return root;
+    /// <summary>
+    /// Creates the upload folder, reporting failure instead of throwing.
+    ///
+    /// This used to be part of ResolveRoot and ran during startup, which took the
+    /// whole API down with a 500.30 on IIS: the app pool identity has read and
+    /// execute on the site folder but not write, so CreateDirectory threw and the
+    /// host never came up. A photo folder that cannot be created is a broken
+    /// photo feature, not a broken API — the deployment fix is to point
+    /// Uploads:RootPath at a writable folder, and until then everything else has
+    /// to keep working.
+    /// </summary>
+    public static bool TryPrepareRoot(string root, out string? error)
+    {
+        try
+        {
+            Directory.CreateDirectory(root);
+            error = null;
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+            or NotSupportedException or ArgumentException)
+        {
+            error = ex.Message;
+            return false;
+        }
     }
 
     public async Task<ServiceResponseDto<string>> SaveImageAsync(IFormFile? file)
@@ -91,19 +116,20 @@ public class AttachmentService : IAttachmentService
         // a few school years of photos do not land in one directory.
         var month = DateTime.UtcNow.ToString("yyyy-MM");
         var folder = Path.Combine(_root, month);
-        Directory.CreateDirectory(folder);
-
         var storedName = $"{Guid.NewGuid():N}{extension}";
         var fullPath = Path.Combine(folder, storedName);
 
         try
         {
+            Directory.CreateDirectory(folder);
             await using var target = File.Create(fullPath);
             await source.CopyToAsync(target);
         }
-        catch (IOException ex)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // The path is logged, never returned — it is the server's filesystem.
+            // UnauthorizedAccessException is the one to expect on IIS, where the
+            // app pool identity often cannot write beside the deployed site.
             _logger.LogError(ex, "Could not write an upload to {Path}", fullPath);
             return Fail("The file could not be saved. Please try again.");
         }
