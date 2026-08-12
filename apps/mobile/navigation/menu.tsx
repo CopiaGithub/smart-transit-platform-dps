@@ -13,7 +13,6 @@ import ParentScreen from "../features/parent/ParentScreen";
 import ProfileScreen from "../features/profile/ProfileScreen";
 import ReplaceScreen from "../features/replace/ReplaceScreen";
 import ReportsScreen from "../features/reports/ReportsScreen";
-import SettingsScreen from "../features/settings/SettingsScreen";
 import YardMapScreen from "../features/yard/YardMapScreen";
 import type { DrawerParamList } from "./types";
 
@@ -103,7 +102,6 @@ export const MENU: MenuItem[] = [
   },
   { name: "Masters", title: "Masters", icon: "database", component: MastersScreen, show: isAdmin },
   { name: "Profile", title: "Profile", icon: "user", component: ProfileScreen },
-  { name: "Settings", title: "Settings", icon: "settings", component: SettingsScreen, show: isAdmin },
 ];
 
 

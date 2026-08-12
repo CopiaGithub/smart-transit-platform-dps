@@ -16,7 +16,6 @@ export type DrawerParamList = {
   Reports: undefined;
   Masters: undefined;
   Profile: undefined;
-  Settings: undefined;
 };
 
 // Root stack. Exactly one of these is mounted at a time, decided by whether

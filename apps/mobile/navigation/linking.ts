@@ -20,7 +20,6 @@ const linking: LinkingOptions<RootStackParamList> = {
           Reports: "reports",
           Masters: "masters",
           Profile: "profile",
-          Settings: "settings",
         },
       },
     },
