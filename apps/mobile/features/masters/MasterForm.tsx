@@ -5,7 +5,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -745,9 +744,12 @@ function Sheet({
 }) {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      {/* See LoginScreen: `padding` on Android as well, because edge-to-edge
+          stopped the window resizing under the keyboard and this sheet sits on
+          the bottom edge, where every field is the bottom-most one. */}
       <KeyboardAvoidingView
         style={{ flex: 1, justifyContent: "flex-end" }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
       >
         <Pressable style={{ flex: 1 }} onPress={onClose} />
         <View style={styles.sheet}>

@@ -7,7 +7,6 @@ import {
   Animated,
   Easing,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -63,10 +62,12 @@ export default function LoginScreen() {
         <View style={[styles.orb, styles.orbTwo]} />
       </LinearGradient>
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      {/* `padding` on Android too. It used to be left undefined there, which
+          made this a no-op and leaned on the window resizing for the keyboard —
+          and SDK 54 turned edge-to-edge on by default, so the window stopped
+          resizing and the bottom field went under the keys. Padding is driven
+          by the keyboard event's own height, which arrives either way. */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
