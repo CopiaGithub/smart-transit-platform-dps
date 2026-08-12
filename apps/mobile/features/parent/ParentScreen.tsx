@@ -219,7 +219,7 @@ function statusTone(live: BoardRow | null) {
     return {
       label: "Arrived",
       color: STATUS_COLOR.Arrived,
-      bg: TINT.primary,
+      bg: TINT.info,
       // A holding bus has no station yet, so it is timed by the gate instead.
       at: atTime(live.Status === STATUS.waiting ? live.EnteredAt : live.AssignedAt),
     };

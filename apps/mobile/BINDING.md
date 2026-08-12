@@ -5,17 +5,23 @@ changing anything in `src/api/` or `src/services/apiClient.ts`.
 
 ## Environments
 
-| APP_ENV | apiUrl |
-|---|---|
-| `dev` | `http://localhost:5199/api/` — the backend on this laptop |
-| `qa` | `https://tdpdev.copiacs.com/tdpdevapi/api/` |
-| `production` | `https://tdpdev.copiacs.com/tdpdevapi/api/` — placeholder |
+| APP_ENV      | apiUrl                                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `dev`        | `https://tdpdev.copiacs.com/tdpdevapi/api/` — swap the commented `http://localhost:5199/api/` back in to work against the laptop |
+| `qa`         | `https://tdpdev.copiacs.com/tdpdevapi/api/`                                                                                      |
+| `production` | `https://tdpdev.copiacs.com/tdpdevapi/api/` — placeholder                                                                        |
 
-Set in `app.config.ts`. The `localhost` in the dev URL is never used as-is:
+**The path is `tdpdevapi`, not `tpddevapi`.** Site and application repeat the
+same three letters, so the transposition is easy to make and hard to see; the
+wrong one returns a 404 that reads like a routing bug. Confirmed against the
+live server — `/tdpdevapi/api/BusOperations/board` answers 200, the other 404s.
+
+Set in `app.config.ts`. A `localhost` dev URL is never used as-is:
 `resolveBaseUrl()` swaps in whatever host Metro is served from, so emulator and
 physical device both work with nothing to edit. Only in `--tunnel` mode does
-that fall apart — the borrowed host is then an `exp.direct` domain. Run
-`/localbackendconnect` to set the whole thing up.
+that fall apart — the borrowed host is then an `exp.direct` domain. That swap is
+limited to loopback hosts, so a hosted URL in `dev` is left alone. Run
+`/localbackendconnect` to set the local backend up.
 
 The API listens on **5199**. `launchSettings.json` and the Postman collection
 were disagreeing (5133 vs 5199); both now say 5199. Run it with:
@@ -47,7 +53,7 @@ Keys are **PascalCase** (`PropertyNamingPolicy = null`). Do not "fix" them.
 So `apiClient` branches on `data.Success`, never on `response.status`, and
 unwraps `Result` — the envelope must never leak past `src/api/`.
 
-Two failures do *not* arrive wrapped, because they happen before the filter:
+Two failures do _not_ arrive wrapped, because they happen before the filter:
 
 - **`[Authorize]` rejections** come back as a bare **403 with an empty body**.
   Treating that as a network failure would tell a guard the server is
@@ -58,9 +64,9 @@ Two failures do *not* arrive wrapped, because they happen before the filter:
 
 ### 401 vs 403
 
-| | means | app does |
-|---|---|---|
-| 401 | token gone or expired | **signs out** (`isSessionExpired`) |
+|     | means                       | app does                                               |
+| --- | --------------------------- | ------------------------------------------------------ |
+| 401 | token gone or expired       | **signs out** (`isSessionExpired`)                     |
 | 403 | signed in, role not allowed | shows the message, **stays signed in** (`isForbidden`) |
 
 Conflating these signs a guard out for tapping the wrong screen. Gate roles are
@@ -138,9 +144,9 @@ Never poll a screen the user cannot see; never poll a dead network.
 
 A boarding event is one bus in one session.
 
-| call | takes |
-|---|---|
-| `gate-in`, `gate-out` | `busId` |
+| call                                      | takes         |
+| ----------------------------------------- | ------------- |
+| `gate-in`, `gate-out`                     | `busId`       |
 | `{eventId}/boarding`, `{eventId}/replace` | **`eventId`** |
 
 Getting this wrong looks like it works and then acts on the wrong bus. Board and
@@ -148,7 +154,7 @@ queue rows both carry `EventId`.
 
 ## After every write, re-read
 
-A gate-out changes a *different* bus's status server-side (promotion). Writes
+A gate-out changes a _different_ bus's status server-side (promotion). Writes
 re-fetch the queue rather than patching local state.
 
 ## The board is public
@@ -157,10 +163,10 @@ re-fetch the queue rather than patching local state.
 has no user to authenticate as. `api.getPublic` skips the bearer header.
 `?displayCode=` scopes it to one wall:
 
-| code | rows |
-|---|---|
-| *(none)* | every bus |
-| `OUT-G6` | outdoor wall |
+| code                | rows                       |
+| ------------------- | -------------------------- |
+| _(none)_            | every bus                  |
+| `OUT-G6`            | outdoor wall               |
 | `IND-E1` / `IND-E2` | that exit's platforms only |
 
 ## Self-checks

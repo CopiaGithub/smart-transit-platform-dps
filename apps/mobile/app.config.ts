@@ -9,14 +9,16 @@ const APP_ENV = (process.env.APP_ENV as AppEnv) || "dev";
 const ENV: Record<AppEnv, { apiUrl: string; appName: string; debug: boolean }> =
   {
     dev: {
-      // Local backend. apiClient swaps `localhost` for whatever host Metro is
-      // served from, so the same line works on the emulator and on a phone over
-      // Wi-Fi — port and path are kept as written.
+      // Hosted dev API. The host and the path repeat the same three letters —
+      // site tdpdev, application tdpdevapi — so they are easy to transpose, and
+      // the wrong way round is a 404 that reads like a routing bug. Verified
+      // against the live server: the "tdp" spelling answers 200, "tpd" is a 404.
       //
-      // Hosted dev, for when the server is back up — the same backend the web
-      // frontend points at in apps/frontend/src/app/environments/environment.dev.ts:
-      //   "https://tdpdev.copiacs.com/tdpdevapi/api/"
-      apiUrl: "http://localhost:5199/api/",
+      // Local backend, for when you are running `dotnet run` on this machine.
+      // apiClient swaps `localhost` for whatever host Metro is served from, so
+      // the one line works on the emulator and on a phone over Wi-Fi:
+      //   "http://localhost:5199/api/"
+      apiUrl: "https://tdpdev.copiacs.com/tdpdevapi/api/",
       // appName: "Transit Display (Dev)",
       appName: "Transit Display",
       debug: true,
