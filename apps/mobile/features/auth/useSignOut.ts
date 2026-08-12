@@ -12,24 +12,21 @@ export function useSignOut() {
   const viewer = useViewer();
 
   return (onDone?: () => void) => {
-    const who = viewer.name
-      ? `${viewer.name} · ${viewer.roleLabel}${viewer.gate ? ` · ${viewer.gate.label}` : ""}`
-      : "";
+    // Name and role only. Whoever is holding the phone already knows what
+    // signing out costs them; spelling it out only buries the one line that
+    // tells them whose session they are about to end.
+    const who = viewer.name ? `${viewer.name} · ${viewer.roleLabel}` : "";
 
-    Alert.alert(
-      "Sign out?",
-      `${who}\n\nYou will need to sign in again to mark buses. Today's board is not affected.`,
-      [
-        { text: "Stay signed in", style: "cancel" },
-        {
-          text: "Sign out",
-          style: "destructive",
-          onPress: () => {
-            onDone?.();
-            dispatch(logout());
-          },
+    Alert.alert("Sign Out?", who, [
+      { text: "Stay Signed In", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: () => {
+          onDone?.();
+          dispatch(logout());
         },
-      ],
-    );
+      },
+    ]);
   };
 }
