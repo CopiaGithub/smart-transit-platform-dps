@@ -58,7 +58,6 @@ export default function ProfileScreen() {
 
       <View style={styles.card}>
         <Row icon="smartphone" label="Version" value={String(Constants.expoConfig?.version)} />
-        <Row icon="server" label="Build" value={String(Constants.expoConfig?.extra?.appEnv)} />
       </View>
 
       <Pressable style={styles.signOut} onPress={() => signOut()}>
