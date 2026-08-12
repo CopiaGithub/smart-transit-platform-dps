@@ -3,6 +3,13 @@ import { IS_ACTIVE_FIELD, activeLabel, toId } from '../location-masters/location
 import { ROLE_LOOKUP } from '../security-masters/security-lookups';
 
 /**
+ * Ten digits, no country code — the same rule Parent Master uses, and the form
+ * is the only place it is enforced: UserMasterCreateModel has no validation
+ * attributes and the service never looks at Contact.
+ */
+const TEN_DIGITS = /^[0-9]{10}$/;
+
+/**
  * B2 — User Master / Staff (WEB-APP-SCREENS.docx §Group B).
  *
  * School staff only: admins, teachers and gate operators. Parents are NOT here —
@@ -21,7 +28,9 @@ export const USER_MASTER_CONFIG: MasterPageConfig = {
   singular: 'User',
   listTitle: 'Staff List',
   resource: 'UserMaster',
-  defaultSortBy: 'Name',
+  // Newest first: a record you just added should be the first one you see.
+  defaultSortBy: 'CreatedAt',
+  defaultDescending: true,
   exportFileName: 'User_Master',
 
   entityLabel: (row) => row.Name,
@@ -57,10 +66,15 @@ export const USER_MASTER_CONFIG: MasterPageConfig = {
 
   fields: [
     { name: 'Name', label: 'Name', type: 'text', required: true, maxLength: 100 },
+    // All three are login identifiers — the server checks email, employee code
+    // and contact number with an OR — and all three are now required. A staff
+    // record saved with all of them blank is a user who cannot sign in at all,
+    // and nothing on the screen said so until they tried.
     {
       name: 'EmployeeCode',
       label: 'Employee Code',
       type: 'text',
+      required: true,
       maxLength: 50,
       hint: 'Unique. Can be used to log in.',
     },
@@ -68,6 +82,7 @@ export const USER_MASTER_CONFIG: MasterPageConfig = {
       name: 'EmailId',
       label: 'Email',
       type: 'email',
+      required: true,
       maxLength: 100,
       hint: 'Can be used to log in.',
     },
@@ -75,8 +90,10 @@ export const USER_MASTER_CONFIG: MasterPageConfig = {
       name: 'Contact',
       label: 'Contact',
       type: 'text',
-      maxLength: 20,
-      hint: 'Can be used to log in.',
+      required: true,
+      maxLength: 10,
+      pattern: TEN_DIGITS,
+      hint: 'Ten digits, no country code. Can be used to log in.',
     },
     {
       name: 'Password',

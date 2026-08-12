@@ -1,5 +1,6 @@
 using transit_display_platform_api.Common;
 using transit_display_platform_api.Services.AcademicYearMasterService;
+using transit_display_platform_api.Services.AttachmentService;
 using transit_display_platform_api.Services.AttendanceService;
 using transit_display_platform_api.Services.AuthService;
 using transit_display_platform_api.Services.BusOperationsService;
@@ -53,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<IStudentParentMappingService, StudentParentMappingService>();
         services.AddScoped<IBusRouteAllocationService, BusRouteAllocationService>();
         services.AddScoped<IAttendanceService, AttendanceService>();
+        services.AddScoped<IAttachmentService, AttachmentService>();
         services.AddScoped<IDispersalSessionService, DispersalSessionService>();
         services.AddScoped<IBusOperationsService, BusOperationsService>();
         services.AddScoped<IAuthService, AuthService>();

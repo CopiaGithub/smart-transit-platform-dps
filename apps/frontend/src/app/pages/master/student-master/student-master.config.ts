@@ -39,7 +39,9 @@ export const STUDENT_MASTER_CONFIG: MasterPageConfig = {
   singular: 'Student',
   listTitle: 'Student List',
   resource: 'StudentMaster',
-  defaultSortBy: 'FirstName',
+  // Newest first: a record you just added should be the first one you see.
+  defaultSortBy: 'CreatedAt',
+  defaultDescending: true,
   exportFileName: 'Student_Master',
 
   entityLabel: (row) => `${row.Name} (${row.AdmissionNumber})`,

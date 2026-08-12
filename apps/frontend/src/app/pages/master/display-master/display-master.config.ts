@@ -26,7 +26,9 @@ export const DISPLAY_MASTER_CONFIG: MasterPageConfig = {
   singular: 'Display',
   listTitle: 'LED Displays',
   resource: 'DisplayMaster',
-  defaultSortBy: 'DisplayName',
+  // Newest first: a record you just added should be the first one you see.
+  defaultSortBy: 'CreatedAt',
+  defaultDescending: true,
   exportFileName: 'Display_Master',
 
   entityLabel: (row) => row.DisplayName,

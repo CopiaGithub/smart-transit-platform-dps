@@ -20,7 +20,7 @@ public class CountryMasterService : ICountryMasterService
 
         var query = _context.CountryMasters.Where(c => !c.IsDeleted);
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(c => c.IsActive == activeFilter.Value);
 

@@ -26,7 +26,7 @@ public class GateMasterService : IGateMasterService
 
         var query = _context.GateMasters.Where(g => !g.IsDeleted);
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(g => g.IsActive == activeFilter.Value);
 

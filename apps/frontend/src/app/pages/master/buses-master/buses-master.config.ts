@@ -32,7 +32,9 @@ export const BUSES_MASTER_CONFIG: MasterPageConfig = {
   singular: 'Bus',
   listTitle: 'Fleet List',
   resource: 'BusesMaster',
-  defaultSortBy: 'BusNumber',
+  // Newest first: after adding a bus you should land on it, not scroll for it.
+  defaultSortBy: 'CreatedAt',
+  defaultDescending: true,
   exportFileName: 'Buses_Master',
 
   entityLabel: (row) => row.BusNumber,

@@ -23,7 +23,7 @@ public class RoleMasterService : IRoleMasterService
 
         var query = _context.RoleMasters.Where(r => !r.IsDeleted);
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(r => r.IsActive == activeFilter.Value);
 
@@ -121,6 +121,28 @@ public class RoleMasterService : IRoleMasterService
 
         if (!string.IsNullOrWhiteSpace(model.RoleName) && model.RoleName.Trim() != role.RoleName)
         {
+            // The five seeded role names are load-bearing, not labels. Thirty-one
+            // endpoints authorise on the literal string through RoleNames, the web
+            // sidebar decides what to show by matching it, and the gate consoles
+            // find "Gate 6" / "Gate 1" inside it to know which post a guard is on.
+            //
+            // Renaming one does not migrate any of that: it silently locks every
+            // holder of that role out of the endpoints it names, which reads to a
+            // user like "all my mappings were reset". Nothing in the row is worth
+            // that, so the rename is refused rather than warned about.
+            if (RoleNames.IsSystemRole(role.RoleName))
+            {
+                return new ServiceResponseDto<bool>
+                {
+                    Success = false,
+                    Message =
+                        $"\"{role.RoleName}\" is a built-in role and cannot be renamed. " +
+                        "Permissions across the apps are matched on this exact name, so " +
+                        "renaming it would remove access for everyone who holds it. " +
+                        "Change the description instead, or create a new role."
+                };
+            }
+
             bool exists = await _context.RoleMasters
                 .AnyAsync(r => r.RoleName == model.RoleName.Trim() && r.Id != id && !r.IsDeleted);
             if (exists)

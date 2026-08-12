@@ -36,7 +36,7 @@ public class ParentMasterService : IParentMasterService
             .Include(p => p.PinCode)
             .Where(p => !p.IsDeleted);
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(p => p.IsActive == activeFilter.Value);
 

@@ -85,7 +85,14 @@ export class AuthService {
     const claims = decodeClaims(response.Token);
     const user = this.claimsToUser(claims);
 
-    this.storage.useSessionStorage();
+    // localStorage, not sessionStorage: sessionStorage is per-tab and dies with
+    // the tab, so closing the browser — or opening the console in a second tab —
+    // asked the user to sign in again for no reason anyone could see.
+    //
+    // The token still expires on its own (JwtSettings.AccessTokenExpiryMinutes),
+    // and clearSession wipes both storages, so signing out is still a real sign
+    // out. This only stops the session evaporating while it is still valid.
+    this.storage.useLocalStorage();
     this.storage.setItem(this.tokenKey, response.Token);
     this.storage.setItem(this.tokenExpiryKey, response.TokenExpiresAt ?? '');
     this.storage.setItem(this.userKey, JSON.stringify(user));

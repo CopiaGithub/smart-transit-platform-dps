@@ -221,6 +221,18 @@ export interface MasterPageConfig<TItem = any, TRow = any> {
   readOnly?: boolean;
   /** Base name for the CSV export. Defaults to the resource name. */
   exportFileName?: string;
-  /** Default sort column sent as SortBy. */
+  /**
+   * Default sort column sent as SortBy. Only the values a service's own switch
+   * recognises have any effect — most accept 'CreatedAt' plus one or two of
+   * their own columns, and anything else falls back to the service's default
+   * ordering.
+   */
   defaultSortBy?: string;
+
+  /**
+   * Sends Descending=true with the sort. Pair it with `defaultSortBy: 'CreatedAt'`
+   * on screens where the record just added should be the first one you see rather
+   * than something to go hunting for on page 4.
+   */
+  defaultDescending?: boolean;
 }

@@ -20,10 +20,11 @@ public class CityMasterService : ICityMasterService
 
         var query = _context.CityMasters
             .Include(c => c.State)
+                .ThenInclude(s => s!.Country)
             .Include(c => c.Region)
             .Where(c => !c.IsDeleted);
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(c => c.IsActive == activeFilter.Value);
 
@@ -56,6 +57,10 @@ public class CityMasterService : ICityMasterService
                 StateName = c.State != null ? c.State.StateName : null,
                 RegionId = c.RegionId,
                 RegionName = c.Region != null ? c.Region.RegionName : null,
+                CountryId = c.State != null ? c.State.CountryId : null,
+                CountryName = c.State != null && c.State.Country != null
+                    ? c.State.Country.CountryName
+                    : null,
                 IsActive = c.IsActive
             })
             .ToListAsync();

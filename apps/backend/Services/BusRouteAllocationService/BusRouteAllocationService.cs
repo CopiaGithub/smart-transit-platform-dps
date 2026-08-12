@@ -29,7 +29,7 @@ public class BusRouteAllocationService : IBusRouteAllocationService
 
         var query = BaseQuery();
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(a => a.IsActive == activeFilter.Value);
 

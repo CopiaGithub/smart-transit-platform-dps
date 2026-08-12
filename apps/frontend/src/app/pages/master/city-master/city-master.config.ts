@@ -34,6 +34,7 @@ export const CITY_MASTER_CONFIG: MasterPageConfig = {
     { key: 'CityName', label: 'City Name' },
     { key: 'StateName', label: 'State' },
     { key: 'RegionName', label: 'Region' },
+    { key: 'CountryName', label: 'Country' },
     { key: 'Status', label: 'Status', width: '120px', type: 'badge' },
   ],
 
@@ -44,19 +45,30 @@ export const CITY_MASTER_CONFIG: MasterPageConfig = {
       label: 'State',
       type: 'dropdown',
       queryParam: 'stateId',
-      optionsFrom: 'state',
+      optionsFrom: 'stateAll',
     },
     {
       name: 'region',
       label: 'Region',
       type: 'dropdown',
       queryParam: 'regionId',
-      optionsFrom: 'region',
+      optionsFrom: 'regionAll',
     },
     { name: 'status', label: 'Status', type: 'status', queryParam: 'IsActive' },
   ],
 
-  lookups: { country: COUNTRY_LOOKUP, region: REGION_LOOKUP, state: STATE_LOOKUP },
+  // The filters are unscoped, the dialog cascades. STATE_LOOKUP and REGION_LOOKUP
+  // both declare parentParam 'countryId', and LookupService returns an empty list
+  // for a parented lookup with no parent — so the filter dropdowns, which have no
+  // country to cascade from, came back permanently empty. Same fix PinCode Master
+  // already uses for its city filter.
+  lookups: {
+    country: COUNTRY_LOOKUP,
+    region: REGION_LOOKUP,
+    state: STATE_LOOKUP,
+    stateAll: { ...STATE_LOOKUP, parentParam: undefined },
+    regionAll: { ...REGION_LOOKUP, parentParam: undefined },
+  },
 
   fields: [
     { name: 'CityCode', label: 'City Code', type: 'text', maxLength: 20 },
@@ -102,16 +114,19 @@ export const CITY_MASTER_CONFIG: MasterPageConfig = {
     StateId: item.StateId,
     RegionName: item.RegionName ?? '-',
     RegionId: item.RegionId,
+    CountryName: item.CountryName ?? '-',
+    CountryId: item.CountryId,
     Status: activeLabel(item.IsActive),
     IsActive: item.IsActive,
   }),
 
-  // CityMasterListModel carries no CountryId, so the country picker starts empty
-  // on edit; choosing one refreshes the state and region lists.
+  // CountryId comes from the list model now (resolved through the state), so the
+  // dialog can scope its State and Region options and show what the record holds
+  // instead of two blank boxes.
   toFormData: (row) => ({
     CityCode: row.CityCode === '-' ? '' : row.CityCode,
     CityName: row.CityName,
-    CountryId: null,
+    CountryId: row.CountryId,
     StateId: row.StateId,
     RegionId: row.RegionId,
     IsActive: row.IsActive,

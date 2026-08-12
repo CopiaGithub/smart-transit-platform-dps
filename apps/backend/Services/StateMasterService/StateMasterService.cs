@@ -23,7 +23,7 @@ public class StateMasterService : IStateMasterService
             .Include(s => s.Region)
             .Where(s => !s.IsDeleted);
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(s => s.IsActive == activeFilter.Value);
 

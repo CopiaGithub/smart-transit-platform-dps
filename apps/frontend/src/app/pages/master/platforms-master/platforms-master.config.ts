@@ -21,7 +21,9 @@ export const PLATFORMS_MASTER_CONFIG: MasterPageConfig = {
   singular: 'Platform',
   listTitle: 'Platforms Master List',
   resource: 'PlatformsMaster',
-  defaultSortBy: 'PlatformNumber',
+  // Newest first: a record you just added should be the first one you see.
+  defaultSortBy: 'CreatedAt',
+  defaultDescending: true,
   exportFileName: 'Platforms_Master',
 
   entityLabel: (row) => `Platform ${row.PlatformNumber}`,

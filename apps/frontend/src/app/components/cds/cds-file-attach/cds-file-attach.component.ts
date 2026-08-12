@@ -2,6 +2,7 @@ import {
   Component,
   EventEmitter,
   forwardRef,
+  inject,
   Input,
   Output,
   signal,
@@ -10,6 +11,7 @@ import { CommonModule } from '@angular/common';
 import { NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms';
 import { ControlValueAccessorDirective } from '../../directive';
 import { CdsLabelComponent } from '../cds-label/cds-label.component';
+import { AttachmentService } from '../../../core/api/attachment.service';
 
 /**
  * Attach-a-file control for the config-driven master forms (`type: 'file'`).
@@ -49,6 +51,9 @@ export class CdsFileAttachComponent extends ControlValueAccessorDirective<string
 
   @Output() fileSelected = new EventEmitter<File | null>();
 
+  /** Only for resolveUrl — this control never uploads; the parent does. */
+  private readonly attachments = inject(AttachmentService);
+
   /* Signals, not plain fields — the app is zoneless, so the FileReader callback
      below only reaches the template through a signal. */
   readonly previewUrl = signal<string | null>(null);
@@ -60,8 +65,13 @@ export class CdsFileAttachComponent extends ControlValueAccessorDirective<string
     const stored = (value ?? '') as string;
     super.writeValue(stored);
     // Only a stored value produces a preview; a pending file sets its own.
+    //
+    // The control's value stays the stored path — that is what gets saved — but
+    // the preview needs an absolute URL. The path is relative to the API, which
+    // is a different origin from the app, so using it raw resolved against the
+    // app and rendered a broken image on every record that had a photo.
     if (!this.fileName()) {
-      this.previewUrl.set(stored || null);
+      this.previewUrl.set(this.attachments.resolveUrl(stored));
     }
   }
 

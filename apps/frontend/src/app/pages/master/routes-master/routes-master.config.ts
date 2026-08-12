@@ -13,7 +13,9 @@ export const ROUTES_MASTER_CONFIG: MasterPageConfig = {
   singular: 'Route',
   listTitle: 'Routes Master List',
   resource: 'RoutesMaster',
-  defaultSortBy: 'RouteName',
+  // Newest first: after adding a route you should land on it, not scroll for it.
+  defaultSortBy: 'CreatedAt',
+  defaultDescending: true,
   exportFileName: 'Routes_Master',
 
   entityLabel: (row) => row.RouteName,
@@ -31,7 +33,13 @@ export const ROUTES_MASTER_CONFIG: MasterPageConfig = {
   ],
 
   fields: [
-    { name: 'RouteCode', label: 'Route Code', type: 'text', maxLength: 50 },
+    {
+      name: 'RouteCode',
+      label: 'Route Code',
+      type: 'text',
+      required: true,
+      maxLength: 50,
+    },
     {
       name: 'RouteName',
       label: 'Route Name',

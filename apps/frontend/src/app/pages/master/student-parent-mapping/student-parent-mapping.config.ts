@@ -24,7 +24,9 @@ export const STUDENT_PARENT_MAPPING_CONFIG: MasterPageConfig = {
   singular: 'Mapping',
   listTitle: 'Student-Parent Mapping List',
   resource: 'StudentParentMapping',
-  defaultSortBy: 'StudentName',
+  // Newest first: a record you just added should be the first one you see.
+  defaultSortBy: 'CreatedAt',
+  defaultDescending: true,
   exportFileName: 'Student_Parent_Mapping',
 
   entityLabel: (row) => `${row.ParentName} → ${row.StudentName}`,

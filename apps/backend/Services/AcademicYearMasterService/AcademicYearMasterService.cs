@@ -23,7 +23,7 @@ public class AcademicYearMasterService : IAcademicYearMasterService
 
         var query = _context.AcademicYearMasters.Where(a => !a.IsDeleted);
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(a => a.IsActive == activeFilter.Value);
 

@@ -8,7 +8,20 @@ public class PaginationFilterDto
     public bool Descending { get; set; } = false;
     public string? SearchTerm { get; set; }
 
-    /// <summary>Defaults master lists to Active-only when null/true; pass false to include inactive.</summary>
+    /// <summary>
+    /// Filters a master list by status: true = active only, false = inactive only,
+    /// omitted = both.
+    ///
+    /// "Omitted means both" is the contract the screens are built on — their Status
+    /// filter sends nothing when it is left blank, and a blank filter has to mean
+    /// "no restriction" for the same reason every other filter does. This used to
+    /// default to Active-only, which made inactive records unreachable: there was
+    /// no value that meant "all", so a deactivated bus or platform simply vanished.
+    ///
+    /// Consumers that need active-only must now say so. LookupService on the web
+    /// client pins IsActive=true for exactly this reason — a dropdown should never
+    /// offer a record that has been retired.
+    /// </summary>
     public bool? IsActive { get; set; }
 }
 

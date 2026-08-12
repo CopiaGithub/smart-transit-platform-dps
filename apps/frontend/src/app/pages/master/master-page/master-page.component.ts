@@ -194,6 +194,11 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
 
     if (this.config.defaultSortBy) {
       query['SortBy'] = this.config.defaultSortBy;
+      // Only sent when asked for: the server's own default is ascending, and
+      // sending Descending=false everywhere would just be noise on the wire.
+      if (this.config.defaultDescending) {
+        query['Descending'] = true;
+      }
     }
 
     for (const filterConfig of this.config.filters) {

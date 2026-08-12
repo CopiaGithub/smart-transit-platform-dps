@@ -31,7 +31,9 @@ export const BUS_ROUTE_ALLOCATION_CONFIG: MasterPageConfig = {
   singular: 'Allocation',
   listTitle: 'Bus-Route Allocation List',
   resource: 'BusRouteAllocation',
-  defaultSortBy: 'EffectiveFrom',
+  // Newest first: a record you just added should be the first one you see.
+  defaultSortBy: 'CreatedAt',
+  defaultDescending: true,
   exportFileName: 'Bus_Route_Allocation',
 
   entityLabel: (row) => `${row.BusNumber} on ${row.RouteName}`,

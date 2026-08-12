@@ -6,12 +6,15 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
 using transit_display_platform_api.Common;
 using transit_display_platform_api.Data;
 using transit_display_platform_api.Extensions;
+using transit_display_platform_api.Services.AttachmentService;
 
 // When stdout is a pipe rather than a terminal — which is exactly what
 // `dotnet run` gives us, and what Docker and CI give us too — .NET buffers it
@@ -254,6 +257,37 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+
+    // Uploaded photos, served as plain static files so an <img> tag can read one
+    // without a bearer token — the same reasoning as the anonymous board feed.
+    //
+    // Scoped to its own folder and its own request path rather than turning on
+    // static hosting for the whole content root, which would expose
+    // appsettings.json and the Logs directory sitting next to it. Nothing here
+    // is executed: FileServer only reads, and every stored name is a GUID with
+    // an image extension the server chose.
+    // An allow-list of exactly the three image types the uploader accepts, not
+    // the framework's default map. ServeUnknownFileTypes=false alone is not the
+    // same thing: .txt, .html and .svg are all *known* types, so a stray file in
+    // this folder would happily be served. With only these three mapped,
+    // anything else is unknown and refused.
+    var uploadContentTypes = new FileExtensionContentTypeProvider(
+        new Dictionary<string, string>
+        {
+            [".jpg"] = "image/jpeg",
+            [".jpeg"] = "image/jpeg",
+            [".png"] = "image/png",
+            [".webp"] = "image/webp",
+        });
+
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(
+            AttachmentService.ResolveRoot(app.Configuration, app.Environment)),
+        RequestPath = AttachmentService.RequestPath,
+        ContentTypeProvider = uploadContentTypes,
+        ServeUnknownFileTypes = false,
+    });
 
     app.MapControllers();
 

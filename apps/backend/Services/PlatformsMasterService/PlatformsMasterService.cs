@@ -23,7 +23,7 @@ public class PlatformsMasterService : IPlatformsMasterService
 
         var query = _context.PlatformsMasters.Where(p => !p.IsDeleted);
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(p => p.IsActive == activeFilter.Value);
 
