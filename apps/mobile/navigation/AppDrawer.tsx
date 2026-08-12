@@ -1,20 +1,22 @@
 import { Feather } from "@expo/vector-icons";
 import { createDrawerNavigator } from "@react-navigation/drawer";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { BOARD, COLORS, RADIUS } from "../constants/theme";
-import { fetchGates, selectGateRows } from "../src/store/masters.slice";
-import { useAppDispatch, useAppSelector } from "../src/store";
+import { useViewer } from "../features/auth/useViewer";
+import { fetchGates } from "../src/store/masters.slice";
+import { useAppDispatch } from "../src/store";
 import DrawerContent from "./DrawerContent";
 import HeaderTitle from "./HeaderTitle";
-import { toViewer, visibleMenu } from "./menu";
+import { visibleMenu } from "./menu";
 import type { DrawerParamList } from "./types";
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
 export default function AppDrawer() {
   const dispatch = useAppDispatch();
-  const roleName = useAppSelector((s) => s.auth.user?.roleName);
-  const gateRows = useAppSelector(selectGateRows);
+  // Through useViewer rather than the store directly, so the menu holds still
+  // while the session is torn down — see the note there.
+  const viewer = useViewer();
 
   // The one place the posts are read. This mounts once, after sign-in, and every
   // screen that names a gate reads the result out of the store.
@@ -22,21 +24,10 @@ export default function AppDrawer() {
     dispatch(fetchGates());
   }, [dispatch]);
 
-  // Signing out clears the user while this drawer is still mounted, and an
-  // absent role reads as `parent` — so the menu would swap from eleven screens
-  // to two in the frame before the navigator tears down. Fabric crashes trying
-  // to re-parent the drawer's clipping scroll view when that many items are
-  // pulled out mid-teardown ("The specified child already has a parent").
-  //
-  // A role only ever changes across a sign-in, and the drawer is unmounted for
-  // that, so the first one it sees is the right one for its whole life.
-  const roleAtMount = useRef(roleName);
-  if (roleName) roleAtMount.current = roleName;
-
   // Deliberately does not wait for the gates. The menu and the screen a person
   // lands on come from the role alone, so a slow or dead network cannot drop a
   // guard onto a parent's menu — see toViewer.
-  const items = visibleMenu(toViewer(roleAtMount.current, gateRows));
+  const items = visibleMenu(viewer);
 
   return (
     <Drawer.Navigator

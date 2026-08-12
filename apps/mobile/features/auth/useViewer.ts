@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { ROLE_LABEL, type Gate, type Role } from "../../constants/domain";
 import { toViewer } from "../../navigation/menu";
 import { selectGateRows } from "../../src/store/masters.slice";
@@ -26,14 +26,30 @@ export function useViewer(): Viewer {
   // only `gate` is briefly null — which every screen that reads it handles.
   const gateRows = useAppSelector(selectGateRows);
 
+  // Signing out clears the user while every screen reading this is still
+  // mounted, and each one re-derives from the emptied viewer: the drawer swaps
+  // its menu, and useGatePost — whose fallback is `home ?? gates[0]` — re-points
+  // an exit guard at the entry gate, tearing GateOutScreen out and mounting
+  // GateInScreen in its place. Whole subtrees replaced in the frame the
+  // navigator is being destroyed in, which Fabric does not survive:
+  //
+  //   IllegalStateException: The specified child already has a parent.
+  //     at SurfaceMountingManager.addViewAt
+  //
+  // A viewer only ever changes across a sign-in, and all of this is unmounted
+  // for that — so the last one seen stays right for the rest of its life.
+  const held = useRef(user);
+  if (user) held.current = user;
+  const signedIn = held.current;
+
   return useMemo(() => {
-    const { role, gate } = toViewer(user?.roleName, gateRows);
+    const { role, gate } = toViewer(signedIn?.roleName, gateRows);
     return {
-      userId: user?.userId ?? null,
-      name: user?.name ?? "",
+      userId: signedIn?.userId ?? null,
+      name: signedIn?.name ?? "",
       role,
       roleLabel: ROLE_LABEL[role],
       gate,
     };
-  }, [user, gateRows]);
+  }, [signedIn, gateRows]);
 }
