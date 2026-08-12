@@ -12,25 +12,35 @@ export function setUnauthorizedHandler(handler: () => void) {
 }
 
 /**
- * In dev, take the API host from wherever Metro is being served.
+ * In dev, take the API host from wherever Metro is being served — but only when
+ * the configured API is a local one.
  *
- * That address is by definition reachable from this device — it is how the
- * bundle arrived — so the same URL works on an emulator, a physical phone, and
- * after the laptop's Wi-Fi address changes, with nothing to edit. Only the
- * host is borrowed; the port and path stay as configured.
+ * Metro's address is by definition reachable from this device — it is how the
+ * bundle arrived — so borrowing it makes `localhost` work on an emulator, on a
+ * physical phone, and after the laptop's Wi-Fi address changes, with nothing to
+ * edit. Only the host is borrowed; the port and path stay as configured.
+ *
+ * A hosted API is a different case entirely: it is already reachable from
+ * anywhere, and pointing it at Metro's LAN IP would aim the app at a machine
+ * that is not serving the API at all. So the swap is limited to loopback hosts
+ * — otherwise setting `dev.apiUrl` to the real server silently breaks it.
  *
  * qa and production always use their configured URL.
  */
+const LOCAL_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "[::1]"];
+
 function resolveBaseUrl(): string {
   const configured = (Constants.expoConfig?.extra?.apiUrl as string) ?? "";
   if (Constants.expoConfig?.extra?.appEnv !== "dev") return configured;
 
-  // hostUri looks like "192.168.1.5:8081".
-  const metroHost = Constants.expoConfig?.hostUri?.split(":")[0];
-  if (!metroHost) return configured;
-
   try {
     const url = new URL(configured);
+    if (!LOCAL_HOSTS.includes(url.hostname)) return configured;
+
+    // hostUri looks like "192.168.1.5:8081".
+    const metroHost = Constants.expoConfig?.hostUri?.split(":")[0];
+    if (!metroHost) return configured;
+
     url.hostname = metroHost;
     return url.toString();
   } catch {
