@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { createDrawerNavigator } from "@react-navigation/drawer";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { BOARD, COLORS, RADIUS } from "../constants/theme";
 import { fetchGates, selectGateRows } from "../src/store/masters.slice";
 import { useAppDispatch, useAppSelector } from "../src/store";
@@ -22,10 +22,21 @@ export default function AppDrawer() {
     dispatch(fetchGates());
   }, [dispatch]);
 
+  // Signing out clears the user while this drawer is still mounted, and an
+  // absent role reads as `parent` — so the menu would swap from eleven screens
+  // to two in the frame before the navigator tears down. Fabric crashes trying
+  // to re-parent the drawer's clipping scroll view when that many items are
+  // pulled out mid-teardown ("The specified child already has a parent").
+  //
+  // A role only ever changes across a sign-in, and the drawer is unmounted for
+  // that, so the first one it sees is the right one for its whole life.
+  const roleAtMount = useRef(roleName);
+  if (roleName) roleAtMount.current = roleName;
+
   // Deliberately does not wait for the gates. The menu and the screen a person
   // lands on come from the role alone, so a slow or dead network cannot drop a
   // guard onto a parent's menu — see toViewer.
-  const items = visibleMenu(toViewer(roleName, gateRows));
+  const items = visibleMenu(toViewer(roleAtMount.current, gateRows));
 
   return (
     <Drawer.Navigator
