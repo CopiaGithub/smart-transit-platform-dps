@@ -6,31 +6,43 @@ type AppEnv = "dev" | "qa" | "production";
 
 const APP_ENV = (process.env.APP_ENV as AppEnv) || "dev";
 
-const ENV: Record<AppEnv, { apiUrl: string; appName: string; debug: boolean }> = {
-  dev: {
-    // The API listens on 5199. 10.0.2.2 is the Android emulator's loopback to
-    // the host — on a physical device swap it for the dev machine's LAN IP.
-    apiUrl: "http://10.0.2.2:5199/api/",
-    appName: "Transit Display (Dev)",
-    debug: true,
-  },
-  qa: {
-    apiUrl: "https://qa.example.com/api/",
-    appName: "Transit Display (QA)",
-    debug: true,
-  },
-  production: {
-    apiUrl: "https://api.example.com/api/",
-    appName: "Transit Display",
-    debug: false,
-  },
-};
+const ENV: Record<AppEnv, { apiUrl: string; appName: string; debug: boolean }> =
+  {
+    dev: {
+      // Local backend. apiClient swaps `localhost` for whatever host Metro is
+      // served from, so the same line works on the emulator and on a phone over
+      // Wi-Fi — port and path are kept as written.
+      //
+      // Hosted dev, for when the server is back up — the same backend the web
+      // frontend points at in apps/frontend/src/app/environments/environment.dev.ts:
+      //   "https://tdpdev.copiacs.com/tdpdevapi/api/"
+      apiUrl: "http://localhost:5199/api/",
+      // appName: "Transit Display (Dev)",
+      appName: "Transit Display",
+      debug: true,
+    },
+    qa: {
+      apiUrl: "https://tdpdev.copiacs.com/tdpdevapi/api/",
+      // appName: "Transit Display (QA)",
+      appName: "Transit Display",
+      debug: false,
+    },
+    production: {
+      apiUrl: "https://tdpdev.copiacs.com/tdpdevapi/api/",
+      appName: "Transit Display",
+      debug: false,
+    },
+  };
 
 const env = ENV[APP_ENV];
 
 const config: ExpoConfig = {
   name: env.appName,
   slug: "transit-display-platform",
+  // The EAS account the project belongs to. Stated because the signed-in user is
+  // a member of the organisation rather than its owner — without it the CLI looks
+  // for the project under whoever happens to be logged in.
+  owner: "copiacs",
   version: "1.0.0",
   orientation: "portrait",
   userInterfaceStyle: "light",
@@ -63,13 +75,23 @@ const config: ExpoConfig = {
     "expo-secure-store",
     [
       "expo-local-authentication",
-      { faceIDPermission: "Allow $(PRODUCT_NAME) to unlock with Face ID instead of a password." },
+      {
+        faceIDPermission:
+          "Allow $(PRODUCT_NAME) to unlock with Face ID instead of a password.",
+      },
     ],
   ],
   extra: {
     appEnv: APP_ENV,
     apiUrl: env.apiUrl,
     debug: env.debug,
+    // Written by hand: `eas init` can edit app.json for you but not a
+    // app.config.ts, because it cannot safely rewrite executable code. This ties
+    // the folder to the project at expo.dev/accounts/copiacs — builds, versions
+    // and credentials all hang off it, so it must not change.
+    eas: {
+      projectId: "766551b3-97fa-4c23-8aa1-7534cde7685a",
+    },
   },
 };
 

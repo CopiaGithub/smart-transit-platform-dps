@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useFormik } from "formik";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -9,7 +9,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -19,7 +18,6 @@ import { LABELS } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING, TINT } from "../../constants/theme";
 import {
   BUS_TYPE,
-  PLATFORM_SIDE,
   SERVICE_STATUS,
   type BusMaster,
   type PlatformMaster,
@@ -48,6 +46,57 @@ const SERVICE_OPTIONS = [
   { value: SERVICE_STATUS.maintenance, label: "Maintenance" },
   { value: SERVICE_STATUS.breakdown, label: "Breakdown" },
 ];
+
+/** IsActive on every master reads the same way, so it is worded the same way. */
+const IN_USE_OPTIONS = [
+  { value: true, label: "In use" },
+  { value: false, label: "Out of use" },
+];
+
+/**
+ * The delete confirmations, in one place.
+ *
+ * A record can now be deleted from its row in the list as well as from inside
+ * the edit sheet. Two buttons that do the same irreversible thing must ask the
+ * same question — if the wording drifts, one of them is lying about what it does.
+ */
+export const DELETE_PROMPT = {
+  bus: (b: BusMaster) => ({
+    title: `Delete ${LABELS.vehicle.toLowerCase()} ${b.BusNumber}?`,
+    message: "It is hidden from every list but kept so past dispersal reports still make sense.",
+    confirm: "Delete",
+  }),
+  user: (u: UserMaster) => ({
+    title: `Remove ${u.Name}?`,
+    message: "They can no longer sign in. Past records are kept.",
+    confirm: "Remove",
+  }),
+  route: (r: RouteMaster) => ({
+    title: `Delete ${r.RouteName}?`,
+    message:
+      `It is hidden from every list but kept, so past dispersal reports still make sense. ` +
+      `${LABELS.vehiclePlural} already on this route keep it until you move them.`,
+    confirm: "Delete",
+  }),
+  platform: (p: PlatformMaster) => ({
+    title: `Delete ${LABELS.slot.toLowerCase()} ${p.PlatformNumber}?`,
+    message:
+      "It stops being handed out but is kept, so past dispersal reports still make sense. " +
+      "To close it only for today, set it to Out of use instead.",
+    confirm: "Delete",
+  }),
+};
+
+/** Cancel first, destructive second — the order both platforms expect. */
+export function askDelete(
+  prompt: { title: string; message: string; confirm: string },
+  run: () => void,
+) {
+  Alert.alert(prompt.title, prompt.message, [
+    { text: "Cancel", style: "cancel" },
+    { text: prompt.confirm, style: "destructive", onPress: run },
+  ]);
+}
 
 // ── bus ─────────────────────────────────────────────────────────────────────
 export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onClose: () => void }) {
@@ -120,23 +169,13 @@ export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onC
     },
   });
 
-  const confirmDelete = () =>
-    Alert.alert(
-      `Delete ${LABELS.vehicle.toLowerCase()} ${bus?.BusNumber}?`,
-      "It is hidden from every list but kept so past dispersal reports still make sense.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            if (!bus) return;
-            const result = await dispatch(removeBus(bus.Id));
-            if (removeBus.fulfilled.match(result)) onClose();
-          },
-        },
-      ],
-    );
+  const confirmDelete = () => {
+    if (!bus) return;
+    askDelete(DELETE_PROMPT.bus(bus), async () => {
+      const result = await dispatch(removeBus(bus.Id));
+      if (removeBus.fulfilled.match(result)) onClose();
+    });
+  };
 
   const outOfService = form.values.serviceStatus !== SERVICE_STATUS.inService;
 
@@ -151,6 +190,11 @@ export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onC
     >
       <Field
         label={LABELS.vehicleNo.toUpperCase()}
+        info={
+          `The number a guard types at the entry gate and the number the LED board ` +
+          `shows. This is what identifies the bus everywhere in the app — not the ` +
+          `registration plate below.`
+        }
         value={form.values.busNumber}
         onChangeText={form.handleChange("busNumber")}
         onBlur={form.handleBlur("busNumber")}
@@ -161,6 +205,7 @@ export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onC
       {/* Deliberately not the gate identifier — that is the bus number above. */}
       <Field
         label="REGISTRATION NUMBER (OPTIONAL)"
+        info="The RTO plate. A fleet record only — it is never used to identify a bus at the gate or on the board."
         value={form.values.registrationNumber}
         onChangeText={form.handleChange("registrationNumber")}
         placeholder="MH-43-AB-1234"
@@ -168,8 +213,13 @@ export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onC
         maxLength={20}
       />
 
-      <Chips
+      <Select
         label={LABELS.route.toUpperCase()}
+        info={
+          `The route this bus normally runs — it is what the board prints beside the ` +
+          `bus number. Routes marked out of use are not offered here, except the one ` +
+          `this bus is already on.`
+        }
         value={form.values.routeId}
         options={[
           { value: null, label: "None" },
@@ -178,18 +228,28 @@ export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onC
         onPick={(v) => form.setFieldValue("routeId", v)}
       />
 
-      <Chips
+      <Select
         label="TYPE"
+        info={
+          `Reserve buses stand by to replace a bus that does not run. They are listed ` +
+          `separately at the entry gate, carry letter codes like R1, and keep the ` +
+          `station of the bus they replace. Everything else is Active.`
+        }
         value={form.values.busType}
         options={[
-          { value: BUS_TYPE.active, label: "Active" },
-          { value: BUS_TYPE.reserve, label: "Reserve" },
+          { value: BUS_TYPE.active as string, label: "Active" },
+          { value: BUS_TYPE.reserve as string, label: "Reserve" },
         ]}
         onPick={(v) => form.setFieldValue("busType", v)}
       />
 
-      <Chips
+      <Select
         label="SERVICE STATUS"
+        info={
+          `A temporary problem — the bus is expected back. Maintenance and Breakdown ` +
+          `both ask for a reason. For a bus that is gone for good, use Fleet status at ` +
+          `the bottom instead.`
+        }
         value={form.values.serviceStatus}
         options={SERVICE_OPTIONS.map((o) => ({ value: o.value as string, label: o.label }))}
         onPick={(v) => form.setFieldValue("serviceStatus", v)}
@@ -233,11 +293,12 @@ export function BusForm({ editing, onClose }: { editing: Editing<BusMaster>; onC
         maxLength={10}
       />
 
-      <Toggle
-        label="On the fleet"
-        hint="Clear this while the bus is off the road permanently. An inactive bus is refused at the gate."
+      <Select
+        label="FLEET STATUS"
+        info="Out of use means the bus is off the road permanently and is refused at the gate. For a temporary problem use Service status instead."
         value={form.values.isActive}
-        onChange={(v) => form.setFieldValue("isActive", v)}
+        options={IN_USE_OPTIONS}
+        onPick={(v) => form.setFieldValue("isActive", v)}
       />
     </Sheet>
   );
@@ -305,19 +366,13 @@ export function UserForm({
     },
   });
 
-  const confirmDelete = () =>
-    Alert.alert(`Remove ${user?.Name}?`, "They can no longer sign in. Past records are kept.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: async () => {
-          if (!user) return;
-          const result = await dispatch(removeUser(user.Id));
-          if (removeUser.fulfilled.match(result)) onClose();
-        },
-      },
-    ]);
+  const confirmDelete = () => {
+    if (!user) return;
+    askDelete(DELETE_PROMPT.user(user), async () => {
+      const result = await dispatch(removeUser(user.Id));
+      if (removeUser.fulfilled.match(result)) onClose();
+    });
+  };
 
   return (
     <Sheet
@@ -328,20 +383,35 @@ export function UserForm({
       onSave={form.handleSubmit}
       onDelete={user ? confirmDelete : undefined}
     >
+      {/* No placeholders anywhere on this form: a sample name in an empty box
+          reads as a real value the operator has to clear. */}
       <Field
         label="NAME"
         value={form.values.name}
         onChangeText={form.handleChange("name")}
         onBlur={form.handleBlur("name")}
         error={form.touched.name ? form.errors.name : undefined}
-        placeholder="R. Kamble"
       />
+
+      <Select
+        label="ROLE"
+        info={
+          `Decides what this person sees when they open the app. A guard's post is part ` +
+          `of the role name — "Gate 6 Operator" lands on the entry gate screen — so ` +
+          `there is no separate gate to set here.`
+        }
+        value={form.values.roleId}
+        options={roles.map((r) => ({ value: r.Id as number | null, label: r.RoleName }))}
+        onPick={(v) => form.setFieldValue("roleId", v)}
+        error={form.touched.roleId ? (form.errors.roleId as string | undefined) : undefined}
+      />
+
       {/* Any of these three can be used as the username at sign-in (§3.2). */}
       <Field
         label="EMPLOYEE CODE"
+        info="The employee code, mobile number and email are all usernames — this person can sign in with whichever of the three they remember."
         value={form.values.employeeCode}
         onChangeText={form.handleChange("employeeCode")}
-        placeholder="EMP009"
         autoCapitalize="characters"
       />
       <Field
@@ -350,7 +420,6 @@ export function UserForm({
         onChangeText={form.handleChange("contact")}
         onBlur={form.handleBlur("contact")}
         error={form.touched.contact ? form.errors.contact : undefined}
-        placeholder="9820000009"
         keyboardType="number-pad"
         maxLength={10}
       />
@@ -360,7 +429,6 @@ export function UserForm({
         onChangeText={form.handleChange("emailId")}
         onBlur={form.handleBlur("emailId")}
         error={form.touched.emailId ? form.errors.emailId : undefined}
-        placeholder="name@dpsnerul.edu"
         autoCapitalize="none"
         keyboardType="email-address"
       />
@@ -368,28 +436,24 @@ export function UserForm({
       {!user && (
         <Field
           label="TEMPORARY PASSWORD"
+          info="Given to them once, changed on first sign-in."
           value={form.values.password}
           onChangeText={form.handleChange("password")}
           onBlur={form.handleBlur("password")}
           error={form.touched.password ? form.errors.password : undefined}
-          placeholder="Given to them once, changed on first sign-in"
           secureTextEntry
         />
       )}
 
-      <Chips
-        label="ROLE"
-        value={form.values.roleId}
-        options={roles.map((r) => ({ value: r.Id as number | null, label: r.RoleName }))}
-        onPick={(v) => form.setFieldValue("roleId", v)}
-        error={form.touched.roleId ? (form.errors.roleId as string | undefined) : undefined}
-      />
-
-      <Toggle
-        label="Can sign in"
-        hint="Clear this to deactivate the account without deleting their history."
+      <Select
+        label="SIGN-IN ACCESS"
+        info="Blocked deactivates the account without deleting their history."
         value={form.values.isActive}
-        onChange={(v) => form.setFieldValue("isActive", v)}
+        options={[
+          { value: true, label: "Allowed" },
+          { value: false, label: "Blocked" },
+        ]}
+        onPick={(v) => form.setFieldValue("isActive", v)}
       />
     </Sheet>
   );
@@ -453,24 +517,13 @@ export function PlatformForm({
     },
   });
 
-  const confirmDelete = () =>
-    Alert.alert(
-      `Delete ${LABELS.slot.toLowerCase()} ${platform?.PlatformNumber}?`,
-      "It stops being handed out but is kept, so past dispersal reports still make sense. " +
-        "To close it only for today, switch it off instead.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            if (!platform) return;
-            const result = await dispatch(removePlatform(platform.Id));
-            if (removePlatform.fulfilled.match(result)) onClose();
-          },
-        },
-      ],
-    );
+  const confirmDelete = () => {
+    if (!platform) return;
+    askDelete(DELETE_PROMPT.platform(platform), async () => {
+      const result = await dispatch(removePlatform(platform.Id));
+      if (removePlatform.fulfilled.match(result)) onClose();
+    });
+  };
 
   return (
     <Sheet
@@ -487,6 +540,10 @@ export function PlatformForm({
     >
       <Field
         label="PLATFORM NUMBER (PAINTED ON THE GROUND)"
+        info={
+          `Fixed — a child is told to walk to it and the LED board prints it. This is ` +
+          `not the order buses are handed platforms in; that is the next field.`
+        }
         value={form.values.platformNumber}
         onChangeText={form.handleChange("platformNumber")}
         onBlur={form.handleBlur("platformNumber")}
@@ -498,6 +555,12 @@ export function PlatformForm({
 
       <Field
         label="ALLOCATION ORDER"
+        info={
+          `Buses are given the lowest free number here, not the lowest platform. The yard ` +
+          `fills from the exit end, so ${LABELS.slot.toLowerCase()} 23 is normally 1. Change ` +
+          `this to move a ${LABELS.slot.toLowerCase()} earlier or later in the queue — ` +
+          `nothing gets repainted.`
+        }
         value={form.values.sortOrder}
         onChangeText={form.handleChange("sortOrder")}
         onBlur={form.handleBlur("sortOrder")}
@@ -506,36 +569,29 @@ export function PlatformForm({
         placeholder="1"
         maxLength={3}
       />
-      <Text style={styles.hint}>
-        Buses are given the lowest free number here, not the lowest platform. The yard fills
-        from the exit end, so {LABELS.slot.toLowerCase()} 23 is normally 1. Change this to move
-        a {LABELS.slot.toLowerCase()} earlier or later in the queue — nothing gets repainted.
-      </Text>
 
       <Field
         label="NAME (OPTIONAL)"
+        info={
+          `A label for staff — it shows in this list and on the yard map instead of ` +
+          `"${LABELS.slot} 23". The LED board and the children still go by the number.`
+        }
         value={form.values.platformName}
         onChangeText={form.handleChange("platformName")}
         placeholder="Station 23"
         maxLength={50}
       />
 
-      <Chips
-        label="SIDE OF THE COMPOUND"
-        value={form.values.side}
-        options={[
-          { value: null, label: "Not set" },
-          { value: PLATFORM_SIDE.left as string | null, label: "Left" },
-          { value: PLATFORM_SIDE.right as string | null, label: "Right" },
-        ]}
-        onPick={(v) => form.setFieldValue("side", v)}
-      />
+      {/* ponytail: side hidden on request — restore the Select to bring it back.
+          `side` stays in the form values and in the payload, so a platform that
+          already has Left or Right keeps it through an edit. */}
 
-      <Toggle
-        label="Open for buses"
-        hint="Switch off while it is blocked or under repair. It is skipped when a bus is given a platform, and any bus already standing on it stays put."
+      <Select
+        label="STATUS"
+        info="Out of use while it is blocked or under repair. It is skipped when a bus is given a platform, and any bus already standing on it stays put."
         value={form.values.isActive}
-        onChange={(v) => form.setFieldValue("isActive", v)}
+        options={IN_USE_OPTIONS}
+        onPick={(v) => form.setFieldValue("isActive", v)}
       />
     </Sheet>
   );
@@ -580,24 +636,13 @@ export function RouteForm({
     },
   });
 
-  const confirmDelete = () =>
-    Alert.alert(
-      `Delete ${route?.RouteName}?`,
-      `It is hidden from every list but kept, so past dispersal reports still make sense. ` +
-        `${LABELS.vehiclePlural} already on this route keep it until you move them.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            if (!route) return;
-            const result = await dispatch(removeRoute(route.Id));
-            if (removeRoute.fulfilled.match(result)) onClose();
-          },
-        },
-      ],
-    );
+  const confirmDelete = () => {
+    if (!route) return;
+    askDelete(DELETE_PROMPT.route(route), async () => {
+      const result = await dispatch(removeRoute(route.Id));
+      if (removeRoute.fulfilled.match(result)) onClose();
+    });
+  };
 
   return (
     <Sheet
@@ -620,6 +665,7 @@ export function RouteForm({
 
       <Field
         label="CODE (OPTIONAL)"
+        info="A short tag for staff — it is the badge in this list and it can be searched on. It is not what the LED board prints; that is the next field."
         value={form.values.routeCode}
         onChangeText={form.handleChange("routeCode")}
         placeholder="R04"
@@ -629,22 +675,20 @@ export function RouteForm({
 
       <Field
         label="LED BOARD NAME (OPTIONAL)"
+        info="The short form the LED wall shows. Left blank, the wall falls back to the full route name — which is usually too long to read across the compound."
         value={form.values.ledDisplayName}
         onChangeText={form.handleChange("ledDisplayName")}
         placeholder="SEAWOODS"
         autoCapitalize="characters"
         maxLength={50}
       />
-      <Text style={styles.hint}>
-        The short form the LED wall shows. Left blank, the wall falls back to the full route
-        name — which is usually too long to read across the compound.
-      </Text>
 
-      <Toggle
-        label="In use"
-        hint="Switch off for a route the school has stopped running. It disappears from the pickers but stays on past records."
+      <Select
+        label="STATUS"
+        info="Out of use for a route the school has stopped running. It disappears from the pickers but stays on past records."
         value={form.values.isActive}
-        onChange={(v) => form.setFieldValue("isActive", v)}
+        options={IN_USE_OPTIONS}
+        onPick={(v) => form.setFieldValue("isActive", v)}
       />
     </Sheet>
   );
@@ -699,7 +743,7 @@ function Sheet({
               onPress={onSave}
               disabled={saving}
             >
-              <Feather name="check" size={18} color={COLORS.white} />
+              <Feather name="check" size={16} color={COLORS.white} />
               <Text style={styles.btnPrimaryText}>{saving ? "Saving…" : "Save"}</Text>
             </Pressable>
           </View>
@@ -711,12 +755,17 @@ function Sheet({
 
 function Field({
   label,
+  info,
   error,
   ...input
-}: React.ComponentProps<typeof TextInput> & { label: string; error?: string }) {
+}: React.ComponentProps<typeof TextInput> & {
+  label: string;
+  info?: string;
+  error?: string;
+}) {
   return (
     <View style={styles.field}>
-      <Text style={styles.cap}>{label}</Text>
+      <Label text={label} info={info} />
       <TextInput
         style={[styles.input, !!error && styles.inputBad]}
         placeholderTextColor={COLORS.textMuted}
@@ -727,64 +776,116 @@ function Field({
   );
 }
 
-function Chips<T extends string | number | null>({
+/**
+ * One row, one list. Replaces the chip strip the masters used to carry: chips
+ * wrapped onto three lines as soon as a school had more than a handful of
+ * routes, which is most of the height an admin was scrolling past.
+ */
+function Select<T extends string | number | boolean | null>({
   label,
+  info,
   value,
   options,
   onPick,
   error,
 }: {
   label: string;
+  info?: string;
   value: T;
   options: { value: T; label: string }[];
   onPick: (value: T) => void;
   error?: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const current = options.find((o) => o.value === value);
+
   return (
     <View style={styles.field}>
-      <Text style={styles.cap}>{label}</Text>
-      <View style={styles.chips}>
-        {options.map((o) => {
-          const on = value === o.value;
-          return (
-            <Pressable
-              key={String(o.value)}
-              style={[styles.chip, on && styles.chipOn]}
-              onPress={() => onPick(o.value)}
-            >
-              <Text style={[styles.chipText, on && styles.chipTextOn]}>{o.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <Label text={label} info={info} />
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.input,
+          styles.selectRow,
+          !!error && styles.inputBad,
+          pressed && styles.selectPressed,
+        ]}
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${current?.label ?? "not set"}`}
+      >
+        <Text style={[styles.selectText, !current && styles.selectPlaceholder]} numberOfLines={1}>
+          {current?.label ?? "Select"}
+        </Text>
+        <Feather name="chevron-down" size={17} color={COLORS.textMuted} />
+      </Pressable>
+
       {!!error && <Text style={styles.error}>{error}</Text>}
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+          <Pressable style={styles.popup} onPress={() => {}}>
+            <Text style={styles.cap}>{label}</Text>
+            {/* Long lists — routes on a big school — must not run off the screen. */}
+            <ScrollView style={{ maxHeight: 360 }} keyboardShouldPersistTaps="handled">
+              {options.map((o) => {
+                const on = o.value === value;
+                return (
+                  <Pressable
+                    key={String(o.value)}
+                    style={({ pressed }) => [
+                      styles.option,
+                      on && styles.optionOn,
+                      pressed && styles.optionOn,
+                    ]}
+                    onPress={() => {
+                      onPick(o.value);
+                      setOpen(false);
+                    }}
+                  >
+                    <Text style={[styles.optionText, on && styles.optionTextOn]}>{o.label}</Text>
+                    {on && <Feather name="check" size={18} color={COLORS.primary} />}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
 
-function Toggle({
-  label,
-  hint,
-  value,
-  onChange,
-}: {
-  label: string;
-  hint: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
-}) {
+function Label({ text, info }: { text: string; info?: string }) {
   return (
-    <View style={styles.switchRow}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.switchLabel}>{label}</Text>
-        <Text style={styles.switchHint}>{hint}</Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ true: COLORS.primary, false: COLORS.border }}
-      />
+    <View style={styles.labelRow}>
+      <Text style={styles.cap}>{text}</Text>
+      {!!info && <Info text={info} />}
     </View>
+  );
+}
+
+/**
+ * The explanation a field needs but not on every glance. These used to sit
+ * under the field as a permanent paragraph — four lines of text an admin reads
+ * once and then scrolls past every time after that.
+ */
+function Info({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Pressable onPress={() => setOpen(true)} hitSlop={12} accessibilityRole="button">
+        <Feather name="info" size={13} color={COLORS.textMuted} />
+      </Pressable>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+          <Pressable style={styles.popup} onPress={() => {}}>
+            <Text style={styles.infoText}>{text}</Text>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
@@ -795,7 +896,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: RADIUS.xl,
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.lg,
-    maxHeight: "88%",
+    maxHeight: "92%",
     ...SHADOW.lifted,
   },
   grabber: {
@@ -813,71 +914,86 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.md,
   },
   sheetTitle: { flex: 1, fontSize: 20, fontWeight: "900", color: COLORS.text },
-  sheetBody: { padding: SPACING.lg, gap: SPACING.md },
+  sheetBody: { padding: SPACING.md, gap: SPACING.sm },
 
-  field: { gap: SPACING.xs },
+  field: { gap: 2 },
+  labelRow: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
   cap: { fontSize: 10, fontWeight: "900", letterSpacing: 1.2, color: COLORS.textMuted },
   input: {
-    height: 52,
+    height: 38,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    fontSize: 15,
+    paddingHorizontal: SPACING.sm + 2,
+    // Android gives a TextInput its own vertical padding on top of the height,
+    // which clips the text once the box is this short.
+    paddingVertical: 0,
+    fontSize: 14,
     color: COLORS.text,
     backgroundColor: COLORS.surface,
   },
   inputBad: { borderColor: COLORS.danger, backgroundColor: TINT.danger },
   error: { color: COLORS.danger, fontSize: 12, fontWeight: "600" },
-  // Sits under a field whose meaning is not obvious from its label — the
-  // allocation order in particular is the one number an admin can get wrong.
-  hint: { fontSize: 11, color: COLORS.textMuted, lineHeight: 16, marginTop: -SPACING.xs },
 
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
-  chip: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 10,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surfaceAlt,
+  // Reads as an input rather than a button: it holds a value, and lining it up
+  // with the text fields is what keeps the form from looking like two forms.
+  selectRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm },
+  selectPressed: { backgroundColor: COLORS.surfaceAlt },
+  selectText: { flex: 1, fontSize: 14, color: COLORS.text },
+  selectPlaceholder: { color: COLORS.textMuted },
+
+  backdrop: {
+    flex: 1,
+    backgroundColor: "#0F172A99",
+    justifyContent: "center",
+    padding: SPACING.lg,
   },
-  chipOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  chipText: { fontSize: 13, fontWeight: "700", color: COLORS.textMuted },
-  chipTextOn: { color: COLORS.white },
-
-  switchRow: {
+  popup: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    gap: SPACING.xs,
+    ...SHADOW.lifted,
+  },
+  infoText: { fontSize: 14, color: COLORS.text, lineHeight: 21 },
+  option: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.md,
+    gap: SPACING.sm,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 12,
+    marginTop: SPACING.xs,
   },
-  switchLabel: { fontSize: 14, fontWeight: "800", color: COLORS.text },
-  switchHint: { fontSize: 11, color: COLORS.textMuted, marginTop: 2, lineHeight: 15 },
+  optionOn: { borderColor: COLORS.primary, backgroundColor: COLORS.surfaceAlt },
+  optionText: { flex: 1, fontSize: 16, fontWeight: "700", color: COLORS.text },
+  optionTextOn: { color: COLORS.primary },
 
   actions: {
     flexDirection: "row",
     gap: SPACING.sm,
-    paddingHorizontal: SPACING.lg,
+    // Lines up with the fields above, which now sit on SPACING.md.
+    paddingHorizontal: SPACING.md,
     paddingTop: SPACING.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: COLORS.border,
   },
   btn: {
     flex: 1,
-    height: 52,
+    // Same 38 as `input`, on purpose: the buttons sit directly under a column
+    // of fields, so a different height reads as a different kind of control.
+    height: 38,
     borderRadius: RADIUS.md,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: SPACING.sm,
+    gap: SPACING.xs,
   },
   btnGhost: { borderWidth: 1, borderColor: COLORS.border },
-  btnGhostText: { color: COLORS.textMuted, fontWeight: "700", fontSize: 15 },
+  btnGhostText: { color: COLORS.textMuted, fontWeight: "700", fontSize: 14 },
   btnPrimary: { backgroundColor: COLORS.primary, flex: 1.6 },
   btnOff: { opacity: 0.5 },
-  btnPrimaryText: { color: COLORS.white, fontWeight: "800", fontSize: 16 },
+  btnPrimaryText: { color: COLORS.white, fontWeight: "800", fontSize: 14 },
 });
