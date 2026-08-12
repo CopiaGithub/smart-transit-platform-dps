@@ -39,10 +39,7 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
       </DrawerContentScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
-        <Pressable
-          style={styles.logout}
-          onPress={() => signOut(() => props.navigation.closeDrawer())}
-        >
+        <Pressable style={styles.logout} onPress={() => signOut()}>
           <Feather name="log-out" size={18} color={COLORS.danger} />
           <Text style={styles.logoutText}>Sign out</Text>
         </Pressable>
