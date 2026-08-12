@@ -136,7 +136,7 @@ export default function GateInScreen() {
           accessibilityLabel={`Record ${LABELS.vehicle} ${bus?.BusNumber ?? ""} in`}
         >
           <Feather name="log-in" size={26} color={COLORS.white} />
-          <Text style={styles.goText}>{submitting ? "…" : "BUS IN"}</Text>
+          <Text style={styles.goText}>{submitting ? "…" : LABELS.recordIn.toUpperCase()}</Text>
         </Pressable>
       </View>
 

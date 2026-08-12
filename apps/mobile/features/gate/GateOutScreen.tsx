@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useCallback } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import FlashBar, { useFlash } from "../../components/FlashBar";
 import SlotBadge from "../../components/SlotBadge";
 import { LABELS, STATUS, STATUS_COLOR, type Status } from "../../constants/domain";
@@ -31,6 +31,29 @@ export default function GateOutScreen() {
     const result = await dispatch(gateOut({ busId, busNumber }));
     if (gateOut.fulfilled.match(result)) show(String(result.payload));
   };
+
+  /**
+   * Departing is the one gate action that cannot be taken back — §5.7 undoes
+   * the last platform assignment, not a departure — and the platform is handed
+   * to the next bus the moment it lands. So the bus is named in the question:
+   * the mistake this catches is tapping the row above or below the intended
+   * one, which a bare "are you sure" would wave straight through.
+   */
+  const confirmRelease = (busId: number, busNumber: string, platform: number | null) =>
+    Alert.alert(
+      `Send ${LABELS.vehicle} ${busNumber} out?`,
+      platform == null
+        ? "This cannot be undone."
+        : `${LABELS.slot} ${platform} is freed for the next ${LABELS.vehicle.toLowerCase()}. This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: LABELS.recordOut,
+          style: "destructive",
+          onPress: () => void release(busId, busNumber),
+        },
+      ],
+    );
 
   return (
     <View style={styles.root}>
@@ -93,7 +116,7 @@ export default function GateOutScreen() {
                     (pressed || submitting) && styles.btnPressed,
                   ]}
                   disabled={submitting}
-                  onPress={() => release(item.BusId, item.BusNumber)}
+                  onPress={() => confirmRelease(item.BusId, item.BusNumber, item.PlatformNumber)}
                 >
                   <Feather name="log-out" size={17} color={COLORS.white} />
                   <Text style={styles.btnText}>{LABELS.recordOut.toUpperCase()}</Text>

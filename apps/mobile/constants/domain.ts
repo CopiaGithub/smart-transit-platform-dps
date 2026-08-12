@@ -16,8 +16,8 @@ export const LABELS = {
   // The verbs match the manual's own §5.1 wording, "Record a bus in / out".
   gateIn: "Entry Gate",
   gateOut: "Exit Gate",
-  recordIn: "Record In",
-  recordOut: "Record Out",
+  recordIn: "Bus In",
+  recordOut: "Bus Out",
 };
 
 /** Station numbers painted on the ground, boarding point -> exit gate. */
