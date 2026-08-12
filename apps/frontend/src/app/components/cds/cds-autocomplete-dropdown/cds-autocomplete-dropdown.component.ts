@@ -49,6 +49,12 @@ export class CdsAutocompleteDropdownComponent
   @Input() placeholder = 'Search...';
   @Input() options: { name: string; value: any; code?: string }[] = [];
   @Input() required = false;
+  /**
+   * Drop the label row entirely. For grids that carry their own column headers —
+   * a blank label there still reserves a line and prints a stray asterisk above
+   * every cell.
+   */
+  @Input() hideLabel = false;
   @Input() showNoRecords = false;
   /**
    * Write `option.value` to the form control instead of the whole option.

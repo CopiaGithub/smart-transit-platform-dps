@@ -132,7 +132,10 @@
               </p>
             </div>
 
-            <div class="flex items-center justify-between">
+            <!-- No "Forgot password?": there is no reset endpoint behind it, and
+                 a link that only opens a "not configured yet" popup is worse than
+                 no link. Restore it with the reset flow, not before. -->
+            <div class="flex items-center">
               <label class="login-remember">
                 <input
                   type="checkbox"
@@ -141,15 +144,6 @@
                 />
                 Remember me
               </label>
-
-              <button
-                data-testid="forgot-password-link"
-                class="text-sm hover:underline login-link"
-                type="button"
-                (click)="goToPassResetPage(null)"
-              >
-                Forgot password?
-              </button>
             </div>
 
             <!-- Stays enabled while the form is incomplete: submitting is what
@@ -169,16 +163,4 @@
       </div>
     </div>
   </div>
-
-  <app-popup
-    [heading]="popupHeading"
-    [content]="popupContent"
-    [isVisible]="isPopupVisible"
-    [headerBgColor]="HeadingColor"
-    [ButtonColor]="buttonColor"
-    [imageUrl]="popupImage"
-    (closed)="onPopupClosed()"
-    (confirmed)="onPopupConfirmed()"
-  >
-  </app-popup>
 </div>

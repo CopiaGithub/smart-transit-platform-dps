@@ -133,6 +133,23 @@ describe('MasterPageComponent', () => {
     http.verify();
   });
 
+  it('does not query the list until Search is pressed', () => {
+    flushInitialRequests();
+
+    component.filterForm.get('search')!.setValue('Maha');
+    component.filterForm.get('status')!.setValue({ name: 'Inactive', value: false });
+
+    // Typing and picking on their own must not reach the server.
+    http.expectNone((r) => r.url === `${base}/StateMaster`);
+
+    component.onSearch();
+    const request = http.expectOne((r) => r.url === `${base}/StateMaster`);
+    expect(request.request.params.get('SearchTerm')).toBe('Maha');
+
+    request.flush(EMPTY_PAGE);
+    http.verify();
+  });
+
   it('clears the child filter when the parent changes', () => {
     flushInitialRequests();
 

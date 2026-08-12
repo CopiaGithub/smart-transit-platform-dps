@@ -169,6 +169,11 @@ export class CdsCollectionFieldComponent implements ControlValueAccessor {
     this.publish();
   }
 
+  /** Checkbox and radio cells are centred, so their headers are too. */
+  isBoolean(column: CollectionColumn): boolean {
+    return column.type === 'toggle' || column.type === 'radio';
+  }
+
   trackByIndex(index: number): number {
     return index;
   }

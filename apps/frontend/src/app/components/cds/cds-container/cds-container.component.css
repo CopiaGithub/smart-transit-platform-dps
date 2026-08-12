@@ -7,6 +7,45 @@
   display: block;
 }
 
+/* Panel chrome comes from the brand tokens. It used to be Tailwind blue, which
+   put a second accent colour on screens whose buttons, sidebar and logo are all
+   emerald — every panel on every screen now reads the same. */
+.cds-panel-head {
+  background: var(--argon-primary-muted);
+  border-bottom: 1px solid var(--argon-border-color);
+}
+
+.cds-panel-title {
+  font-size: 0.9375rem;
+  font-weight: var(--argon-font-weight-semibold);
+  letter-spacing: 0.01em;
+  color: var(--argon-primary-dark);
+  margin: 0;
+}
+
+.cds-panel-icon {
+  color: var(--argon-primary);
+}
+
+.cds-panel-iconbtn {
+  color: var(--argon-primary);
+  border-radius: 0.375rem;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.cds-panel-iconbtn:hover {
+  color: var(--argon-primary-dark);
+  background: var(--argon-primary-subtle);
+}
+
+.cds-panel-action {
+  background: var(--argon-gradient-primary);
+}
+
+.cds-panel-action:hover {
+  filter: brightness(0.95);
+}
+
 :host .border.border-gray-200.rounded-lg {
   border: 0 !important;
   border-radius: 0.375rem;

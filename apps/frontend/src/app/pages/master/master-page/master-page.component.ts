@@ -4,7 +4,7 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Observable, debounceTime, distinctUntilChanged, take } from 'rxjs';
+import { Observable, take } from 'rxjs';
 
 import { TableComponent } from '../../../components/cds/cds-table/table.component';
 import { CdsContainerComponent } from '../../../components/cds/cds-container/cds-container.component';
@@ -27,8 +27,6 @@ import {
   MasterFilterConfig,
   MasterPageConfig,
 } from './master-page.types';
-
-const SEARCH_DEBOUNCE_MS = 300;
 
 const STATUS_OPTIONS: DropdownModel[] = [
   { name: 'Active', value: true },
@@ -77,6 +75,8 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
   readonly totalCount = signal(0);
   readonly tableData = signal<any[]>([]);
   readonly pageResetCounter = signal(0);
+  /** Mirrors filter.currentPage for the table, which is rebuilt on every load. */
+  readonly currentPage = signal(1);
   /** Distinguishes "no records yet" from "no records match your filters". */
   readonly isFiltered = signal(false);
   readonly isLoading = signal(false);
@@ -108,15 +108,11 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
     for (const filterConfig of this.config.filters) {
       const control = this.filterForm.get(filterConfig.name)!;
 
+      // Nothing here refetches the list. Filters are applied only by the Search
+      // button (or Enter, which submits the same form) — typing a term or picking
+      // a dropdown value used to fire its own request, which meant a half-built
+      // filter set hitting the server and the grid changing under the user.
       if (filterConfig.type === 'search') {
-        // Server-side search, debounced so a burst of keystrokes is one request.
-        control.valueChanges
-          .pipe(
-            debounceTime(SEARCH_DEBOUNCE_MS),
-            distinctUntilChanged(),
-            takeUntilDestroyed(this.destroyRef),
-          )
-          .subscribe(() => this.loadData(1));
         continue;
       }
 
@@ -228,6 +224,7 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
 
   loadData(pageNumber: number = this.filter.currentPage): void {
     this.filter.currentPage = pageNumber;
+    this.currentPage.set(pageNumber);
     const query = this.buildQuery(pageNumber);
     this.isFiltered.set(this.hasActiveFilters(query));
     this.isLoading.set(true);
@@ -284,7 +281,8 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
   }
 
   /** Name for one record — used in dialog titles and success messages. */
-  private get singular(): string {
+  /** Public: the template names the Add button after it ("Add Display"). */
+  get singular(): string {
     return this.config.singular ?? this.config.title.replace(/ Master$/i, '');
   }
 
@@ -311,7 +309,7 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
       const dialogRef = this.dialog.open(EditModelComponent, {
         width: this.dialogWidth,
         data: {
-          title: `Add New ${this.singular}`,
+          title: `Add ${this.singular}`,
           formFields: descriptors,
           formData: { ...defaultFormData(fields), ...collections },
           allData: this.tableData(),

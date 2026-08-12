@@ -271,5 +271,11 @@ export class HomeComponent extends BaseComponent implements OnInit, OnDestroy {
 
   // ── Quick access ──────────────────────────────────────────────────────────
 
-  readonly shortcuts = HOME_SHORTCUTS;
+  /**
+   * Every tile points at a master screen, and every master controller is
+   * [Authorize(Roles = Admin)]. Offering them to a teacher or a gate operator
+   * would just be a grid of buttons that lead to a 403, so the whole section is
+   * admin-only and hides itself for everyone else.
+   */
+  readonly shortcuts = this.isAdmin ? HOME_SHORTCUTS : [];
 }

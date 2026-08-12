@@ -8,12 +8,11 @@ import {
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth/auth.service';
-import { PopupComponent } from '../../components/popup/popup.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, PopupComponent],
+  imports: [ReactiveFormsModule, CommonModule],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
 })
@@ -35,15 +34,6 @@ export class LoginComponent implements OnInit {
     password: new FormControl('', [Validators.required]),
     rememberMe: new FormControl(false),
   });
-
-  popupHeading = '';
-  popupContent = '';
-  isPopupVisible = false;
-  popupImage = '';
-  HeadingColor = '';
-  buttonColor = '';
-  popupConfirmLabel = '';
-  callbackFunction?: () => void;
 
   constructor(
     private router: Router,
@@ -75,33 +65,6 @@ export class LoginComponent implements OnInit {
   hasError(field: 'username' | 'password'): boolean {
     const control = this.formgroup.get(field);
     return !!control?.invalid && (control.touched || this.submitted());
-  }
-
-  onPopupClosed(): void {
-    this.isPopupVisible = false;
-    this.popupConfirmLabel = '';
-    this.callbackFunction = undefined;
-  }
-
-  onPopupConfirmed(): void {
-    this.isPopupVisible = false;
-    this.popupConfirmLabel = '';
-    if (this.callbackFunction) {
-      this.callbackFunction();
-      this.callbackFunction = undefined;
-    }
-  }
-
-  goToPassResetPage(_email: string | null): void {
-    // Placeholder — wire forgot-password page later.
-    // PopupComponent picks its variant by matching a colour word in these
-    // strings, so they are class-style names, not hex. Nothing here is an
-    // error, so it falls through to the neutral "info" styling.
-    this.popupHeading = 'Forgot Password';
-    this.popupContent = 'Password reset is not configured yet.';
-    this.HeadingColor = '';
-    this.buttonColor = '';
-    this.isPopupVisible = true;
   }
 
   togglePasswordVisibility(): void {

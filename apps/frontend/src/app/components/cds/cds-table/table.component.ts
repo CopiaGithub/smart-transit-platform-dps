@@ -111,6 +111,15 @@ export class TableComponent implements OnInit {
   @Output() onPrevious = new EventEmitter<any>();
   @Input() isServerSidePagination: boolean = false;
   @Input() totalRecords: number = 0;
+  /**
+   * Server-side pagination only: the page the caller is actually holding.
+   *
+   * The caller usually hides this table behind an *ngIf while the next page
+   * loads, which destroys and rebuilds it — a fresh instance starts at page 1
+   * and would show "1 / N" with Previous greyed out while displaying page 3.
+   * Binding the page back in keeps the pager honest across that rebuild.
+   */
+  @Input() page: number = 1;
 
   emitTableChange() {
     // debounce rapid consecutive changes so parent sees a single update
@@ -223,6 +232,10 @@ export class TableComponent implements OnInit {
     this.cellValueChange.emit({ row, key, value });
   }
   ngOnChanges() {
+    if (this.isServerSidePagination && this.page !== this.currentPage) {
+      this.currentPage = this.page;
+    }
+
     this.calculateTotalPages();
     if (this.currentPage > this.totalPages) {
       this.currentPage = 1;

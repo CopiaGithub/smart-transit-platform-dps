@@ -14,7 +14,7 @@
               type="checkbox"
               [checked]="allSelected"
               (click)="toggleMasterSelection($event)"
-              class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+              class="form-checkbox h-5 w-5 rounded cds-table-check"
             />
           </th>
 
@@ -66,7 +66,7 @@
                 [attr.data-testid]="'checkbox-' + tableId + '-' + i"
                 [checked]="isSelected(row)"
                 (click)="$event.stopPropagation(); toggleSelection(row, $event)"
-                class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500 font-heading"
+                class="form-checkbox h-5 w-5 rounded cds-table-check font-heading"
               />
             </td>
 
@@ -105,7 +105,7 @@
                   <ng-container *ngIf="shouldShowCell(header, row)">
                     <input
                       type="number"
-                      class="h-[36px] px-3 border border-gray-300 rounded-md bg-white min-w-[90px] max-w-[130px] w-full focus:ring-2 focus:ring-blue-500"
+                      class="h-[36px] px-3 border border-gray-300 rounded-md bg-white min-w-[90px] max-w-[130px] w-full cds-table-input"
                       [(ngModel)]="row[header.key]"
                       (click)="$event.stopPropagation()"
                       (ngModelChange)="
@@ -122,7 +122,7 @@
                   <ng-container *ngIf="shouldShowCell(header, row)">
                     <input
                       type="text"
-                      class="h-[36px] px-3 border border-gray-300 rounded-md bg-white min-w-[90px] max-w-[130px] w-full focus:ring-2 focus:ring-blue-500"
+                      class="h-[36px] px-3 border border-gray-300 rounded-md bg-white min-w-[90px] max-w-[130px] w-full cds-table-input"
                       [(ngModel)]="row[header.key]"
                       (click)="$event.stopPropagation()"
                       (ngModelChange)="
@@ -136,7 +136,7 @@
                 <!-- Dropdown type -->
                 <ng-container *ngIf="header.type === 'dropdown'">
                   <select
-                    class="h-[36px] px-3 border border-gray-300 rounded-md bg-white min-w-[100px] focus:ring-2 focus:ring-blue-500"
+                    class="h-[36px] px-3 border border-gray-300 rounded-md bg-white min-w-[100px] cds-table-input"
                     [ngModel]="getDropdownValue(row, header.key)"
                     (ngModelChange)="onDropdownChange(row, header.key, $event)"
                     (click)="$event.stopPropagation()"
@@ -166,7 +166,7 @@
                 <ng-container *ngIf="header.type === 'specification'">
                   <button
                     (click)="onViewSepcification(row, $event)"
-                    class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-500 hover:bg-blue-50"
+                    class="inline-flex items-center justify-center w-8 h-8 rounded-full cds-table-iconbtn"
                   >
                     <mat-icon>visibility</mat-icon>
                   </button>
@@ -184,7 +184,7 @@
                     (click)="
                       viewAccessories.emit(row); $event.stopPropagation()
                     "
-                    class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-500 hover:bg-blue-50"
+                    class="inline-flex items-center justify-center w-8 h-8 rounded-full cds-table-iconbtn"
                     title="View Accessories"
                   >
                     <mat-icon>visibility</mat-icon>
@@ -192,7 +192,7 @@
 
                   <button
                     (click)="onDynamicAdd(row, header.type, $event)"
-                    class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-500 hover:bg-blue-50"
+                    class="inline-flex items-center justify-center w-8 h-8 rounded-full cds-table-iconbtn"
                     [title]="
                       header.type === 'accessories'
                         ? 'Add Accessories'
@@ -209,7 +209,7 @@
                     type="checkbox"
                     [checked]="row[header.key]"
                     (change)="onCheckboxChange(row, header.key, $event)"
-                    class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                    class="form-checkbox h-5 w-5 rounded cds-table-check"
                     (click)="$event.stopPropagation()"
                   />
                 </ng-container>
@@ -222,7 +222,7 @@
                       (click)="
                         onEditAccessory(row, $event); $event.stopPropagation()
                       "
-                      class="inline-flex items-center justify-center w-8 h-8 rounded-full text-green-500 hover:bg-green-50"
+                      class="inline-flex items-center justify-center w-8 h-8 rounded-full cds-table-iconbtn"
                       title="Edit"
                     >
                       <mat-icon>edit</mat-icon>
@@ -232,7 +232,7 @@
                       (click)="
                         onDeleteAccessory(row, $event); $event.stopPropagation()
                       "
-                      class="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-500 hover:bg-red-50"
+                      class="inline-flex items-center justify-center w-8 h-8 rounded-full cds-table-iconbtn cds-table-iconbtn--danger"
                       title="Remove"
                     >
                       <mat-icon>delete</mat-icon>
@@ -247,7 +247,7 @@
                   type="checkbox"
                   [checked]="row[header.key]"
                   (change)="onCheckboxChange(row, header.key, $event)"
-                  class="form-checkbox h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                  class="form-checkbox h-5 w-5 rounded cds-table-check"
                   (click)="$event.stopPropagation()"
                 />
               </ng-container> -->
@@ -312,7 +312,7 @@
                       (click)="
                         openAttachmentsModal(row[header.key], header.label)
                       "
-                      class="text-blue-500 hover:underline"
+                      class="cds-table-link hover:underline"
                     >
                       View Attachment
                     </button>
@@ -409,7 +409,7 @@
                     row.showView !== undefined ? row.showView : showViewAction
                   "
                   (click)="onView(row, $event)"
-                  class="inline-flex items-center justify-center w-8 h-8 rounded-full text-blue-500 hover:bg-blue-50"
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-full cds-table-iconbtn"
                 >
                   <mat-icon>visibility</mat-icon>
                 </button>
@@ -418,21 +418,21 @@
                     row.showEdit !== undefined ? row.showEdit : showEditAction
                   "
                   (click)="onEdit(row, $event)"
-                  class="inline-flex items-center justify-center w-8 h-8 rounded-full text-green-500 hover:bg-green-50"
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-full cds-table-iconbtn"
                 >
                   <mat-icon>edit</mat-icon>
                 </button>
                 <button
                   *ngIf="showDeleteAction"
                   (click)="onDelete(row, $event)"
-                  class="inline-flex items-center justify-center w-8 h-8 rounded-full text-red-500 hover:bg-red-50"
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-full cds-table-iconbtn cds-table-iconbtn--danger"
                 >
                   <mat-icon>delete</mat-icon>
                 </button>
                 <button
                   *ngIf="showDownloadAction"
                   (click)="onDownload(row, $event)"
-                  class="inline-flex items-center justify-center w-8 h-8 rounded-full text-green-500 hover:bg-green-50"
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-full cds-table-iconbtn"
                 >
                   <mat-icon>download</mat-icon>
                 </button>
@@ -464,7 +464,7 @@
             <!-- Add Contact column -->
             <td
               *ngIf="addContacts"
-              class="px-3 py-1 text-sm text-blue-600 cursor-pointer hover:underline font-heading"
+              class="px-3 py-1 text-sm cds-table-link cursor-pointer hover:underline font-heading"
               (click)="onAddContacts(row)"
             >
               Add Contact

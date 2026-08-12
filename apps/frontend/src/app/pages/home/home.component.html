@@ -167,6 +167,7 @@
        Outside the isLoading gate above on purpose: these depend on nothing that
        is fetched, and going somewhere else is exactly what you want when the
        dashboard is still loading or has failed to load. -->
+  <ng-container *ngIf="shortcuts.length">
   <h2 class="dash-section-title">Quick access</h2>
   <div class="dash-grid">
     <button
@@ -186,6 +187,7 @@
       </span>
     </button>
   </div>
+  </ng-container>
 </div>
 
 <app-popup

@@ -6,6 +6,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { PageHeaderShellComponent } from '../page-header-shell/page-header-shell.component';
 import { PageBreadcrumbService } from '../../services/page-breadcrumb.service';
+import { AuthService } from '../../services/auth/auth.service';
+import { SIDEBAR_MENU, SidebarMenuItem, menuForRole } from './sidebar-menu';
 
 @Component({
   selector: 'app-mainlayout',
@@ -22,75 +24,10 @@ import { PageBreadcrumbService } from '../../services/page-breadcrumb.service';
 })
 export class MainlayoutComponent implements OnInit {
   /**
-   * Static menu for now. It will be replaced by the role-assigned tree from
-   * GET /api/MenuAssignment/assigned-menus/{roleId} — the sidebar already
-   * renders whatever shape it is handed, so only the source changes.
+   * The sidebar as this user's role sees it. Filled in ngOnInit, once the role
+   * is known — see sidebar-menu.ts for the tree and who each entry is for.
    */
-  sidebarMenu: any[] = [
-    {
-      name: 'Home',
-      route: '/mainlayout/home',
-      icon: 'home',
-    },
-    {
-      name: 'Transport Masters',
-      icon: 'directions_bus',
-      children: [
-        { name: 'Routes Master', route: '/mainlayout/master/routes-master' },
-        { name: 'Buses Master', route: '/mainlayout/master/buses-master' },
-        {
-          name: 'Bus-Route Allocation',
-          route: '/mainlayout/master/bus-route-allocation',
-        },
-      ],
-    },
-    {
-      name: 'Infrastructure Masters',
-      icon: 'meeting_room',
-      children: [
-        { name: 'Gate Master', route: '/mainlayout/master/gate-master' },
-        { name: 'Platforms Master', route: '/mainlayout/master/platforms-master' },
-        { name: 'Display Master', route: '/mainlayout/master/display-master' },
-      ],
-    },
-    {
-      name: 'Academic Masters',
-      icon: 'school',
-      children: [
-        {
-          name: 'Academic Year Master',
-          route: '/mainlayout/master/academic-year-master',
-        },
-        { name: 'Student Master', route: '/mainlayout/master/student-master' },
-        { name: 'Parent Master', route: '/mainlayout/master/parent-master' },
-        {
-          name: 'Student-Parent Mapping',
-          route: '/mainlayout/master/student-parent-mapping',
-        },
-      ],
-    },
-    {
-      name: 'Security & Navigation',
-      icon: 'admin_panel_settings',
-      children: [
-        { name: 'Role Master', route: '/mainlayout/master/role-master' },
-        { name: 'User Master', route: '/mainlayout/master/user-master' },
-        { name: 'Menu Master', route: '/mainlayout/master/menu-master' },
-        { name: 'Menu Assignment', route: '/mainlayout/master/menu-assignment' },
-      ],
-    },
-    {
-      name: 'Location Masters',
-      icon: 'public',
-      children: [
-        { name: 'Country Master', route: '/mainlayout/master/country-master' },
-        { name: 'Region Master', route: '/mainlayout/master/region-master' },
-        { name: 'State Master', route: '/mainlayout/master/state-master' },
-        { name: 'City Master', route: '/mainlayout/master/city-master' },
-        { name: 'PinCode Master', route: '/mainlayout/master/pincode-master' },
-      ],
-    },
-  ];
+  sidebarMenu: SidebarMenuItem[] = [];
 
   sidebarCollapsed = false;
   isTablet = false;
@@ -99,6 +36,7 @@ export class MainlayoutComponent implements OnInit {
   constructor(
     private dialog: MatDialog,
     private breadcrumbService: PageBreadcrumbService,
+    private auth: AuthService,
   ) {}
 
   get hasOpenDialog(): boolean {
@@ -111,6 +49,9 @@ export class MainlayoutComponent implements OnInit {
 
   ngOnInit(): void {
     this.checkScreen();
+    // Breadcrumbs are fed the same filtered tree, so they never name a screen
+    // this role cannot open.
+    this.sidebarMenu = menuForRole(SIDEBAR_MENU, this.auth.getRole());
     this.breadcrumbService.setMenuItems(this.sidebarMenu);
   }
 

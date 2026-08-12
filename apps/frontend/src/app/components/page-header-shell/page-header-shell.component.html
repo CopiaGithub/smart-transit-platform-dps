@@ -31,6 +31,117 @@
         </h2>
       </div>
 
+      <!-- Dispersal session. Shown on every screen because it governs every
+           screen: nothing operational can be recorded until a session is open.
+           Held back until the first answer arrives, so it never flashes "no
+           session" at a user who has one. -->
+      @if (session.hasLoaded()) {
+        <div
+          class="page-session"
+          [class.page-session--open]="session.isOpen()"
+          data-testid="header-session-status"
+          role="status"
+        >
+          <span class="page-session-dot" aria-hidden="true"></span>
+          @if (session.isOpen()) {
+            <span class="page-session-label">Session open</span>
+            @if (session.runningFor(); as elapsed) {
+              <span class="page-session-elapsed">· {{ elapsed }}</span>
+            }
+          } @else {
+            <span class="page-session-label">No session open</span>
+          }
+        </div>
+      }
+
+      <!-- Who is signed in, and as what. The role matters more than the name
+           here: it is what decides whether a screen will answer or refuse, and
+           it appears nowhere else in the app. -->
+      @if (userName) {
+        <div class="page-user" data-testid="header-user">
+          <!-- The whole block is the trigger. A separate icon button beside the
+               name read as a third action in a row that already has two. -->
+          <button
+            type="button"
+            class="page-user-trigger"
+            [class.page-user-trigger--open]="isMenuOpen()"
+            data-testid="header-profile-button"
+            [attr.aria-label]="'Account: ' + userName"
+            aria-haspopup="menu"
+            [attr.aria-expanded]="isMenuOpen()"
+            (click)="toggleMenu($event)"
+          >
+            <span class="page-user-avatar" aria-hidden="true">{{ initials }}</span>
+            <span class="page-user-text">
+              <span class="page-user-name" [title]="userName">{{ userName }}</span>
+              @if (roleName) {
+                <span class="page-user-role" [title]="roleName">{{ roleName }}</span>
+              }
+            </span>
+            <mat-icon class="page-user-caret" aria-hidden="true">expand_more</mat-icon>
+          </button>
+
+          @if (isMenuOpen()) {
+            <!-- Click inside must not reach the document listener that closes
+                 this, or every item would dismiss the menu before it fired. -->
+            <div
+              class="page-user-menu"
+              role="menu"
+              data-testid="header-user-menu"
+              (click)="$event.stopPropagation()"
+            >
+              <div class="page-user-menu-head">
+                <span class="page-user-menu-name">{{ userName }}</span>
+                @if (roleName) {
+                  <span class="page-user-menu-role">{{ roleName }}</span>
+                }
+              </div>
+
+              @if (emailId || employeeCode) {
+                <dl class="page-user-menu-facts">
+                  @if (emailId) {
+                    <dt>Email</dt>
+                    <dd [title]="emailId">{{ emailId }}</dd>
+                  }
+                  @if (employeeCode) {
+                    <dt>Employee code</dt>
+                    <dd>{{ employeeCode }}</dd>
+                  }
+                </dl>
+              }
+
+              <div class="page-user-menu-sep"></div>
+
+              <!-- Disabled on purpose: AuthController exposes login and nothing
+                   else, so there is no endpoint behind this yet. Shown rather
+                   than hidden so it is clear the app knows it is missing. -->
+              <button
+                type="button"
+                class="page-user-menu-item"
+                role="menuitem"
+                disabled
+                title="Not available yet — password reset is not configured."
+              >
+                <mat-icon aria-hidden="true">lock_reset</mat-icon>
+                Change password
+                <span class="page-user-menu-soon">Soon</span>
+              </button>
+
+              <button
+                type="button"
+                class="page-user-menu-item page-user-menu-item--danger"
+                role="menuitem"
+                data-testid="header-logout-button"
+                (click)="logout()"
+              >
+                <mat-icon aria-hidden="true">logout</mat-icon>
+                Log out
+              </button>
+            </div>
+          }
+        </div>
+      }
+
       @if (
         (header.state().showButton &&
           (header.state().buttonText || header.state().buttonIcon)) ||

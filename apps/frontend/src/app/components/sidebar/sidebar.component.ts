@@ -22,9 +22,7 @@ import {
   animate,
 } from '@angular/animations';
 import { filter } from 'rxjs/operators';
-import { ConfirmationDialogComponent } from '../cds/confirmation-dialog/confirmation-dialog.component';
 import { MatDialog } from '@angular/material/dialog';
-import { AuthService } from '../../services/auth/auth.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -67,8 +65,6 @@ import { AuthService } from '../../services/auth/auth.service';
   ],
 })
 export class SidebarComponent implements OnInit, OnChanges {
-  userName: string = '';
-  previewUrl: string | null = null;
   appTitle: string = 'Transit Display';
   @Input() isTablet: boolean = false;
   @Input() isCollapsed: boolean = false;
@@ -84,7 +80,6 @@ export class SidebarComponent implements OnInit, OnChanges {
     private route: ActivatedRoute,
     private elRef: ElementRef,
     private dialog: MatDialog,
-    private authService: AuthService,
   ) {}
 
   ngOnChanges() {
@@ -93,8 +88,6 @@ export class SidebarComponent implements OnInit, OnChanges {
   }
 
   ngOnInit(): void {
-    this.userName = this.authService.getUserData()?.name ?? '';
-
     this.expandActiveMenuPath();
 
     this.router.events
@@ -109,22 +102,6 @@ export class SidebarComponent implements OnInit, OnChanges {
 
   showSubmenuOnHover(index: number): void {
     if (this.isCollapsed) this.activeMenuIndex = index;
-  }
-
-  logout() {
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
-      data: {
-        title: 'Confirm Logout',
-        message: 'Are you sure you want to logout?',
-      },
-    });
-
-    dialogRef.afterClosed().subscribe((result) => {
-      if (result) {
-        this.authService.logout();
-        this.router.navigate(['/login']);
-      }
-    });
   }
 
   hideSubmenuOnLeave(): void {
@@ -420,8 +397,4 @@ export class SidebarComponent implements OnInit, OnChanges {
     this.selectedMenuItem = null;
   }
 
-  redirectToProfile(): void {
-    // TODO: point at the Profile screen (Group H) once it exists.
-    this.router.navigate(['/mainlayout/home']);
-  }
 }
