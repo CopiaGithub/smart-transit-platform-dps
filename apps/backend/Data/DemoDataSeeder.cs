@@ -564,25 +564,44 @@ public static class DemoDataSeeder
             .Select(b => new { BusId = b.Id, RouteId = b.RouteId!.Value })
             .ToListAsync();
 
+        // A standing allocation is unique on the bus *and* on the route
+        // (UX_bus_route_allocation_Standing_Bus / _Standing_Route), so both sides
+        // have to be checked before inserting. The shared dev database has buses
+        // added through the app that share a default route with a seeded bus;
+        // taking only the bus into account inserted a second standing row for
+        // that route and the unique index took the whole application down at
+        // startup. Whoever holds the route first keeps it — the loser simply
+        // gets no standing row, which the replace flow can still override.
+        var taken = await db.BusRouteAllocations
+            .Where(a => !a.IsDeleted
+                        && a.AllocationType == AllocationKind.Standing
+                        && a.EffectiveTo == null)
+            .Select(a => new { a.BusId, a.RouteId })
+            .ToListAsync();
+
+        var busesTaken = taken.Select(a => a.BusId).ToHashSet();
+        var routesTaken = taken.Select(a => a.RouteId).ToHashSet();
+
         foreach (var pair in pairs)
         {
-            int routeId = pair.RouteId, busId = pair.BusId;
-            // Match on the bus alone: UX_bus_route_allocation_Standing_Bus allows
-            // one standing row per bus, whatever route it points at. Including
-            // RouteId here missed a bus already standing on another route and
-            // then hit that index.
-            await GetOrAddAsync(db, db.BusRouteAllocations,
-                a => a.BusId == busId && a.AllocationType == AllocationKind.Standing,
-                () => new BusRouteAllocation
-                {
-                    RouteId = routeId,
-                    BusId = busId,
-                    AllocationType = AllocationKind.Standing,
-                    EffectiveFrom = from,
-                    EffectiveTo = null,
-                    Reason = "Standing allocation for the 2026-2027 school year."
-                });
+            if (busesTaken.Contains(pair.BusId) || routesTaken.Contains(pair.RouteId))
+                continue;
+
+            busesTaken.Add(pair.BusId);
+            routesTaken.Add(pair.RouteId);
+
+            db.BusRouteAllocations.Add(new BusRouteAllocation
+            {
+                RouteId = pair.RouteId,
+                BusId = pair.BusId,
+                AllocationType = AllocationKind.Standing,
+                EffectiveFrom = from,
+                EffectiveTo = null,
+                Reason = "Standing allocation for the 2026-2027 school year."
+            });
         }
+
+        await db.SaveChangesAsync();
     }
 
     // ------------------------------------------------- one worked dispersal day
