@@ -107,8 +107,10 @@
                 → replaced by {{ row.ReplacedByBusNumber }}
               </span>
             </td>
-            <td class="rep-route">{{ row.RouteName ?? "No route" }}</td>
-            <td>
+            <td class="rep-route" [title]="row.RouteName ?? 'No route'">
+              {{ row.RouteName ?? "No route" }}
+            </td>
+            <td class="rep-status-cell">
               <span class="rep-status" [ngClass]="statusClass(row.Status)">
                 {{ row.Status }}
               </span>
