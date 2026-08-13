@@ -169,6 +169,12 @@
 
 .rep-table {
   width: 100%;
+  /* Fixed layout so the column widths below actually hold. Under auto layout
+     they are only hints and the longest route name still drags its column
+     wider than the rest. min-width keeps the columns readable on a phone —
+     the wrapper scrolls sideways past that. */
+  table-layout: fixed;
+  min-width: 44rem;
   border-collapse: collapse;
   font-size: var(--argon-table-body-font-size);
 }
@@ -197,10 +203,43 @@
   background: var(--argon-gray-100);
 }
 
-.rep-num {
+/* Written as `.rep-table th/td` rather than a bare `.rep-num`: the header rule
+   above is two classes deep, so a bare `.rep-num` loses to it and the headings
+   sat left-aligned over right-aligned numbers. */
+.rep-table th.rep-num,
+.rep-table td.rep-num {
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+/* On a wide screen the eight short columns never fill the card, and that slack
+   has to go somewhere. Letting one column absorb it all opens a hole (Route sat
+   a screen-width away from Status on an empty log), so the widths below hand
+   every column a share and keep the gaps even. They add up to 100%. */
+.rep-table th:nth-child(1) {
+  width: 10%;
+}
+.rep-table th:nth-child(2) {
+  width: 22%;
+}
+.rep-table th:nth-child(3) {
+  width: 13%;
+}
+.rep-table th:nth-child(4) {
+  width: 11%;
+}
+.rep-table th:nth-child(5) {
+  width: 10%;
+}
+.rep-table th:nth-child(6) {
+  width: 13%;
+}
+.rep-table th:nth-child(7) {
+  width: 10%;
+}
+.rep-table th:nth-child(8) {
+  width: 11%;
 }
 
 .rep-bus {
@@ -211,6 +250,11 @@
 
 .rep-route {
   color: var(--argon-gray-600);
+  /* Fixed layout cannot widen for a long route name, so clip it rather than
+     let it wrap the row to two lines. The full name stays in the tooltip. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rep-station {
