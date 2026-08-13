@@ -44,7 +44,7 @@ pipeline {
         BACKEND_PROJECT      = "${WORKSPACE}\\apps\\backend\\transit-display-platform-api.csproj"
         BACKEND_PUBLISH_PATH = "${WORKSPACE}\\publish\\api"
         // Must match the IIS app pool for this site/environment
-        APP_POOL_NAME        = 'tdpdev'
+        APP_POOL_NAME        = 'tdpdev_api'
 
         TIMESTAMP = "${new Date().format('yyyyMMddHHmmss')}"
     }
