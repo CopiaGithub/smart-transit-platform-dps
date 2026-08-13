@@ -30,7 +30,7 @@ public class StudentParentMappingService : IStudentParentMappingService
 
         var query = BaseQuery();
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(m => m.IsActive == activeFilter.Value);
 

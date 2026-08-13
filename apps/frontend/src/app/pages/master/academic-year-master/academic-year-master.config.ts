@@ -13,7 +13,9 @@ export const ACADEMIC_YEAR_MASTER_CONFIG: MasterPageConfig = {
   singular: 'Academic Year',
   listTitle: 'Academic Year List',
   resource: 'AcademicYearMaster',
-  defaultSortBy: 'YearName',
+  // Newest first: a record you just added should be the first one you see.
+  defaultSortBy: 'CreatedAt',
+  defaultDescending: true,
   exportFileName: 'Academic_Year_Master',
 
   entityLabel: (row) => row.YearName,

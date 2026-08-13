@@ -20,9 +20,11 @@ public class PinCodeMasterService : IPinCodeMasterService
 
         var query = _context.PinCodeMasters
             .Include(p => p.City)
+                .ThenInclude(c => c!.State)
+                    .ThenInclude(s => s!.Country)
             .Where(p => !p.IsDeleted);
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(p => p.IsActive == activeFilter.Value);
 
@@ -49,6 +51,16 @@ public class PinCodeMasterService : IPinCodeMasterService
                 PinCode = p.PinCode,
                 CityId = p.CityId,
                 CityName = p.City != null ? p.City.CityName : null,
+                StateId = p.City != null ? p.City.StateId : null,
+                StateName = p.City != null && p.City.State != null
+                    ? p.City.State.StateName
+                    : null,
+                CountryId = p.City != null && p.City.State != null
+                    ? p.City.State.CountryId
+                    : null,
+                CountryName = p.City != null && p.City.State != null && p.City.State.Country != null
+                    ? p.City.State.Country.CountryName
+                    : null,
                 IsActive = p.IsActive
             })
             .ToListAsync();

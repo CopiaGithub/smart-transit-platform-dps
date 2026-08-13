@@ -27,7 +27,7 @@ public class UserMasterService : IUserMasterService
             .AsQueryable();
 
         // Default master lists to Active-only; explicit false/status override.
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(u => u.IsActive == activeFilter.Value);
 

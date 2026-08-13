@@ -1,166 +1,188 @@
-<div class="flex items-center justify-center min-h-screen bg-gray-100">
-  <div
-    class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl animate-fade-in-up overflow-hidden"
-  >
-    <div class="md:flex min-h-[440px]">
-      <!-- Left marketing panel -->
-      <div class="left-panel hidden md:block md:w-1/2 px-5">
-        <div class="left-inner">
-          <div class="brand-title-left">
-            {{ appTitle }}
-          </div>
+<div class="login-page">
+  <!-- ================= Brand panel ================= -->
+  <aside class="login-brand" aria-hidden="true">
+    <div class="login-brand-figure"></div>
 
-          <h3 class="mt-8 text-3xl font-extrabold leading-tight text-white">
-            Manage Your
-            <span class="login-headline-accent"> Transit Displays</span>
-          </h3>
-          <p class="mt-4" style="color: rgba(255, 255, 255, 0.8)">
-            Configure screens, schedules, and content for your transit display
-            network from one place.
-          </p>
-        </div>
-
-        <div class="powered-by-left">
-          Powered by <span>Copia Consultancy</span>
-        </div>
-
-        <div class="left-badges">
-          <span class="badge badge-security">
-            <span class="badge-dot"></span>
-            Enterprise Security
-          </span>
-          <span class="badge"> ISO 27001/9001 Certified </span>
-        </div>
-      </div>
-
-      <!-- Right form panel -->
-      <div class="right-panel md:w-1/2 p-8 sm:p-10">
-        <div class="right-inner">
-          <p
-            class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1"
-          >
-            {{ appTitle }}
-          </p>
-          <h2 class="text-2xl font-extrabold text-gray-800 mb-2">
-            Welcome back
-          </h2>
-          <p class="text-sm text-gray-500 mb-6">
-            Sign in to your account to continue
-          </p>
-
-          <!-- Server-side failure. role="alert" so screen readers announce it
-               without the user having to go looking for it. -->
-          <div
-            *ngIf="loginError()"
-            data-testid="login-error"
-            class="login-alert"
-            role="alert"
-          >
-            <span class="material-icons login-alert-icon">error_outline</span>
-            <span>{{ loginError() }}</span>
-          </div>
-
-          <form
-            [formGroup]="formgroup"
-            (ngSubmit)="onLogin()"
-            novalidate
-            class="space-y-5"
-          >
-            <!-- Username -->
-            <div class="login-field">
-              <label for="login-username" class="login-label">Username</label>
-              <input
-                id="login-username"
-                type="text"
-                formControlName="username"
-                placeholder="Enter your username"
-                autocomplete="username"
-                class="login-input"
-                [class.login-input-error]="hasError('username')"
-                [attr.aria-invalid]="hasError('username')"
-                [attr.aria-describedby]="
-                  hasError('username') ? 'login-username-error' : null
-                "
-              />
-              <p
-                *ngIf="hasError('username')"
-                id="login-username-error"
-                class="login-error-text"
-              >
-                <span class="material-icons login-error-icon">error_outline</span>
-                Username is required
-              </p>
-            </div>
-
-            <!-- Password -->
-            <div class="login-field">
-              <label for="login-password" class="login-label">Password</label>
-              <div class="relative">
-                <input
-                  id="login-password"
-                  [type]="showPassword ? 'text' : 'password'"
-                  formControlName="password"
-                  placeholder="Enter your password"
-                  autocomplete="current-password"
-                  class="login-input login-input-password"
-                  [class.login-input-error]="hasError('password')"
-                  [attr.aria-invalid]="hasError('password')"
-                  [attr.aria-describedby]="
-                    hasError('password') ? 'login-password-error' : null
-                  "
-                />
-                <button
-                  type="button"
-                  class="login-eye"
-                  [attr.aria-label]="
-                    showPassword ? 'Hide password' : 'Show password'
-                  "
-                  (click)="togglePasswordVisibility()"
-                >
-                  <span class="material-icons text-xl">
-                    {{ showPassword ? "visibility_off" : "visibility" }}
-                  </span>
-                </button>
-              </div>
-              <p
-                *ngIf="hasError('password')"
-                id="login-password-error"
-                class="login-error-text"
-              >
-                <span class="material-icons login-error-icon">error_outline</span>
-                Password is required
-              </p>
-            </div>
-
-            <!-- No "Forgot password?": there is no reset endpoint behind it, and
-                 a link that only opens a "not configured yet" popup is worse than
-                 no link. Restore it with the reset flow, not before. -->
-            <div class="flex items-center">
-              <label class="login-remember">
-                <input
-                  type="checkbox"
-                  formControlName="rememberMe"
-                  class="login-checkbox"
-                />
-                Remember me
-              </label>
-            </div>
-
-            <!-- Stays enabled while the form is incomplete: submitting is what
-                 reveals which fields are missing. Only the in-flight request
-                 disables it. -->
-            <button
-              data-testid="login-button"
-              type="submit"
-              class="login-submit"
-              [disabled]="isSubmitting()"
-            >
-              <span *ngIf="isSubmitting()" class="login-spinner"></span>
-              {{ isSubmitting() ? "Signing in…" : "Login" }}
-            </button>
-          </form>
-        </div>
-      </div>
+    <div class="login-brand-top">
+      <span class="login-brand-mark">
+        <span class="material-icons">directions_bus</span>
+      </span>
+      <span class="login-brand-name">{{ appTitle }}</span>
     </div>
-  </div>
+
+    <div class="login-brand-body">
+      <h1 class="login-brand-headline">
+        Every screen, every route,
+        <span class="login-brand-accent">one control room.</span>
+      </h1>
+      <p class="login-brand-sub">
+        Configure displays, schedules, and live content across your entire
+        transit network from a single platform.
+      </p>
+
+      <ul class="login-brand-points">
+        <li>
+          <span class="material-icons">desktop_windows</span>
+          Centralised display and content management
+        </li>
+        <li>
+          <span class="material-icons">schedule</span>
+          Real-time schedules and dispersal control
+        </li>
+        <li>
+          <span class="material-icons">insights</span>
+          Fleet-wide visibility and reporting
+        </li>
+      </ul>
+    </div>
+
+    <div class="login-brand-foot">
+      <div class="login-brand-badges">
+        <span class="login-chip login-chip-live">
+          <span class="login-chip-dot"></span>
+          Enterprise Security
+        </span>
+        <span class="login-chip">ISO 27001 / 9001 Certified</span>
+      </div>
+      <p class="login-brand-credit">
+        Powered by <span>Copia Consultancy</span>
+      </p>
+    </div>
+  </aside>
+
+  <!-- ================= Form panel ================= -->
+  <main class="login-form-panel">
+    <div class="login-card">
+      <!-- Compact brand lockup: the only branding shown once the brand panel
+           collapses on small screens. -->
+      <div class="login-mobile-brand">
+        <span class="login-brand-mark login-brand-mark-sm">
+          <span class="material-icons">directions_bus</span>
+        </span>
+        <span>{{ appTitle }}</span>
+      </div>
+
+      <header class="login-head">
+        <h2>Sign in</h2>
+        <p>Use your administrator account to access the console.</p>
+      </header>
+
+      <!-- Server-side failure. role="alert" so screen readers announce it
+           without the user having to go looking for it. -->
+      <div
+        *ngIf="loginError()"
+        data-testid="login-error"
+        class="login-alert"
+        role="alert"
+      >
+        <span class="material-icons login-alert-icon">error_outline</span>
+        <span>{{ loginError() }}</span>
+      </div>
+
+      <form [formGroup]="formgroup" (ngSubmit)="onLogin()" novalidate>
+        <!-- Username -->
+        <div class="login-field">
+          <label for="login-username" class="login-label">Username</label>
+          <div class="login-control">
+            <span class="material-icons login-control-icon">person_outline</span>
+            <input
+              id="login-username"
+              type="text"
+              formControlName="username"
+              placeholder="Enter your username"
+              autocomplete="username"
+              class="login-input"
+              [class.login-input-error]="hasError('username')"
+              [attr.aria-invalid]="hasError('username')"
+              [attr.aria-describedby]="
+                hasError('username') ? 'login-username-error' : null
+              "
+            />
+          </div>
+          <p
+            *ngIf="hasError('username')"
+            id="login-username-error"
+            class="login-error-text"
+          >
+            <span class="material-icons login-error-icon">error_outline</span>
+            Username is required
+          </p>
+        </div>
+
+        <!-- Password -->
+        <div class="login-field">
+          <label for="login-password" class="login-label">Password</label>
+          <div class="login-control">
+            <span class="material-icons login-control-icon">lock_outline</span>
+            <input
+              id="login-password"
+              [type]="showPassword ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+              class="login-input login-input-password"
+              [class.login-input-error]="hasError('password')"
+              [attr.aria-invalid]="hasError('password')"
+              [attr.aria-describedby]="
+                hasError('password') ? 'login-password-error' : null
+              "
+            />
+            <button
+              type="button"
+              class="login-eye"
+              [attr.aria-label]="
+                showPassword ? 'Hide password' : 'Show password'
+              "
+              (click)="togglePasswordVisibility()"
+            >
+              <span class="material-icons">
+                {{ showPassword ? "visibility_off" : "visibility" }}
+              </span>
+            </button>
+          </div>
+          <p
+            *ngIf="hasError('password')"
+            id="login-password-error"
+            class="login-error-text"
+          >
+            <span class="material-icons login-error-icon">error_outline</span>
+            Password is required
+          </p>
+        </div>
+
+        <!-- No "Forgot password?": there is no reset endpoint behind it, and
+             a link that only opens a "not configured yet" popup is worse than
+             no link. Restore it with the reset flow, not before. -->
+        <label class="login-remember">
+          <input
+            type="checkbox"
+            formControlName="rememberMe"
+            class="login-checkbox"
+          />
+          Remember me on this device
+        </label>
+
+        <!-- Stays enabled while the form is incomplete: submitting is what
+             reveals which fields are missing. Only the in-flight request
+             disables it. -->
+        <button
+          data-testid="login-button"
+          type="submit"
+          class="login-submit"
+          [disabled]="isSubmitting()"
+        >
+          <span *ngIf="isSubmitting()" class="login-spinner"></span>
+          {{ isSubmitting() ? "Signing in…" : "Sign in" }}
+        </button>
+      </form>
+
+      <p class="login-legal">
+        Authorised access only. Activity on this system is monitored and logged.
+      </p>
+    </div>
+
+    <p class="login-mobile-credit">
+      Powered by <span>Copia Consultancy</span>
+    </p>
+  </main>
 </div>

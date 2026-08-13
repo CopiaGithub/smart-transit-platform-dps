@@ -26,6 +26,8 @@ export const PINCODE_MASTER_CONFIG: MasterPageConfig = {
   columns: [
     { key: 'PinCode', label: 'PinCode', width: '160px' },
     { key: 'CityName', label: 'City' },
+    { key: 'StateName', label: 'State' },
+    { key: 'CountryName', label: 'Country' },
     { key: 'Status', label: 'Status', width: '120px', type: 'badge' },
   ],
 
@@ -92,16 +94,21 @@ export const PINCODE_MASTER_CONFIG: MasterPageConfig = {
     PinCode: item.PinCode,
     CityName: item.CityName ?? '-',
     CityId: item.CityId,
+    StateName: item.StateName ?? '-',
+    StateId: item.StateId,
+    CountryName: item.CountryName ?? '-',
+    CountryId: item.CountryId,
     Status: activeLabel(item.IsActive),
     IsActive: item.IsActive,
   }),
 
-  // PinCodeMasterListModel carries only CityId, so country and state start empty
-  // on edit; choosing a country repopulates the chain.
+  // The list model carries the whole chain now (resolved through the city), so
+  // each picker can scope the one below it and the dialog shows the country,
+  // state and city the record actually has instead of three blank boxes.
   toFormData: (row) => ({
     PinCode: row.PinCode,
-    CountryId: null,
-    StateId: null,
+    CountryId: row.CountryId,
+    StateId: row.StateId,
     CityId: row.CityId,
     IsActive: row.IsActive,
   }),

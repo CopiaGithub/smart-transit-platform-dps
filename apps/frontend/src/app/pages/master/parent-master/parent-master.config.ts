@@ -22,6 +22,16 @@ const PINCODE_BY_CITY_LOOKUP: LookupConfig = {
   parentParam: 'cityId',
 };
 
+/**
+ * Indian mobile numbers, as the school actually records them: ten digits, no
+ * country code and no separators. The gate calls these numbers, so a mistyped
+ * one is not a cosmetic problem.
+ *
+ * The server does not enforce this — ParentMasterService checks only that the
+ * mobile is present and unique — so this is the sole guard today.
+ */
+const TEN_DIGITS = /^[0-9]{10}$/;
+
 /** Checked when a guardian collects a child at the gate. */
 const ID_PROOF_OPTIONS: DropdownModel[] = [
   { name: 'Aadhaar', value: 'Aadhaar' },
@@ -50,7 +60,9 @@ export const PARENT_MASTER_CONFIG: MasterPageConfig = {
   singular: 'Parent',
   listTitle: 'Parent List',
   resource: 'ParentMaster',
-  defaultSortBy: 'FirstName',
+  // Newest first: a record you just added should be the first one you see.
+  defaultSortBy: 'CreatedAt',
+  defaultDescending: true,
   exportFileName: 'Parent_Master',
 
   entityLabel: (row) => row.Name,
@@ -94,11 +106,20 @@ export const PARENT_MASTER_CONFIG: MasterPageConfig = {
       label: 'Mobile Number',
       type: 'text',
       required: true,
-      maxLength: 15,
+      maxLength: 10,
+      pattern: TEN_DIGITS,
       tab: CONTACT,
-      hint: 'The parent\'s identity — used to avoid duplicates across siblings.',
+      hint: 'Ten digits, no country code — the parent\'s identity, used to avoid duplicates across siblings.',
     },
-    { name: 'AltMobileNumber', label: 'Alternate Mobile', type: 'text', maxLength: 15, tab: CONTACT },
+    {
+      name: 'AltMobileNumber',
+      label: 'Alternate Mobile',
+      type: 'text',
+      maxLength: 10,
+      pattern: TEN_DIGITS,
+      tab: CONTACT,
+      hint: 'Ten digits, no country code.',
+    },
     { name: 'Email', label: 'Email', type: 'email', maxLength: 150, tab: CONTACT },
     { name: 'Occupation', label: 'Occupation', type: 'text', maxLength: 100, tab: CONTACT },
     {

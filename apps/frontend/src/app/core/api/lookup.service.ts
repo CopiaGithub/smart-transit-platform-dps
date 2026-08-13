@@ -56,7 +56,15 @@ export class LookupService {
       return cached;
     }
 
-    const query: QueryParams = { PageNumber: 1, PageSize: LOOKUP_PAGE_SIZE };
+    // IsActive is pinned rather than left to the server's default. A dropdown
+    // must never offer a record that has been retired — picking one would point
+    // a live student or bus at something the school has taken out of service.
+    // The server's list default is "both", so active-only has to be asked for.
+    const query: QueryParams = {
+      PageNumber: 1,
+      PageSize: LOOKUP_PAGE_SIZE,
+      IsActive: true,
+    };
     if (config.parentParam && parentId != null) {
       query[config.parentParam] = parentId;
     }

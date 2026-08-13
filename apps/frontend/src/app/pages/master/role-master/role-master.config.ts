@@ -5,16 +5,24 @@ import { IS_ACTIVE_FIELD, activeLabel } from '../location-masters/location-looku
  * B1 — Role Master (WEB-APP-SCREENS.docx §Group B).
  *
  * The exact role names in role_master are Admin, Teacher, Parent,
- * Gate 6 Operator and Gate 1 Operator. A guard's post is part of the role name:
- * the apps find "Gate 6" inside "Gate 6 Operator" to know which gate it is, so
- * renaming a role breaks that mapping. Hence the warning before a rename.
+ * Gate 6 Operator and Gate 1 Operator, and those five strings are matched all
+ * over both apps: 31 endpoints authorise on them through RoleNames, the sidebar
+ * decides what to show from them, and a guard's post is read out of the name
+ * ("Gate 6" inside "Gate 6 Operator").
+ *
+ * So renaming one is not a rename, it is a lockout — every holder loses the
+ * endpoints their old name unlocked. The server refuses it outright rather than
+ * asking the user to confirm something they cannot undo; this screen only has to
+ * say so up front, which the Role Name hint does.
  */
 export const ROLE_MASTER_CONFIG: MasterPageConfig = {
   title: 'Role Master',
   singular: 'Role',
   listTitle: 'Role Master List',
   resource: 'RoleMaster',
-  defaultSortBy: 'RoleName',
+  // Newest first: a record you just added should be the first one you see.
+  defaultSortBy: 'CreatedAt',
+  defaultDescending: true,
   exportFileName: 'Role_Master',
 
   entityLabel: (row) => row.RoleName,
@@ -37,7 +45,10 @@ export const ROLE_MASTER_CONFIG: MasterPageConfig = {
       type: 'text',
       required: true,
       maxLength: 50,
-      hint: 'A gate operator\'s post is part of the name — e.g. "Gate 6 Operator".',
+      hint:
+        'A gate operator\'s post is part of the name — e.g. "Gate 6 Operator". ' +
+        'The five built-in roles cannot be renamed: permissions are matched on ' +
+        'the exact name.',
     },
     { name: 'Description', label: 'Description', type: 'textarea', maxLength: 200 },
     IS_ACTIVE_FIELD,
@@ -45,11 +56,16 @@ export const ROLE_MASTER_CONFIG: MasterPageConfig = {
 
   duplicateCheckFields: ['RoleName'],
 
-  confirmBeforeSave: (_result, mode) =>
-    mode === 'edit'
-      ? 'Renaming a role can break how the apps map users to screens — the gate ' +
-        'consoles match on the words "Gate 6" and "Gate 1" inside the role name. Continue?'
-      : null,
+  // No prompt at all on an ordinary edit. This used to warn about renaming on
+  // every save, including the ones that only touched the description or the
+  // status — a warning that fires when it does not apply is one people learn to
+  // click through, which is worse than no warning.
+  //
+  // The rename itself is no longer a "continue anyway?" decision: the server
+  // refuses to rename a built-in role outright, because 31 endpoints authorise
+  // on the literal name and renaming one locks out everybody who holds it. That
+  // refusal arrives as the server's own message, which says what to do instead.
+  confirmBeforeSave: () => null,
 
   toRow: (item) => ({
     id: item.Id,

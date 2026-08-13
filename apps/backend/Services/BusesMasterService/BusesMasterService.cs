@@ -35,7 +35,7 @@ public class BusesMasterService : IBusesMasterService
             .Include(b => b.Route)
             .Where(b => !b.IsDeleted);
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(b => b.IsActive == activeFilter.Value);
 

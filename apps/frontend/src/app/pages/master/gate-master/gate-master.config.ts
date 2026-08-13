@@ -16,7 +16,9 @@ export const GATE_MASTER_CONFIG: MasterPageConfig = {
   singular: 'Gate',
   listTitle: 'Gate Master List',
   resource: 'GateMaster',
-  defaultSortBy: 'SortOrder',
+  // Newest first: a record you just added should be the first one you see.
+  defaultSortBy: 'CreatedAt',
+  defaultDescending: true,
   exportFileName: 'Gate_Master',
 
   entityLabel: (row) => row.GateName,

@@ -34,7 +34,7 @@ public static class DemoDataSeeder
         var buses = await SeedBusesAsync(db, routes);
         await SeedPlatformsAsync(db);
         var students = await SeedStudentsAndParentsAsync(db, geography, users, routes, buses);
-        await SeedAllocationsAsync(db, routes, buses);
+        await SeedAllocationsAsync(db);
         await SeedDispersalDemoAsync(db, buses, routes, users, roles);
 
         logger.LogInformation("Demo data seeding complete ({StudentCount} students present).", students);
@@ -547,22 +547,26 @@ public static class DemoDataSeeder
     /// reserve earns a route only through a one-day override when it
     /// substitutes, which is exactly what the replace flow writes.
     /// </summary>
-    private static async Task SeedAllocationsAsync(
-        ApplicationDbContext db, Dictionary<string, int> routes, Dictionary<string, int> buses)
+    private static async Task SeedAllocationsAsync(ApplicationDbContext db)
     {
         var from = new DateOnly(2026, 6, 1);
-        _ = routes;
 
         // Read the pairing back off the buses rather than repeating the list:
         // a second copy is a second thing to get out of step.
+        //
+        // Both ids come straight off the row. This used to select BusNumber and
+        // look the id up in the seeder's own dictionary, which held only the
+        // buses this seeder created — so any bus added through the app (the
+        // shared dev database has several) threw KeyNotFoundException and took
+        // the whole application down at startup.
         var pairs = await db.BusesMasters
             .Where(b => !b.IsDeleted && b.RouteId != null && b.BusType == BusKind.Active)
-            .Select(b => new { b.BusNumber, RouteId = b.RouteId!.Value })
+            .Select(b => new { BusId = b.Id, RouteId = b.RouteId!.Value })
             .ToListAsync();
 
         foreach (var pair in pairs)
         {
-            int routeId = pair.RouteId, busId = buses[pair.BusNumber];
+            int routeId = pair.RouteId, busId = pair.BusId;
             // Match on the bus alone: UX_bus_route_allocation_Standing_Bus allows
             // one standing row per bus, whatever route it points at. Including
             // RouteId here missed a bus already standing on another route and
@@ -628,7 +632,12 @@ public static class DemoDataSeeder
         foreach (var (bus, status, queue, offset) in rows)
         {
             var enteredAt = start.AddMinutes(offset);
-            bool holdsPlatform = status != BoardingStatus.Waiting;
+            // Same defensive reasoning as the allocation ids above: this indexes
+            // whatever platforms the database happens to hold, and a database
+            // with fewer than five would otherwise crash startup. A demo row
+            // without a platform is a far better outcome than a dead API.
+            bool holdsPlatform =
+                status != BoardingStatus.Waiting && queue - 1 < platforms.Count;
             events.Add(new BoardingEvents
             {
                 SessionId = session.Id,

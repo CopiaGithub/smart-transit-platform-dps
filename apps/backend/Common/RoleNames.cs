@@ -42,4 +42,24 @@ public static class RoleNames
     /// action — the role opens the door, the ownership check picks the row.
     /// </summary>
     public const string AdminOrParent = $"{Admin},{Parent}";
+
+    /// <summary>
+    /// The seeded roles the applications match on by name.
+    ///
+    /// Kept here beside the constants so the list cannot drift from them: adding
+    /// a role above and forgetting it here would leave that role renameable and
+    /// its [Authorize] attributes quietly unenforceable.
+    /// </summary>
+    private static readonly string[] SystemRoles =
+    {
+        Admin, Teacher, Parent, Gate6Operator, Gate1Operator
+    };
+
+    /// <summary>
+    /// True when renaming this role would break authorisation. Compared without
+    /// case so "admin" is recognised as the built-in role too.
+    /// </summary>
+    public static bool IsSystemRole(string? roleName) =>
+        !string.IsNullOrWhiteSpace(roleName) &&
+        SystemRoles.Contains(roleName.Trim(), StringComparer.OrdinalIgnoreCase);
 }

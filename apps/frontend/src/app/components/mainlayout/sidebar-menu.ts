@@ -33,6 +33,15 @@ export const SIDEBAR_MENU: SidebarMenuItem[] = [
     icon: 'home',
   },
   {
+    // The day's audit trail. Admin-only here, which is narrower than the mobile
+    // app — navigation/menu.tsx shows Reports to a teacher as well. The web
+    // console is the admin's tool; widen this if teachers are given web logins.
+    name: 'Reports',
+    route: '/mainlayout/reports',
+    icon: 'assessment',
+    roles: ADMIN_ONLY,
+  },
+  {
     name: 'Transport Masters',
     icon: 'directions_bus',
     roles: ADMIN_ONLY,

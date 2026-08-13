@@ -3,6 +3,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { ACADEMIC_MASTER_ROUTES } from './routes/modules/academic-master.routes';
 import { INFRASTRUCTURE_MASTER_ROUTES } from './routes/modules/infrastructure-master.routes';
 import { LOCATION_MASTER_ROUTES } from './routes/modules/location-master.routes';
+import { OPERATIONS_ROUTES } from './routes/modules/operations.routes';
 import { SECURITY_MASTER_ROUTES } from './routes/modules/security-master.routes';
 import { TRANSPORT_MASTER_ROUTES } from './routes/modules/transport-master.routes';
 
@@ -27,6 +28,7 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/home/home.component').then((m) => m.HomeComponent),
       },
+      ...OPERATIONS_ROUTES,
       {
         path: 'master',
         children: [

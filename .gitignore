@@ -30,6 +30,10 @@ Thumbs.db
 **/playwright-report/
 **/blob-report/
 
+# Uploaded photos. User content, not source — and a child's photograph has no
+# business in a git history. Override the location with Uploads:RootPath.
+apps/backend/uploads/
+
 # Frontend (Angular)
 **/node_modules/
 **/.angular/

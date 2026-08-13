@@ -1,0 +1,293 @@
+.rep {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Head ─────────────────────────────────────────────────────────────────── */
+.rep-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.rep-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-gray-800);
+}
+
+.rep-subtitle {
+  margin: 0.15rem 0 0;
+  font-size: 0.875rem;
+  color: var(--argon-gray-600);
+}
+
+/* ── Error ────────────────────────────────────────────────────────────────── */
+.rep-error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+  color: #b32741;
+  background: #fde0e6;
+  border-radius: 0.5rem;
+}
+
+/* ── KPIs ─────────────────────────────────────────────────────────────────── */
+.rep-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.rep-kpi {
+  padding: 1rem 1.25rem;
+  background: var(--argon-white);
+  border: 1px solid var(--argon-border-color);
+  border-radius: 0.5rem;
+  box-shadow: var(--argon-card-shadow);
+}
+
+.rep-kpi-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.rep-kpi-icon mat-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  font-size: 1.125rem;
+}
+
+/* Tints, not fills: the number is the thing to read, the icon only labels it. */
+.rep-kpi-icon--in {
+  color: var(--argon-primary);
+  background: var(--argon-primary-muted);
+}
+
+.rep-kpi-icon--out {
+  color: #1d9a68;
+  background: rgba(45, 206, 137, 0.14);
+}
+
+.rep-kpi-icon--campus {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.rep-kpi-icon--dwell {
+  color: #b97400;
+  background: rgba(251, 99, 64, 0.13);
+}
+
+.rep-kpi-value {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: var(--argon-font-weight-bold);
+  color: var(--argon-gray-800);
+  line-height: 1.2;
+}
+
+.rep-kpi-label {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--argon-gray-600);
+}
+
+.rep-skeleton {
+  height: 6.25rem;
+  background: linear-gradient(90deg, #f1f4f9 25%, #e7ecf3 50%, #f1f4f9 75%);
+  background-size: 200% 100%;
+  border-radius: 0.5rem;
+  animation: repShimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes repShimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ── Filter chips ─────────────────────────────────────────────────────────── */
+.rep-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rep-chip {
+  padding: 0.4rem 0.9rem;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-gray-700);
+  background: var(--argon-white);
+  border: 1px solid var(--argon-border-color);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.rep-chip:hover:not(.rep-chip--on) {
+  border-color: var(--argon-gray-400);
+}
+
+.rep-chip--on {
+  color: var(--argon-white);
+  background: var(--argon-primary);
+  border-color: var(--argon-primary);
+}
+
+.rep-chip:focus-visible {
+  outline: 2px solid var(--argon-primary);
+  outline-offset: 2px;
+}
+
+/* ── Table ────────────────────────────────────────────────────────────────── */
+.rep-table-wrap {
+  /* The log must scroll inside its own box; the page never scrolls sideways. */
+  overflow-x: auto;
+  background: var(--argon-white);
+  border: 1px solid var(--argon-border-color);
+  border-radius: 0.5rem;
+  box-shadow: var(--argon-card-shadow);
+}
+
+.rep-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--argon-table-body-font-size);
+}
+
+.rep-table th {
+  padding: 0.75rem 1rem;
+  font-size: var(--argon-table-head-font-size);
+  font-weight: var(--argon-font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--argon-table-head-color);
+  background: var(--argon-table-head-bg);
+  border-bottom: 1px solid var(--argon-table-border-color);
+}
+
+.rep-table td {
+  padding: 0.75rem 1rem;
+  color: var(--argon-gray-700);
+  border-top: 1px solid var(--argon-table-border-color);
+  vertical-align: middle;
+}
+
+.rep-table tbody tr:hover td {
+  background: var(--argon-gray-100);
+}
+
+.rep-num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-bus {
+  font-weight: var(--argon-font-weight-bold);
+  color: var(--argon-gray-800);
+  white-space: nowrap;
+}
+
+.rep-route {
+  color: var(--argon-gray-600);
+}
+
+.rep-station {
+  font-weight: var(--argon-font-weight-bold);
+  color: var(--argon-primary);
+}
+
+/* A replacement is the one thing on a row that changes what the row means. */
+.rep-replaced {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.6875rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: #b45309;
+}
+
+.rep-empty {
+  padding: 2rem 1rem !important;
+  text-align: center;
+  color: var(--argon-gray-600);
+}
+
+/* ── Status badges ────────────────────────────────────────────────────────── */
+/* Same five colours the mobile board uses (apps/mobile/constants/domain.ts),
+   so a bus reads the same on a phone and on the wall. */
+.rep-status {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.6875rem;
+  font-weight: var(--argon-font-weight-bold);
+  letter-spacing: 0.03em;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.rep-status--waiting {
+  color: #475569;
+  background: rgba(100, 116, 139, 0.14);
+}
+
+.rep-status--arrived {
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.rep-status--boarding {
+  color: #8a6500;
+  background: rgba(230, 167, 0, 0.16);
+}
+
+.rep-status--departed {
+  color: #15803d;
+  background: rgba(22, 163, 74, 0.13);
+}
+
+.rep-status--replaced {
+  color: #7e22ce;
+  background: rgba(168, 85, 247, 0.13);
+}
+
+/* ── Footnote ─────────────────────────────────────────────────────────────── */
+.rep-footnote {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--argon-gray-600);
+}
+
+@media (max-width: 640px) {
+  .rep-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rep-skeleton {
+    animation: none;
+  }
+}

@@ -32,7 +32,7 @@ public class DisplayMasterService : IDisplayMasterService
             .Include(d => d.FilterByGate)
             .Where(d => !d.IsDeleted);
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(d => d.IsActive == activeFilter.Value);
 

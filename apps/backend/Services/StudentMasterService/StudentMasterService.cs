@@ -45,7 +45,7 @@ public class StudentMasterService : IStudentMasterService
 
         var query = BaseQuery();
 
-        bool? activeFilter = status ?? filter.IsActive ?? true;
+        bool? activeFilter = status ?? filter.IsActive;
         if (activeFilter.HasValue)
             query = query.Where(s => s.IsActive == activeFilter.Value);
 
