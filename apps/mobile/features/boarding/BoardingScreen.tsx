@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { askConfirm } from "../../components/ConfirmHost";
 import FlashBar, { useFlash } from "../../components/FlashBar";
 import SlotBadge from "../../components/SlotBadge";
 import { LABELS, STATUS, STATUS_COLOR, type Status } from "../../constants/domain";
@@ -80,6 +81,36 @@ export default function BoardingScreen() {
   const board = async (eventId: number, busNumber: string) => {
     const result = await dispatch(startBoarding({ eventId, busNumber }));
     if (startBoarding.fulfilled.match(result)) show(String(result.payload));
+  };
+
+  /**
+   * Boarding is the point of no return for a child left in a classroom: once the
+   * bus is called, the teacher's attention moves to the next one. So a bus whose
+   * riders were never marked present or absent asks first.
+   *
+   * A warning, not a block — the register being unmarked is the office's
+   * omission, and holding a bus in the yard over it would punish the wrong
+   * people. The teacher is told what is missing and decides.
+   */
+  const confirmBoard = (eventId: number, busNumber: string, bus?: BusRollCall) => {
+    const unmarked = bus?.UnmarkedCount ?? 0;
+    if (unmarked === 0) {
+      void board(eventId, busNumber);
+      return;
+    }
+
+    askConfirm({
+      title: `${LABELS.vehicle} ${busNumber} — attendance not marked`,
+      highlight: `${unmarked === bus!.TotalStudents ? "All " : ""}${unmarked} of ${
+        bus!.TotalStudents
+      } ${unmarked === 1 ? "student" : "students"}`,
+      message:
+        "No class attendance has been marked for them today, so nobody has confirmed they are " +
+        `in school. Check the register before you call this ${LABELS.vehicle.toLowerCase()}.`,
+      confirmText: "Board anyway",
+      icon: "user-x",
+      onConfirm: () => void board(eventId, busNumber),
+    });
   };
 
   return (
@@ -162,7 +193,7 @@ export default function BoardingScreen() {
                       (pressed || submitting) && styles.btnPressed,
                     ]}
                     disabled={submitting}
-                    onPress={() => board(item.EventId, item.BusNumber)}
+                    onPress={() => confirmBoard(item.EventId, item.BusNumber, bus)}
                   >
                     <Feather name="users" size={17} color={COLORS.white} />
                     <Text style={styles.btnText}>MARK{"\n"}BOARDING</Text>
@@ -186,6 +217,7 @@ export default function BoardingScreen() {
           );
         }}
       />
+
     </View>
   );
 }
@@ -224,20 +256,25 @@ function RollLine({
           color={away ? COLORS.danger : COLORS.textMuted}
         />
         <Text style={styles.rollText}>
-          <Text style={styles.rollStrong}>{bus.TotalStudents}</Text> riding
+          {/* "On the roll", not "riding". The number is who the records put on
+              this bus, which is not the same as who is getting on it — and a
+              teacher reading "3 riding · 3 class not marked" quite reasonably
+              asked how both could be true of the same three children. */}
+          <Text style={styles.rollStrong}>{bus.TotalStudents}</Text> on the roll
           {away && (
             <Text style={styles.rollAway}>
               {"  ·  "}
               {bus.AbsentCount} not in school
             </Text>
           )}
-          {/* Not folded into "riding": nobody has said whether these children
+          {/* Not folded into the roll: nobody has said whether these children
               came in, and guessing on a teacher's behalf is how a child gets
-              left behind. */}
+              left behind. Named as students rather than as classes — the count
+              is children, and the register is only where it is missing from. */}
           {bus.UnmarkedCount > 0 && (
             <Text style={styles.rollUnmarked}>
               {"  ·  "}
-              {bus.UnmarkedCount} class not marked
+              {bus.UnmarkedCount} not marked present
             </Text>
           )}
         </Text>
@@ -311,7 +348,9 @@ const styles = StyleSheet.create({
   rollText: { flex: 1, fontSize: 12, color: COLORS.textMuted },
   rollStrong: { fontWeight: "900", color: COLORS.text },
   rollAway: { color: COLORS.danger, fontWeight: "800" },
-  rollUnmarked: { color: COLORS.textMuted },
+  // Amber, not muted grey: this is the one thing on the row a teacher may still
+  // need to act on, and grey filed it away as a footnote.
+  rollUnmarked: { color: COLORS.warning, fontWeight: "800" },
   rollName: { fontSize: 12, color: COLORS.danger, marginLeft: 19, fontWeight: "600" },
   // Opaque tint, not an alpha suffix — see TINT in constants/theme.
   rowDone: { borderColor: COLORS.warning, backgroundColor: TINT.warning },

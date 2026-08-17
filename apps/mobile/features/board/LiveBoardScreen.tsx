@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { LABELS, STATUS, STATUS_COLOR, type Status } from "../../constants/domain";
+import { LABELS, STATUS, STATUS_COLOR, STATUS_RANK, type Status } from "../../constants/domain";
 import { BOARD, SPACING } from "../../constants/theme";
 import type { BoardRow } from "../../src/api/operations.api";
 import { usePolling } from "../../src/hooks/usePolling";
@@ -19,6 +19,19 @@ import { fetchBoard, selectBoardRows, selectOpsStats } from "../../src/store/ope
 import { useAppDispatch, useAppSelector } from "../../src/store";
 
 const MONO = Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" });
+
+/**
+ * The status chips, in the order the board itself ranks them (§5.9) rather than
+ * the order the constant happens to declare — the strip and the rows under it
+ * then read the same way down the screen.
+ *
+ * Every status is always offered, including one with no buses today. A chip that
+ * came and went as the yard filled would move the others under a thumb that had
+ * already learned where they sit.
+ */
+const STATUS_FILTERS = (Object.keys(STATUS_RANK) as Status[]).sort(
+  (a, z) => STATUS_RANK[a] - STATUS_RANK[z],
+);
 
 /**
  * Mirror of what the LED walls show. Deliberately dark and dense — this is the
@@ -36,6 +49,8 @@ export default function LiveBoardScreen() {
   // Which wall this screen is mirroring. Undefined = the outdoor wall's view,
   // every bus; a code scopes it to one indoor panel's own student exit (§5.9).
   const [displayCode, setDisplayCode] = useState<string | undefined>(undefined);
+  /** Null = every status. Filtered here, not on the server — see STATUS_FILTERS. */
+  const [status, setStatus] = useState<Status | null>(null);
 
   useEffect(() => {
     dispatch(fetchDisplays());
@@ -43,6 +58,19 @@ export default function LiveBoardScreen() {
 
   // The panels poll continuously (§5.9); the app mirrors them the same way.
   usePolling(useCallback(() => void dispatch(fetchBoard(displayCode)), [dispatch, displayCode]));
+
+  // The wall chip is a different request; the status chip is not. Every row of
+  // the session is already in hand and the server has no status parameter, so
+  // asking again would cost a round trip to hide rows we are holding.
+  const shown = useMemo(
+    () => (status ? rows.filter((r) => r.Status === status) : rows),
+    [rows, status],
+  );
+  const counts = useMemo(() => {
+    const tally: Partial<Record<Status, number>> = {};
+    for (const r of rows) tally[r.Status as Status] = (tally[r.Status as Status] ?? 0) + 1;
+    return tally;
+  }, [rows]);
 
   return (
     <View style={styles.root}>
@@ -85,6 +113,38 @@ export default function LiveBoardScreen() {
         </ScrollView>
       )}
 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.wallStripBar}
+        contentContainerStyle={styles.wallStrip}
+      >
+        {[null, ...STATUS_FILTERS].map((s) => {
+          const on = status === s;
+          return (
+            <Pressable
+              key={s ?? "all"}
+              // Lit in the status's own colour, which is also the colour of the
+              // STATUS column below it. Two chip strips sit on this screen and
+              // they filter different things; amber for both would have made
+              // them look like one control that had grown too long.
+              style={[
+                styles.wall,
+                on && styles.wallOn,
+                on && !!s && { backgroundColor: STATUS_COLOR[s], borderColor: STATUS_COLOR[s] },
+              ]}
+              onPress={() => setStatus(s)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+            >
+              <Text style={[styles.wallText, on && styles.wallTextOn]}>
+                {(s ?? "ALL").toUpperCase()} {s ? (counts[s] ?? 0) : rows.length}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
       <View style={styles.colHead}>
         <Text style={[styles.col, styles.colBus]}>{LABELS.vehicleNo.toUpperCase()}</Text>
         <Text style={[styles.col, styles.colRoute]}>{LABELS.route.toUpperCase()}</Text>
@@ -93,11 +153,21 @@ export default function LiveBoardScreen() {
       </View>
 
       <FlatList
-        data={rows}
+        data={shown}
         keyExtractor={(b) => String(b.EventId)}
         renderItem={({ item, index }) => <Row bus={item} index={index} />}
         ListEmptyComponent={
-          <Text style={styles.empty}>NO BUSES ON CAMPUS — AWAITING FIRST ARRIVAL</Text>
+          // Three different empties, and the board used to show the last one for
+          // all three: the first read of the day arrives a moment after the
+          // screen does, and "awaiting first arrival" is a statement about the
+          // yard that nobody had checked yet.
+          <Text style={styles.empty}>
+            {!board
+              ? "READING THE BOARD…"
+              : status
+                ? `NO BUSES ARE ${status.toUpperCase()}`
+                : "NO BUSES ON CAMPUS — AWAITING FIRST ARRIVAL"}
+          </Text>
         }
       />
 

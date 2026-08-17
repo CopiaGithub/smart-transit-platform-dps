@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useCallback } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { askConfirm } from "../../components/ConfirmHost";
 import FlashBar, { useFlash } from "../../components/FlashBar";
 import SlotBadge from "../../components/SlotBadge";
 import { LABELS, STATUS, STATUS_COLOR, type Status } from "../../constants/domain";
@@ -40,20 +41,21 @@ export default function GateOutScreen() {
    * one, which a bare "are you sure" would wave straight through.
    */
   const confirmRelease = (busId: number, busNumber: string, platform: number | null) =>
-    Alert.alert(
-      `Send ${LABELS.vehicle} ${busNumber} out?`,
-      platform == null
-        ? "This cannot be undone."
-        : `${LABELS.slot} ${platform} is freed for the next ${LABELS.vehicle.toLowerCase()}. This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: LABELS.recordOut,
-          style: "destructive",
-          onPress: () => void release(busId, busNumber),
-        },
-      ],
-    );
+    askConfirm({
+      title: `Send ${LABELS.vehicle} ${busNumber} out?`,
+      // The platform is the part a guard can still act on — it is handed to the
+      // next bus the moment this one leaves — so it gets the pill rather than a
+      // clause halfway through a sentence.
+      highlight:
+        platform == null
+          ? undefined
+          : `${LABELS.slot} ${platform} is freed for the next ${LABELS.vehicle.toLowerCase()}`,
+      message: "This cannot be undone.",
+      confirmText: LABELS.recordOut,
+      tone: "danger",
+      icon: "log-out",
+      onConfirm: () => void release(busId, busNumber),
+    });
 
   return (
     <View style={styles.root}>

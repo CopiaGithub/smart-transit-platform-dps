@@ -25,6 +25,22 @@ public class BusesMasterService : IBusesMasterService
         _clock = clock;
     }
 
+    /// <summary>
+    /// "Bus 43" -> "43", "Bus No. 43" -> "43". Anything that is not the label's
+    /// own prefix comes back untouched, and so does a bare "bus" — with nothing
+    /// left behind it that is a search for the word, not for a number.
+    /// </summary>
+    private static string StripVehicleWord(string term)
+    {
+        var stripped = System.Text.RegularExpressions.Regex.Replace(
+            term,
+            @"^bus\b[\s.\-#]*(no\b[\s.\-#]*)?",
+            string.Empty,
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        return stripped.Length > 0 ? stripped : term;
+    }
+
     public async Task<ServiceResponseDto<PagedResult<BusesMasterListModel>>> GetAllAsync(
         PaginationFilterDto filter, int? routeId = null, bool? status = null,
         string? busType = null, string? serviceStatus = null)
@@ -53,9 +69,20 @@ public class BusesMasterService : IBusesMasterService
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {
             var term = filter.SearchTerm.Trim();
+            // Every list, web and phone alike, labels the row "Bus 43" — so "Bus 43"
+            // is what people type back into the box, while the column holds "43"
+            // alone. The label's own word comes off for the number, and only for
+            // the number: a route really called "Bus Depot Road" is still found by
+            // its whole name below.
+            var number = StripVehicleWord(term);
+
+            // The plate and the driver were on screen but not searchable, so typing
+            // what was in front of you came back empty and read as a broken box.
             query = query.Where(b =>
-                b.BusNumber.Contains(term) ||
+                b.BusNumber.Contains(number) ||
                 b.BusType.Contains(term) ||
+                (b.RegistrationNumber != null && b.RegistrationNumber.Contains(number)) ||
+                (b.DriverName != null && b.DriverName.Contains(term)) ||
                 (b.Route != null && !b.Route.IsDeleted && b.Route.RouteName.Contains(term)));
         }
 

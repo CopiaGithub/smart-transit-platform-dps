@@ -16,8 +16,16 @@ export const POLL_MS = 5000;
 export function usePolling(tick: () => void, intervalMs: number = POLL_MS) {
   // Kept in a ref so a new closure each render does not restart the timer.
   const latest = useRef(tick);
+  const started = useRef(false);
   useEffect(() => {
     latest.current = tick;
+    // A *changed* tick asks a different question — the live board's wall chip
+    // rebuilds it around a new display code. Without this the screen kept
+    // showing the previous wall's rows until the next interval, up to a full
+    // POLL_MS after the tap. Callers must memoise their tick (they all do);
+    // an inline arrow would re-fetch on every render.
+    if (started.current) tick();
+    started.current = true;
   }, [tick]);
 
   useFocusEffect(

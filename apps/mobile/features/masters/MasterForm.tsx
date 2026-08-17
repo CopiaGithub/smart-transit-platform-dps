@@ -2,7 +2,6 @@ import { Feather } from "@expo/vector-icons";
 import { useFormik } from "formik";
 import { useMemo, useState, type ReactNode } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Pressable,
@@ -13,6 +12,7 @@ import {
   View,
 } from "react-native";
 import * as Yup from "yup";
+import { askConfirm } from "../../components/ConfirmHost";
 import { LABELS } from "../../constants/domain";
 import { COLORS, RADIUS, SHADOW, SPACING, TINT } from "../../constants/theme";
 import {
@@ -91,10 +91,14 @@ export function askDelete(
   prompt: { title: string; message: string; confirm: string },
   run: () => void,
 ) {
-  Alert.alert(prompt.title, prompt.message, [
-    { text: "Cancel", style: "cancel" },
-    { text: prompt.confirm, style: "destructive", onPress: run },
-  ]);
+  askConfirm({
+    title: prompt.title,
+    message: prompt.message,
+    confirmText: prompt.confirm,
+    tone: "danger",
+    icon: "trash-2",
+    onConfirm: run,
+  });
 }
 
 // ── bus ─────────────────────────────────────────────────────────────────────
