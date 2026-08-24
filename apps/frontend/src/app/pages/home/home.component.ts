@@ -88,7 +88,7 @@ export class HomeComponent extends BaseComponent implements OnInit, OnDestroy {
 
   readonly hasOpenSession = computed(() => this.session()?.Status === 'Open');
 
-  /** "Running for 2h 15m" — how long the dispersal has been going. */
+  /** "Open for 2h 15m" — how long the bus departures have been running. */
   readonly sessionRunningFor = computed(() => {
     const startedAt = this.session()?.StartedAt;
     if (!startedAt || !this.hasOpenSession()) return null;
@@ -191,7 +191,7 @@ export class HomeComponent extends BaseComponent implements OnInit, OnDestroy {
             this.session.set(null);
             return;
           }
-          this.loadError.set(resolveErrorMessage(error, 'Could not load the session.'));
+          this.loadError.set(resolveErrorMessage(error, 'Could not load today\'s session.'));
         },
       });
 
@@ -216,7 +216,7 @@ export class HomeComponent extends BaseComponent implements OnInit, OnDestroy {
         error: (error: unknown) => {
           this.isLoading.set(false);
           this.buses.set(null);
-          this.loadError.set(resolveErrorMessage(error, 'Could not load bus status.'));
+          this.loadError.set(resolveErrorMessage(error, 'Could not load the bus details.'));
         },
       });
 
@@ -238,10 +238,10 @@ export class HomeComponent extends BaseComponent implements OnInit, OnDestroy {
    */
   openSession(): void {
     this.confirm(
-      'Open a dispersal session?',
-      'This starts today\'s dispersal for the whole school. Only one session can ' +
-        'be open at a time, and gate operators cannot record anything until it is.',
-      'Open Session',
+      'Start today\'s bus departures?',
+      'This starts today\'s bus departures for the whole school. Only one can be ' +
+        'open at a time, and gate staff cannot record anything until it is.',
+      'Start Now',
     )
       .pipe(take(1))
       .subscribe((confirmed) => {
@@ -255,11 +255,11 @@ export class HomeComponent extends BaseComponent implements OnInit, OnDestroy {
             next: () => {
               this.isOpeningSession.set(false);
               this.load();
-              this.showSuccess('Dispersal session opened.');
+              this.showSuccess('Bus departures started.');
             },
             error: (error: unknown) => {
               this.isOpeningSession.set(false);
-              this.showError(error, 'Could not open a session.');
+              this.showError(error, 'Could not start bus departures.');
             },
           });
       });

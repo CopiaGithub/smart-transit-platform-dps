@@ -373,7 +373,9 @@ export const STUDENT_MASTER_CONFIG: MasterPageConfig = {
     Division: result.Division,
     AcademicYearId: toId(result.AcademicYearId),
     ClassTeacherId: toId(result.ClassTeacherId),
-    PhotoUrl: result.PhotoUrl || null,
+    // '' rather than null: null tells the server "not supplied, keep what you
+    // have", so a removed photo would come straight back on the next load.
+    PhotoUrl: result.PhotoUrl ?? '',
     UsesTransport: !!result.UsesTransport,
     IsActive: result.IsActive,
     ...transportFields(result),

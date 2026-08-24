@@ -376,6 +376,14 @@ private recalculateApprovedDays() {
         return;
       }
 
+      // A `file` control's value only becomes the stored path once the upload
+      // runs, which is further down this method. Until then a freshly picked
+      // file leaves the control empty, and a required photo would be reported
+      // as missing while its thumbnail sits on screen.
+      if (this.pendingFiles.has(field.name)) {
+        return;
+      }
+
       const value = control.value;
       const isEmpty =
         value === null ||

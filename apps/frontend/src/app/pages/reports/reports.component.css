@@ -4,48 +4,36 @@
   gap: 1rem;
 }
 
-/* ── Head ─────────────────────────────────────────────────────────────────── */
-.rep-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.rep-title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: var(--argon-font-weight-semibold);
-  color: var(--argon-gray-800);
-}
-
-.rep-subtitle {
-  margin: 0.15rem 0 0;
-  font-size: 0.875rem;
-  color: var(--argon-gray-600);
-}
-
-/* ── Error ────────────────────────────────────────────────────────────────── */
-.rep-error {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem 1rem;
-  font-size: 0.875rem;
-  color: #b32741;
-  background: #fde0e6;
-  border-radius: 0.5rem;
-}
-
 /* ── KPIs ─────────────────────────────────────────────────────────────────── */
+/* Explicit counts rather than auto-fit. auto-fit picks whatever number fits,
+   which for four cards means a three-plus-one row on any width that lands
+   between the steps — one card stranded on a line of its own. Halving instead
+   (4 → 2 → 1) keeps every row full. */
 .rep-kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
+}
+
+/* 62rem, not the 75rem the four cards would "prefer": the sidebar eats roughly
+   250px, so a 1400px desktop hands this page ~1150px of content. A 75rem step
+   would put a normal desktop on two rows of very wide, mostly empty cards. */
+@media (max-width: 62rem) {
+  .rep-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 26rem) {
+  .rep-kpis {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .rep-kpi {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
   padding: 1rem 1.25rem;
   background: var(--argon-white);
   border: 1px solid var(--argon-border-color);
@@ -57,16 +45,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  margin-bottom: 0.5rem;
-  border-radius: 0.5rem;
+  /* Fixed box: the icon must not shrink when a long value pushes on it. */
+  flex: 0 0 auto;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.625rem;
 }
 
 .rep-kpi-icon mat-icon {
-  width: 1.125rem;
-  height: 1.125rem;
-  font-size: 1.125rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  font-size: 1.25rem;
 }
 
 /* Tints, not fills: the number is the thing to read, the icon only labels it. */
@@ -90,23 +79,32 @@
   background: rgba(251, 99, 64, 0.13);
 }
 
+.rep-kpi-body {
+  min-width: 0;
+}
+
 .rep-kpi-value {
   margin: 0;
   font-size: 1.5rem;
   font-weight: var(--argon-font-weight-bold);
   color: var(--argon-gray-800);
-  line-height: 1.2;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
 }
 
 .rep-kpi-label {
-  margin: 0.15rem 0 0;
+  margin: 0.1rem 0 0;
   font-size: 0.75rem;
   letter-spacing: 0.02em;
   color: var(--argon-gray-600);
+  /* A translated label must not wrap the card taller than its neighbours. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rep-skeleton {
-  height: 6.25rem;
+  height: 5.5rem;
   background: linear-gradient(90deg, #f1f4f9 25%, #e7ecf3 50%, #f1f4f9 75%);
   background-size: 200% 100%;
   border-radius: 0.5rem;
@@ -117,6 +115,41 @@
   to {
     background-position: -200% 0;
   }
+}
+
+/* ── Card header extras ───────────────────────────────────────────────────── */
+/* The session date rides in the card header beside the title, where the page
+   header shell already shows "Reports" — repeating a page title inside the body
+   is the blank-space-and-clutter the header shell exists to prevent. */
+.rep-session {
+  padding: 0.15rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-gray-700);
+  background: var(--argon-white);
+  border: 1px solid var(--argon-border-color);
+  border-radius: 999px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────────────────── */
+.rep-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.rep-count {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-gray-600);
+  white-space: nowrap;
 }
 
 /* ── Filter chips ─────────────────────────────────────────────────────────── */
@@ -136,6 +169,7 @@
   border: 1px solid var(--argon-border-color);
   border-radius: 999px;
   cursor: pointer;
+  white-space: nowrap;
   transition:
     color 0.15s ease,
     background-color 0.15s ease,
@@ -144,6 +178,7 @@
 
 .rep-chip:hover:not(.rep-chip--on) {
   border-color: var(--argon-gray-400);
+  background: var(--argon-gray-100);
 }
 
 .rep-chip--on {
@@ -159,27 +194,33 @@
 
 /* ── Table ────────────────────────────────────────────────────────────────── */
 .rep-table-wrap {
-  /* The log must scroll inside its own box; the page never scrolls sideways. */
-  overflow-x: auto;
+  /* The log scrolls inside its own box; the page never scrolls sideways.
+     max-height keeps a long day from pushing the footnote off the screen —
+     the header stays pinned while the rows move under it. */
+  overflow: auto;
+  max-height: 26rem;
   background: var(--argon-white);
   border: 1px solid var(--argon-border-color);
   border-radius: 0.5rem;
-  box-shadow: var(--argon-card-shadow);
 }
 
 .rep-table {
   width: 100%;
   /* Fixed layout so the column widths below actually hold. Under auto layout
      they are only hints and the longest route name still drags its column
-     wider than the rest. min-width keeps the columns readable on a phone —
-     the wrapper scrolls sideways past that. */
+     wider than the rest. min-width keeps the columns readable — the wrapper
+     scrolls sideways past that, until the stacked layout takes over below. */
   table-layout: fixed;
-  min-width: 44rem;
-  border-collapse: collapse;
+  min-width: 42rem;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: var(--argon-table-body-font-size);
 }
 
 .rep-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   padding: 0.75rem 1rem;
   font-size: var(--argon-table-head-font-size);
   font-weight: var(--argon-font-weight-bold);
@@ -192,11 +233,28 @@
   border-bottom: 1px solid var(--argon-table-border-color);
 }
 
-.rep-table td {
+/* border-bottom is zeroed deliberately. The app-wide theme sets a bottom border
+   on every `.page-content table tbody td`, and this table draws its separators
+   as top borders — left alone the two stack into a doubled 2px rule between
+   every row. One separator per boundary, drawn here.
+
+   The `.rep` prefix is load-bearing: the global rule is three elements deep
+   behind a class, so a plain `.rep-table td` loses to it on specificity. */
+.rep .rep-table td {
   padding: 0.75rem 1rem;
   color: var(--argon-gray-700);
   border-top: 1px solid var(--argon-table-border-color);
+  border-bottom: 0;
   vertical-align: middle;
+}
+
+.rep-table tbody tr:first-child td {
+  border-top: 0;
+}
+
+/* Zebra under the hover, so a wide row stays trackable across eight columns. */
+.rep-table tbody tr:nth-child(even) td {
+  background: rgba(246, 249, 252, 0.6);
 }
 
 .rep-table tbody tr:hover td {
@@ -218,10 +276,10 @@
    a screen-width away from Status on an empty log), so the widths below hand
    every column a share and keep the gaps even. They add up to 100%. */
 .rep-table th:nth-child(1) {
-  width: 10%;
+  width: 16%;
 }
 .rep-table th:nth-child(2) {
-  width: 22%;
+  width: 17%;
 }
 .rep-table th:nth-child(3) {
   width: 13%;
@@ -233,7 +291,7 @@
   width: 10%;
 }
 .rep-table th:nth-child(6) {
-  width: 13%;
+  width: 12%;
 }
 .rep-table th:nth-child(7) {
   width: 10%;
@@ -245,13 +303,24 @@
 .rep-bus {
   font-weight: var(--argon-font-weight-bold);
   color: var(--argon-gray-800);
+}
+
+/* Clipped rather than wrapped: fixed layout cannot widen for an unusually long
+   bus code, and a wrapped code would set every row in the table two lines tall.
+   These two are NOT interchangeable — .rep-bus-no is a span inside its cell and
+   needs display:block to clip, while .rep-route IS the cell. Setting display on
+   a td drops it out of table layout: it sizes to its own text instead of the
+   column and drags its borders with it, which shows up as a stray rule floating
+   under the route name. Ellipsis works on a td as-is under table-layout:fixed. */
+.rep-bus-no {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .rep-route {
   color: var(--argon-gray-600);
-  /* Fixed layout cannot widen for a long route name, so clip it rather than
-     let it wrap the row to two lines. The full name stays in the tooltip. */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -263,18 +332,61 @@
 }
 
 /* A replacement is the one thing on a row that changes what the row means. */
+/* Wrapped, not clipped: "replaced by B-31" is the whole point of the row, and
+   an ellipsis there hides the bus that actually ran. Only replacement rows grow
+   a second line, and fixed layout keeps the columns steady while they do. */
 .rep-replaced {
   display: block;
   margin-top: 0.15rem;
   font-size: 0.6875rem;
   font-weight: var(--argon-font-weight-semibold);
+  line-height: 1.35;
   color: #b45309;
+  overflow-wrap: anywhere;
 }
 
-.rep-empty {
-  padding: 2rem 1rem !important;
+/* ── Empty / error states ─────────────────────────────────────────────────── */
+/* Same shape as master-page.component.css, so an empty log and an empty master
+   list are recognisably the same thing. */
+.rep-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 3rem 1.5rem;
   text-align: center;
   color: var(--argon-gray-600);
+}
+
+.rep-state--error {
+  background: var(--argon-white);
+  border: 1px solid var(--argon-border-color);
+  border-radius: 0.5rem;
+  box-shadow: var(--argon-card-shadow);
+}
+
+.rep-state-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 2.5rem;
+  color: var(--argon-gray-400);
+}
+
+.rep-state--error .rep-state-icon {
+  color: var(--argon-danger, #f5365c);
+}
+
+.rep-state-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: var(--argon-font-weight-semibold);
+  color: var(--argon-gray-700);
+}
+
+.rep-state-text {
+  margin: 0 0 0.5rem;
+  max-width: 34rem;
+  font-size: 0.8125rem;
 }
 
 /* ── Status badges ────────────────────────────────────────────────────────── */
@@ -317,16 +429,131 @@
 
 /* ── Footnote ─────────────────────────────────────────────────────────────── */
 .rep-footnote {
-  margin: 0;
+  margin: 0.875rem 0 0;
   font-size: 0.75rem;
   line-height: 1.6;
   color: var(--argon-gray-600);
 }
 
-@media (max-width: 640px) {
-  .rep-head {
-    flex-direction: column;
-    align-items: stretch;
+/* ── Phone ────────────────────────────────────────────────────────────────── */
+/* Eight columns cannot be read on a 375px screen, and a sideways scrollbar is a
+   poor substitute for reading them. Below 45rem each row becomes its own card
+   with the column name printed against each value, so nothing is truncated and
+   nothing needs scrolling. Markup is unchanged — only the display roles are.
+   45rem (720px) rather than the 48rem tablet breakpoint: the table itself is
+   44rem wide, so a 768px tablet still has room to show it as a table, and
+   stacking there would be throwing away a screen that can read the real thing. */
+@media (max-width: 45rem) {
+  .rep-table-wrap {
+    max-height: none;
+    overflow: visible;
+    background: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .rep-table {
+    min-width: 0;
+    table-layout: auto;
+  }
+
+  /* Off-screen rather than display:none, so the table keeps its row/column
+     semantics for a screen reader. */
+  .rep-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .rep-table tbody tr {
+    display: block;
+    margin-bottom: 0.75rem;
+    background: var(--argon-white);
+    border: 1px solid var(--argon-border-color);
+    border-radius: 0.5rem;
+    box-shadow: var(--argon-card-shadow);
+    overflow: hidden;
+  }
+
+  .rep-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .rep .rep-table td,
+  .rep .rep-table td.rep-num {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.875rem;
+    text-align: right;
+    border-top: 1px solid var(--argon-table-border-color);
+  }
+
+  /* Zebra and hover are wrong once a row is a card of its own. */
+  .rep-table tbody tr:nth-child(even) td,
+  .rep-table tbody tr:hover td {
+    background: transparent;
+  }
+
+  .rep .rep-table tbody tr td:first-child {
+    border-top: 0;
+    background: var(--argon-table-head-bg);
+  }
+
+  .rep-table td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: var(--argon-table-head-font-size);
+    font-weight: var(--argon-font-weight-bold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--argon-table-head-color);
+  }
+
+  /* The value side of each row may wrap freely now that it has the width. */
+  .rep-bus-no,
+  .rep-route,
+  .rep-replaced {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .rep-bus {
+    display: block;
+    text-align: left;
+  }
+
+  .rep-bus::before {
+    display: none;
+  }
+
+  .rep-bus-no {
+    font-size: 0.9375rem;
+  }
+}
+
+@media (max-width: 30rem) {
+  .rep-toolbar {
+    align-items: flex-start;
+  }
+
+  .rep-chips {
+    width: 100%;
+  }
+
+  /* Thumb-reachable rather than four cramped pills on one line. */
+  .rep-chip {
+    flex: 1 1 auto;
+    padding: 0.45rem 0.75rem;
+    text-align: center;
   }
 }
 

@@ -21,10 +21,10 @@ import { AttachmentService } from '../../../core/api/attachment.service';
  * text input it replaces: no config's toCreate/toUpdate mapping has to change.
  *
  * A picked file is handed to the parent through `fileSelected`; the parent is
- * responsible for uploading it and writing the resulting path back. Until an
- * upload endpoint exists, that upload fails by design and the note under the
- * button says so — an existing stored value still displays and can be removed,
- * but no new value can be set from this screen.
+ * responsible for uploading it and writing the resulting path back. That happens
+ * in edit-model's uploadPendingFiles() on save, against
+ * POST /api/Attachment/upload — the file is only sent once the form is saved, so
+ * abandoning the dialog uploads nothing.
  */
 @Component({
   selector: 'cds-file-attach',

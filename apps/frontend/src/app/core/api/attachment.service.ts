@@ -21,11 +21,17 @@ import { environment } from '../../environments/environment';
 export class AttachmentService {
   private readonly api = inject(ApiService);
 
-  /** True once uploading is wired up; the UI uses this to explain itself. */
+  /**
+   * Kept as a flag the UI can branch on, but uploading IS wired up:
+   * POST /api/Attachment/upload (AttachmentController) stores the file and
+   * answers with its path. The message below survives only for the case where a
+   * deployment disables uploads — Program.cs logs a warning and skips the static
+   * mount when the upload folder cannot be created.
+   */
   readonly isUploadAvailable = true;
 
   readonly unavailableMessage =
-    'Attaching a file is not available yet — the server has no upload endpoint.';
+    'Attaching a file is not available on this server. Please contact your administrator.';
 
   /**
    * Resolves to the stored path to write into the record's URL column.

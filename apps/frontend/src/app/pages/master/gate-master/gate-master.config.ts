@@ -28,8 +28,11 @@ export const GATE_MASTER_CONFIG: MasterPageConfig = {
     { key: 'GateName', label: 'Gate Name' },
     { key: 'GateTypeLabel', label: 'Type', width: '150px', type: 'badge' },
     { key: 'SortOrder', label: 'Sort Order', width: '130px' },
-    { key: 'PlatformCount', label: 'Platforms', width: '120px' },
-    { key: 'DisplayCount', label: 'Displays', width: '120px' },
+    // Platforms and Displays counts are deliberately not shown. The API still
+    // returns both (see toRow below), so re-adding a column here is all it
+    // takes. PlatformCount in particular could only ever read 0: nothing can
+    // set PlatformsMaster.NearestGateId, because it is absent from that
+    // master's create/update/list DTOs.
     { key: 'Status', label: 'Status', width: '110px', type: 'badge' },
   ],
 

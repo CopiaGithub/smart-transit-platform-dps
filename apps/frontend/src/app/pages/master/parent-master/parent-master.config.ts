@@ -328,7 +328,9 @@ function parentBody(result: any): Record<string, unknown> {
     StateId: toId(result.StateId),
     CityId: toId(result.CityId),
     PinCodeId: toId(result.PinCodeId),
-    PhotoUrl: result.PhotoUrl || null,
+    // '' rather than null: null tells the server "not supplied, keep what you
+    // have", so a removed photo would come straight back on the next load.
+    PhotoUrl: result.PhotoUrl ?? '',
     IdProofType: result.IdProofType || null,
     IdProofNumber: result.IdProofNumber || null,
     IsWhatsAppEnabled: !!result.IsWhatsAppEnabled,

@@ -1,29 +1,10 @@
 <div class="rep">
-  <!-- Session line -->
-  <div class="rep-head">
-    <div>
-      <h2 class="rep-title">Today's dispersal log</h2>
-      <p class="rep-subtitle" *ngIf="sessionLine(); else noSessionLine">
-        {{ sessionLine() }}
-      </p>
-      <ng-template #noSessionLine>
-        <p class="rep-subtitle">Every bus movement recorded in this session.</p>
-      </ng-template>
-    </div>
-
-    <cds-button
-      [variant]="'primary'"
-      [disabled]="!shown().length"
-      (click)="exportCsv()"
-    >
-      Export CSV
-    </cds-button>
-  </div>
-
-  <!-- Error -->
-  <div *ngIf="loadError()" class="rep-error" role="alert">
-    <mat-icon aria-hidden="true">error_outline</mat-icon>
-    <span>{{ loadError() }}</span>
+  <!-- Error. Full state block rather than a thin bar, so a failed load reads the
+       same here as it does on every master screen. -->
+  <div *ngIf="loadError() && !isLoading()" class="rep-state rep-state--error" role="alert">
+    <mat-icon aria-hidden="true" class="rep-state-icon">error_outline</mat-icon>
+    <p class="rep-state-title">Could not load today's log</p>
+    <p class="rep-state-text">{{ loadError() }}</p>
     <cds-button [variant]="'primary'" (click)="load()">Retry</cds-button>
   </div>
 
@@ -39,105 +20,149 @@
         <span class="rep-kpi-icon rep-kpi-icon--in" aria-hidden="true">
           <mat-icon>login</mat-icon>
         </span>
-        <p class="rep-kpi-value">{{ recordedIn() }}</p>
-        <p class="rep-kpi-label">Recorded in</p>
+        <div class="rep-kpi-body">
+          <p class="rep-kpi-value">{{ recordedIn() }}</p>
+          <p class="rep-kpi-label">Recorded in</p>
+        </div>
       </div>
 
       <div class="rep-kpi">
         <span class="rep-kpi-icon rep-kpi-icon--out" aria-hidden="true">
           <mat-icon>logout</mat-icon>
         </span>
-        <p class="rep-kpi-value">{{ departedCount() }}</p>
-        <p class="rep-kpi-label">Departed</p>
+        <div class="rep-kpi-body">
+          <p class="rep-kpi-value">{{ departedCount() }}</p>
+          <p class="rep-kpi-label">Departed</p>
+        </div>
       </div>
 
       <div class="rep-kpi">
         <span class="rep-kpi-icon rep-kpi-icon--campus" aria-hidden="true">
           <mat-icon>local_parking</mat-icon>
         </span>
-        <p class="rep-kpi-value">{{ onCampusCount() }}</p>
-        <p class="rep-kpi-label">On campus</p>
+        <div class="rep-kpi-body">
+          <p class="rep-kpi-value">{{ onCampusCount() }}</p>
+          <p class="rep-kpi-label">On campus</p>
+        </div>
       </div>
 
       <div class="rep-kpi">
         <span class="rep-kpi-icon rep-kpi-icon--dwell" aria-hidden="true">
           <mat-icon>schedule</mat-icon>
         </span>
-        <p class="rep-kpi-value">{{ avgDwellLabel() }}</p>
-        <p class="rep-kpi-label">Avg dwell</p>
+        <div class="rep-kpi-body">
+          <p class="rep-kpi-value">{{ avgDwellLabel() }}</p>
+          <p class="rep-kpi-label">Avg dwell</p>
+        </div>
       </div>
     </div>
 
-    <!-- Filter chips -->
-    <div class="rep-chips" role="group" aria-label="Filter the log">
-      <button
-        *ngFor="let f of filters"
-        type="button"
-        class="rep-chip"
-        [class.rep-chip--on]="filter() === f.key"
-        [attr.aria-pressed]="filter() === f.key"
-        [attr.data-testid]="'reports-filter-' + f.key"
-        (click)="setFilter(f.key)"
+    <!-- Log. Same card shell as every master list, so the screen sits in the
+         design system instead of beside it. -->
+    <app-cds-container title="Dispersal Log" icon="receipt_long">
+      <span header-left class="rep-session" *ngIf="sessionLine()">
+        {{ sessionLine() }}
+      </span>
+
+      <cds-button
+        header-actions
+        [variant]="'success'"
+        [disabled]="!shown().length"
+        (click)="exportCsv()"
       >
-        {{ f.label }}
-      </button>
-    </div>
+        Export CSV
+      </cds-button>
 
-    <!-- Log -->
-    <div class="rep-table-wrap">
-      <table class="rep-table" data-testid="reports-table">
-        <thead>
-          <tr>
-            <th scope="col">Bus No.</th>
-            <th scope="col">Route</th>
-            <th scope="col">Status</th>
-            <th scope="col" class="rep-num">Station</th>
-            <th scope="col" class="rep-num">In</th>
-            <th scope="col" class="rep-num">Assigned</th>
-            <th scope="col" class="rep-num">Out</th>
-            <th scope="col" class="rep-num">Dwell</th>
-          </tr>
-        </thead>
+      <!-- Toolbar: filter left, result count right. -->
+      <div class="rep-toolbar">
+        <div class="rep-chips" role="group" aria-label="Filter the log">
+          <button
+            *ngFor="let f of filters"
+            type="button"
+            class="rep-chip"
+            [class.rep-chip--on]="filter() === f.key"
+            [attr.aria-pressed]="filter() === f.key"
+            [attr.data-testid]="'reports-filter-' + f.key"
+            (click)="setFilter(f.key)"
+          >
+            {{ f.label }}
+          </button>
+        </div>
 
-        <tbody>
-          <tr *ngFor="let row of shown()">
-            <td class="rep-bus">
-              {{ row.BusNumber }}
-              <span class="rep-replaced" *ngIf="row.ReplacedByBusNumber">
-                → replaced by {{ row.ReplacedByBusNumber }}
-              </span>
-            </td>
-            <td class="rep-route" [title]="row.RouteName ?? 'No route'">
-              {{ row.RouteName ?? "No route" }}
-            </td>
-            <td class="rep-status-cell">
-              <span class="rep-status" [ngClass]="statusClass(row.Status)">
-                {{ row.Status }}
-              </span>
-            </td>
-            <td class="rep-num rep-station">{{ row.PlatformNumber ?? "—" }}</td>
-            <td class="rep-num">{{ time(row.EnteredAt) }}</td>
-            <td class="rep-num">{{ time(row.AssignedAt) }}</td>
-            <td class="rep-num">{{ time(row.DepartedAt) }}</td>
-            <td class="rep-num">{{ dwell(row) }}</td>
-          </tr>
+        <p class="rep-count" aria-live="polite">
+          {{ shown().length }}
+          {{ shown().length === 1 ? "movement" : "movements" }}
+        </p>
+      </div>
 
-          <tr *ngIf="!shown().length">
-            <td class="rep-empty" colspan="8">
-              Nothing logged yet for this filter
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <!-- Empty -->
+      <div *ngIf="!shown().length" class="rep-state">
+        <mat-icon aria-hidden="true" class="rep-state-icon">inbox</mat-icon>
+        <p class="rep-state-title">Nothing logged yet for this filter</p>
+        <cds-button
+          *ngIf="filter() !== 'all'"
+          [variant]="'clear'"
+          (click)="setFilter('all')"
+        >
+          Show all
+        </cds-button>
+      </div>
 
-    <p class="rep-footnote">
-      Times are captured the moment the guard taps, so this log is the audit
-      trail for the day's boarding. Refreshes every 30 seconds while this tab is
-      open<ng-container *ngIf="generatedAtLabel()">
-        — last read at {{ generatedAtLabel() }}</ng-container
-      >.
-    </p>
+      <div class="rep-table-wrap" *ngIf="shown().length">
+        <table class="rep-table" data-testid="reports-table">
+          <thead>
+            <tr>
+              <th scope="col">Bus No.</th>
+              <th scope="col">Route</th>
+              <th scope="col">Status</th>
+              <th scope="col" class="rep-num">Station</th>
+              <th scope="col" class="rep-num">In</th>
+              <th scope="col" class="rep-num">Assigned</th>
+              <th scope="col" class="rep-num">Out</th>
+              <th scope="col" class="rep-num">Dwell</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let row of shown()">
+              <td class="rep-bus" data-label="Bus No.">
+                <span class="rep-bus-no" [title]="row.BusNumber">{{ row.BusNumber }}</span>
+                <span class="rep-replaced" *ngIf="row.ReplacedByBusNumber">
+                  → replaced by {{ row.ReplacedByBusNumber }}
+                </span>
+              </td>
+              <td
+                class="rep-route"
+                data-label="Route"
+                [title]="row.RouteName ?? 'No route'"
+              >
+                {{ row.RouteName ?? "No route" }}
+              </td>
+              <td class="rep-status-cell" data-label="Status">
+                <span class="rep-status" [ngClass]="statusClass(row.Status)">
+                  {{ row.Status }}
+                </span>
+              </td>
+              <td class="rep-num rep-station" data-label="Station">
+                {{ row.PlatformNumber ?? "—" }}
+              </td>
+              <td class="rep-num" data-label="In">{{ time(row.EnteredAt) }}</td>
+              <td class="rep-num" data-label="Assigned">{{ time(row.AssignedAt) }}</td>
+              <td class="rep-num" data-label="Out">{{ time(row.DepartedAt) }}</td>
+              <td class="rep-num" data-label="Dwell">{{ dwell(row) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="rep-footnote">
+        Times are captured the moment the guard taps, so this log is the audit
+        trail for the day's boarding. Refreshes every 30 seconds while this tab
+        is open<ng-container *ngIf="generatedAtLabel()">
+          — last read at {{ generatedAtLabel() }}</ng-container
+        >.
+      </p>
+    </app-cds-container>
   </ng-container>
 </div>
 

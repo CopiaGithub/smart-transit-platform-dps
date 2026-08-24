@@ -296,7 +296,11 @@ public class StudentMasterService : IStudentMasterService
         if (model.ClassTeacherId.HasValue) student.ClassTeacherId = model.ClassTeacherId;
         if (model.RouteId.HasValue) student.RouteId = model.RouteId;
         if (model.ExitGateId.HasValue) student.ExitGateId = model.ExitGateId;
-        if (model.PhotoUrl != null) student.PhotoUrl = model.PhotoUrl;
+        // Empty means "the photo was removed" and must clear the column. null still
+        // means "not supplied, leave it alone" — the convention every field here
+        // follows — so the two cannot be collapsed into one check.
+        if (model.PhotoUrl != null)
+            student.PhotoUrl = string.IsNullOrWhiteSpace(model.PhotoUrl) ? null : model.PhotoUrl;
         if (model.PickupStop != null) student.PickupStop = model.PickupStop;
         if (model.DropStop != null) student.DropStop = model.DropStop;
         student.UsesTransport = usesTransport;

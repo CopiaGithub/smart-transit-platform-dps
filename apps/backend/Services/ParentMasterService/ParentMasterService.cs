@@ -288,7 +288,11 @@ public class ParentMasterService : IParentMasterService
         if (model.CityId.HasValue) parent.CityId = model.CityId;
         if (model.StateId.HasValue) parent.StateId = model.StateId;
         if (model.PinCodeId.HasValue) parent.PinCodeId = model.PinCodeId;
-        if (model.PhotoUrl != null) parent.PhotoUrl = model.PhotoUrl;
+        // Empty means "the photo was removed" and must clear the column. null still
+        // means "not supplied, leave it alone" — the convention every field here
+        // follows — so the two cannot be collapsed into one check.
+        if (model.PhotoUrl != null)
+            parent.PhotoUrl = string.IsNullOrWhiteSpace(model.PhotoUrl) ? null : model.PhotoUrl;
         if (model.IdProofType != null) parent.IdProofType = model.IdProofType;
         if (model.IdProofNumber != null) parent.IdProofNumber = model.IdProofNumber;
         if (model.UserId.HasValue) parent.UserId = model.UserId;

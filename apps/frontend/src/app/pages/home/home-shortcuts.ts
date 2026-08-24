@@ -31,14 +31,14 @@ export const HOME_SHORTCUTS: HomeShortcut[] = [
   {
     name: 'Student Master',
     route: '/mainlayout/master/student-master',
-    note: 'Enrolment, transport and RFID',
+    note: 'Student details, bus and card',
     icon: 'school',
     accent: '#4f46e5',
   },
   {
     name: 'Parent Master',
     route: '/mainlayout/master/parent-master',
-    note: 'Guardians and contact details',
+    note: 'Parents and contact details',
     icon: 'family_restroom',
     accent: '#db2777',
   },
@@ -52,7 +52,7 @@ export const HOME_SHORTCUTS: HomeShortcut[] = [
   {
     name: 'Buses Master',
     route: '/mainlayout/master/buses-master',
-    note: 'Fleet, drivers and service state',
+    note: 'Buses, drivers and working status',
     icon: 'directions_bus',
     accent: '#0d9488',
   },
@@ -73,14 +73,14 @@ export const HOME_SHORTCUTS: HomeShortcut[] = [
   {
     name: 'Display Master',
     route: '/mainlayout/master/display-master',
-    note: 'LED walls and their status',
+    note: 'Screens and their status',
     icon: 'cast',
     accent: '#2563eb',
   },
   {
     name: 'Academic Year Master',
     route: '/mainlayout/master/academic-year-master',
-    note: 'Sessions and the current year',
+    note: 'School years and the current one',
     icon: 'calendar_month',
     accent: '#059669',
   },

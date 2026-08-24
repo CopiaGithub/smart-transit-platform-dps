@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { take } from 'rxjs';
 
 import { CdsButtonComponent } from '../../components/cds/cds-button/cds-button.component';
+import { CdsContainerComponent } from '../../components/cds/cds-container/cds-container.component';
 import { PopupComponent } from '../../components/popup/popup.component';
 import { ApiService } from '../../core/api/api.service';
 import { PageHeaderService } from '../../services/page-header.service';
@@ -86,7 +87,13 @@ const REFRESH_MS = 30_000;
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, MatIconModule, CdsButtonComponent, PopupComponent],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    CdsButtonComponent,
+    CdsContainerComponent,
+    PopupComponent,
+  ],
   templateUrl: './reports.component.html',
   styleUrl: './reports.component.css',
 })

@@ -4,7 +4,7 @@
     <h2 class="dash-greeting-title">
       Welcome back{{ userName ? ", " + userName : "" }}
     </h2>
-    <p class="dash-greeting-text">Here is where today's dispersal stands.</p>
+    <p class="dash-greeting-text">Here is how today's bus departures are going.</p>
   </div>
 
   <!-- Error -->
@@ -30,13 +30,13 @@
         <mat-icon class="dash-session-icon" aria-hidden="true">play_circle</mat-icon>
         <div class="dash-session-body">
           <p class="dash-session-title">
-            Dispersal session open
+            Bus departures are open
             <span class="dash-pill">{{ session()?.ShiftName }}</span>
           </p>
           <p class="dash-session-text">
             {{ sessionDateLabel() }}
             <ng-container *ngIf="sessionRunningFor()">
-              · running for {{ sessionRunningFor() }}
+              · open for {{ sessionRunningFor() }}
             </ng-container>
           </p>
         </div>
@@ -45,10 +45,10 @@
       <ng-template #noSession>
         <mat-icon class="dash-session-icon" aria-hidden="true">pause_circle</mat-icon>
         <div class="dash-session-body">
-          <p class="dash-session-title">No dispersal session is open</p>
+          <p class="dash-session-title">Bus departures have not started</p>
           <p class="dash-session-text">
-            Nothing can be recorded until a session is open — no gate in, no gate
-            out, no boarding.
+            Until you start, nothing can be saved — no bus in, no bus out, no
+            boarding.
           </p>
         </div>
         <cds-button
@@ -57,7 +57,7 @@
           [disabled]="isOpeningSession()"
           (click)="openSession()"
         >
-          {{ isOpeningSession() ? "Opening…" : "Open Session" }}
+          {{ isOpeningSession() ? "Starting…" : "Start Now" }}
         </cds-button>
       </ng-template>
     </div>
@@ -68,12 +68,12 @@
       <div class="dash-card">
         <div class="dash-card-head">
           <mat-icon aria-hidden="true" class="dash-card-icon">local_parking</mat-icon>
-          <span class="dash-card-label">Yard occupied</span>
+          <span class="dash-card-label">Platforms in use</span>
         </div>
         <p class="dash-card-value">{{ yardLabel() }}</p>
         <p class="dash-card-note" *ngIf="platforms() as p">
           <ng-container *ngIf="p.YardFull; else nextFree">
-            <span class="dash-warn">Yard is full — arrivals will wait.</span>
+            <span class="dash-warn">Platforms full — buses will wait.</span>
           </ng-container>
           <ng-template #nextFree>
             <ng-container *ngIf="p.NextFreePlatformNumber !== null">
@@ -90,19 +90,19 @@
           <span class="dash-card-label">Waiting buses</span>
         </div>
         <p class="dash-card-value">{{ session()?.Waiting ?? 0 }}</p>
-        <p class="dash-card-note">Holding until a platform frees up.</p>
+        <p class="dash-card-note">Waiting for a free platform.</p>
       </div>
 
       <!-- Departed -->
       <div class="dash-card">
         <div class="dash-card-head">
           <mat-icon aria-hidden="true" class="dash-card-icon">logout</mat-icon>
-          <span class="dash-card-label">Departed</span>
+          <span class="dash-card-label">Buses left</span>
         </div>
         <p class="dash-card-value">{{ session()?.Departed ?? 0 }}</p>
         <p class="dash-card-note" *ngIf="session() as s">
-          of {{ s.TotalBuses }} {{ s.TotalBuses === 1 ? "bus" : "buses" }} in this
-          session
+          out of {{ s.TotalBuses }} {{ s.TotalBuses === 1 ? "bus" : "buses" }}
+          today
         </p>
       </div>
 
@@ -110,11 +110,11 @@
       <div class="dash-card">
         <div class="dash-card-head">
           <mat-icon aria-hidden="true" class="dash-card-icon">directions_bus</mat-icon>
-          <span class="dash-card-label">Buses in yard</span>
+          <span class="dash-card-label">Buses in school</span>
         </div>
         <p class="dash-card-value">{{ buses()?.InYardCount ?? 0 }}</p>
         <p class="dash-card-note" *ngIf="buses() as b">
-          {{ b.AvailableCount }} available of {{ b.TotalBuses }} in the fleet
+          {{ b.AvailableCount }} ready out of {{ b.TotalBuses }} buses
         </p>
       </div>
 
@@ -125,12 +125,12 @@
       >
         <div class="dash-card-head">
           <mat-icon aria-hidden="true" class="dash-card-icon">build</mat-icon>
-          <span class="dash-card-label">Out of service</span>
+          <span class="dash-card-label">Buses not working</span>
         </div>
         <p class="dash-card-value">{{ buses()?.OutOfServiceCount ?? 0 }}</p>
         <p class="dash-card-note">
           <a class="dash-link" (click)="go('/mainlayout/master/buses-master')">
-            Open Buses Master
+            See all buses
           </a>
         </p>
       </div>
@@ -139,7 +139,7 @@
       <div class="dash-card" [class.dash-card--danger]="offlineDisplays().length > 0">
         <div class="dash-card-head">
           <mat-icon aria-hidden="true" class="dash-card-icon">cast</mat-icon>
-          <span class="dash-card-label">Displays not online</span>
+          <span class="dash-card-label">Screens not working</span>
         </div>
         <p class="dash-card-value">
           {{ offlineDisplays().length }}
@@ -152,13 +152,13 @@
               and {{ offlineDisplays().length - 1 }} more</ng-container
             >
           </ng-container>
-          <ng-template #allOnline>Every LED wall is reporting in.</ng-template>
+          <ng-template #allOnline>All screens are working.</ng-template>
         </p>
       </div>
     </div>
 
     <p class="dash-footnote">
-      Refreshes every 30 seconds while this tab is open.
+      Updates every 30 seconds while this page is open.
     </p>
   </ng-container>
 
