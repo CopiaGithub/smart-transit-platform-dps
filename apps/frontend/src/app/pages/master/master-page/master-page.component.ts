@@ -293,7 +293,7 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
 
   readonly emptyStateMessage = computed(() =>
     this.isFiltered()
-      ? 'No records match these filters.'
+      ? 'Nothing matches your search.'
       : `No ${this.config.title.replace(/ Master$/i, '').toLowerCase()} records yet.`,
   );
 
@@ -345,7 +345,7 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
       } catch (error: unknown) {
         // Opening with an empty list would look like "this record has none", and
         // saving would then re-post every existing row as a duplicate.
-        this.showError(error, 'Could not load the linked records for this row.');
+        this.showError(error, 'Could not load the linked details for this row.');
         return;
       }
 
@@ -427,9 +427,9 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
 
   onDeleteRow(row: any): void {
     this.confirm(
-      'Confirm Deletion',
-      `Delete "${this.config.entityLabel(row)}"? This is a soft delete — the record is ` +
-        'hidden from lists but kept in the database, so nothing that references it breaks.',
+      'Confirm Delete',
+      `Delete "${this.config.entityLabel(row)}"? It will be hidden from the list but ` +
+        'not removed from the system, so anything already linked to it keeps working.',
       'Delete',
     )
       .pipe(take(1))
@@ -447,7 +447,7 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
             },
             error: (error: unknown) => {
               spinner.close();
-              this.showError(error, 'Delete failed.');
+              this.showError(error, 'Could not delete this record.');
             },
           });
       });
@@ -471,7 +471,7 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
         },
         error: (error: unknown) => {
           spinner.close();
-          this.showError(error, 'Create failed.');
+          this.showError(error, 'Could not add this record.');
         },
       });
   }
@@ -487,7 +487,7 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
         },
         error: (error: unknown) => {
           spinner.close();
-          this.showError(error, 'Update failed.');
+          this.showError(error, 'Could not save your changes.');
         },
       });
   }
@@ -868,7 +868,7 @@ export class MasterPageComponent extends BaseComponent implements OnInit {
         },
         error: (error: unknown) => {
           spinner.close();
-          this.showError(error, 'Export failed.');
+          this.showError(error, 'Could not export the list.');
         },
       });
   }

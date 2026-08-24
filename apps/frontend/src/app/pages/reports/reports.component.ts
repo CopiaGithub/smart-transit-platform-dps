@@ -301,11 +301,11 @@ export class ReportsComponent extends BaseComponent implements OnInit, OnDestroy
       'Bus No',
       'Route',
       'Status',
-      'Station',
+      'Platform',
       'In',
       'Assigned',
       'Out',
-      'Dwell',
+      'Stay',
       'Replaced By',
     ];
 
@@ -328,7 +328,7 @@ export class ReportsComponent extends BaseComponent implements OnInit, OnDestroy
     const date = this.board()?.SessionDate ?? 'today';
     // ﻿ so Excel opens it as UTF-8 rather than mangling any non-ASCII
     // route name.
-    this.download(`Dispersal_Log_${date}.csv`, `﻿${csv}`);
+    this.download(`Bus_Departure_Log_${date}.csv`, `﻿${csv}`);
   }
 
   private download(filename: string, content: string): void {

@@ -93,7 +93,7 @@
           {{ isOffline() ? "wifi_off" : "error_outline" }}
         </mat-icon>
         <p class="master-state-title">
-          {{ isOffline() ? "You appear to be offline" : "Could not load this list" }}
+          {{ isOffline() ? "You are not connected" : "Could not load this list" }}
         </p>
         <p class="master-state-text">{{ loadError() }}</p>
         <cds-button [variant]="'primary'" (click)="onRetry()">Retry</cds-button>

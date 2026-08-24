@@ -157,15 +157,15 @@ function messageForWireStatus(error: HttpErrorResponse): string {
 
   switch (error.status) {
     case 0:
-      return 'Cannot reach the server. Check your network connection.';
+      return 'Cannot reach the server. Please check your internet connection.';
     case 401:
       return 'Your session has expired. Please sign in again.';
     case 403:
-      return 'You do not have permission to perform this action.';
+      return 'You do not have permission to do this.';
     case 404:
-      return 'That endpoint does not exist on the server yet.';
+      return 'This feature is not available on the server yet.';
     case 405:
-      return 'That operation is not available on the server yet.';
+      return 'This action is not available on the server yet.';
     default:
       return error.message || `Request failed with status ${error.status}.`;
   }

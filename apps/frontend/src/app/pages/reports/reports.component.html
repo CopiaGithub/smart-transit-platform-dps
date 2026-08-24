@@ -22,7 +22,7 @@
         </span>
         <div class="rep-kpi-body">
           <p class="rep-kpi-value">{{ recordedIn() }}</p>
-          <p class="rep-kpi-label">Recorded in</p>
+          <p class="rep-kpi-label">Buses in</p>
         </div>
       </div>
 
@@ -32,7 +32,7 @@
         </span>
         <div class="rep-kpi-body">
           <p class="rep-kpi-value">{{ departedCount() }}</p>
-          <p class="rep-kpi-label">Departed</p>
+          <p class="rep-kpi-label">Buses left</p>
         </div>
       </div>
 
@@ -52,14 +52,14 @@
         </span>
         <div class="rep-kpi-body">
           <p class="rep-kpi-value">{{ avgDwellLabel() }}</p>
-          <p class="rep-kpi-label">Avg dwell</p>
+          <p class="rep-kpi-label">Average stay</p>
         </div>
       </div>
     </div>
 
     <!-- Log. Same card shell as every master list, so the screen sits in the
          design system instead of beside it. -->
-    <app-cds-container title="Dispersal Log" icon="receipt_long">
+    <app-cds-container title="Bus Departure Log" icon="receipt_long">
       <span header-left class="rep-session" *ngIf="sessionLine()">
         {{ sessionLine() }}
       </span>
@@ -115,11 +115,11 @@
               <th scope="col">Bus No.</th>
               <th scope="col">Route</th>
               <th scope="col">Status</th>
-              <th scope="col" class="rep-num">Station</th>
+              <th scope="col" class="rep-num">Platform</th>
               <th scope="col" class="rep-num">In</th>
               <th scope="col" class="rep-num">Assigned</th>
               <th scope="col" class="rep-num">Out</th>
-              <th scope="col" class="rep-num">Dwell</th>
+              <th scope="col" class="rep-num">Stay</th>
             </tr>
           </thead>
 
@@ -143,21 +143,21 @@
                   {{ row.Status }}
                 </span>
               </td>
-              <td class="rep-num rep-station" data-label="Station">
+              <td class="rep-num rep-station" data-label="Platform">
                 {{ row.PlatformNumber ?? "—" }}
               </td>
               <td class="rep-num" data-label="In">{{ time(row.EnteredAt) }}</td>
               <td class="rep-num" data-label="Assigned">{{ time(row.AssignedAt) }}</td>
               <td class="rep-num" data-label="Out">{{ time(row.DepartedAt) }}</td>
-              <td class="rep-num" data-label="Dwell">{{ dwell(row) }}</td>
+              <td class="rep-num" data-label="Stay">{{ dwell(row) }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <p class="rep-footnote">
-        Times are captured the moment the guard taps, so this log is the audit
-        trail for the day's boarding. Refreshes every 30 seconds while this tab
+        Times are saved the moment the guard taps, so this is the official
+        record of the day's boarding. Updates every 30 seconds while this page
         is open<ng-container *ngIf="generatedAtLabel()">
           — last read at {{ generatedAtLabel() }}</ng-container
         >.

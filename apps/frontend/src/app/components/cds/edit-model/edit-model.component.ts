@@ -180,6 +180,37 @@ export class EditModelComponent {
     this.activeTab = tab;
   }
 
+  /**
+   * Explains a refused save, and takes the user to the field causing it.
+   *
+   * Fields are searched in declaration order, so the message names the first
+   * problem on the form rather than an arbitrary one.
+   */
+  private reportInvalidForm(): void {
+    const firstInvalid = this.fields.find((field) => {
+      const control = this.form.get(field.name);
+      return !!control && control.invalid && this.isFieldVisible(field);
+    });
+
+    if (!firstInvalid) {
+      this.saveError.set('Please check the highlighted fields and try again.');
+      return;
+    }
+
+    // Reveal it: a message about a field on another tab is not much help.
+    const tab = firstInvalid.tab ?? this.tabs[0];
+    if (tab && this.tabs.includes(tab) && tab !== this.activeTab) {
+      this.activeTab = tab;
+    }
+
+    const label = String(firstInvalid.label ?? firstInvalid.name).trim();
+    this.saveError.set(
+      this.form.get(firstInvalid.name)?.hasError('required')
+        ? `${label} is required.`
+        : `${label} is not valid. Please check it and try again.`,
+    );
+  }
+
   /** Marks a tab that holds a control the user still has to fix. */
   tabHasError(tab: string): boolean {
     return this.fields.some((f) => {
@@ -398,7 +429,13 @@ private recalculateApprovedDays() {
     });
 
     // 🔹 Stop early if required validation fails
+    //
+    // This used to be a bare `return`. On a tabbed form that made Save look
+    // broken: the offending control could be on a tab the user was not looking
+    // at, so the click produced no save, no upload and no message at all. Now it
+    // says what is wrong, names the field, and moves to the tab holding it.
     if (this.form.invalid) {
+      this.reportInvalidForm();
       return;
     }
 

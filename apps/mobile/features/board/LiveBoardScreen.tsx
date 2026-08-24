@@ -225,7 +225,10 @@ function useClock() {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-  return now.toLocaleTimeString("en-GB", { hour12: false });
+  // 12-hour with AM/PM, matching every other clock in the product. Note this
+  // string is two characters longer than the 24-hour form it replaced, on a
+  // panel whose header has a fixed slot for it.
+  return now.toLocaleTimeString("en-US", { hour12: true });
 }
 
 /** Slow fade loop. Stays parked at 1 when inactive so rows don't flicker. */

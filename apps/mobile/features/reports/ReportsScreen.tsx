@@ -158,7 +158,7 @@ function Kpi({
 
 // Through formatTime, never `new Date` — a database timestamp comes back as
 // UTC with nothing saying so. See src/services/time.ts.
-const hhmm = (t: string | null) => formatTime(t, "en-GB") ?? "—";
+const hhmm = (t: string | null) => formatTime(t) ?? "—";
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.screenBg },

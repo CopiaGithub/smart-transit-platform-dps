@@ -78,4 +78,40 @@ describe('EditModelComponent', () => {
       expect(fixture.componentInstance.form.get('EmailTemplateId')?.valid).toBe(true);
     });
   });
+
+  describe('a save refused by validation', () => {
+    const tabbedFields = [
+      { name: 'FirstName', label: 'First Name', type: 'text', tab: 'Basic' },
+      { name: 'PhotoUrl', label: 'Photo', type: 'file', tab: 'Basic' },
+      { name: 'PickupStop', label: 'Pickup Stop', type: 'text', tab: 'Transport', required: true },
+    ];
+
+    it('says which field is blocking it instead of failing silently', async () => {
+      const fixture = build(tabbedFields, { FirstName: 'Asha', PickupStop: '' });
+      const component = fixture.componentInstance;
+
+      await component.onSave();
+
+      expect(component.saveError()).toBe('Pickup Stop is required.');
+    });
+
+    it('switches to the tab holding the offending field', async () => {
+      const fixture = build(tabbedFields, { FirstName: 'Asha', PickupStop: '' });
+      const component = fixture.componentInstance;
+      expect(component.activeTab).toBe('Basic');
+
+      await component.onSave();
+
+      expect(component.activeTab).toBe('Transport');
+    });
+
+    it('stays quiet when the form is valid', async () => {
+      const fixture = build(tabbedFields, { FirstName: 'Asha', PickupStop: 'Gate 6' });
+      const component = fixture.componentInstance;
+
+      await component.onSave();
+
+      expect(component.saveError()).toBeNull();
+    });
+  });
 });

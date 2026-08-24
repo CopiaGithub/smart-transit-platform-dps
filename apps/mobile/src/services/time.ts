@@ -30,10 +30,16 @@ export function parseServerTime(iso: string | null | undefined): Date | null {
   return Number.isNaN(at.getTime()) ? null : at;
 }
 
-/** "5:13 pm" in the phone's own zone, which is the school's. */
-export function formatTime(iso: string | null | undefined, locale = "en-IN"): string | null {
+/** "05:13 PM" in the phone's own zone, which is the school's. */
+export function formatTime(iso: string | null | undefined, locale = "en-US"): string | null {
   const at = parseServerTime(iso);
-  return at?.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) ?? null;
+  return (
+    at?.toLocaleTimeString(locale, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }) ?? null
+  );
 }
 
 /** Milliseconds between two server timestamps, or null if either is missing. */

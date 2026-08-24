@@ -100,7 +100,7 @@ export const DISPLAY_MASTER_CONFIG: MasterPageConfig = {
       type: 'dropdown',
       optionsFrom: 'gate',
       tab: PANEL,
-      hint: 'Leave blank to show every platform. Set it to scope an indoor panel to one student exit.',
+      hint: 'Leave blank to show every platform. Pick a gate to show only its platforms.',
     },
     { name: 'Location', label: 'Location', type: 'text', maxLength: 50, tab: PANEL },
     { ...IS_ACTIVE_FIELD, tab: PANEL },

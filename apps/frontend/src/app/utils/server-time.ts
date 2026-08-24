@@ -32,14 +32,26 @@ export function parseServerTime(iso: string | null | undefined): Date | null {
   return Number.isNaN(at.getTime()) ? null : at;
 }
 
-/** "17:13" in the browser's own zone, which is the school's. */
+/**
+ * "05:13 PM" in the browser's own zone, which is the school's.
+ *
+ * en-US, not en-GB: both can render a 12-hour clock, but en-GB writes the
+ * suffix in lower case ("05:13 pm"). The house format is an upper-case AM/PM
+ * with a two-digit hour, so the locale is pinned here rather than left to the
+ * browser — a machine set to a 24-hour locale must still show the same clock as
+ * every other machine in the school.
+ */
 export function formatServerTime(
   iso: string | null | undefined,
-  locale = 'en-GB',
+  locale = 'en-US',
 ): string | null {
   const at = parseServerTime(iso);
   return (
-    at?.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) ?? null
+    at?.toLocaleTimeString(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    }) ?? null
   );
 }
 

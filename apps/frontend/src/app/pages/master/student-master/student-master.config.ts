@@ -176,7 +176,7 @@ export const STUDENT_MASTER_CONFIG: MasterPageConfig = {
       optionsFrom: 'route',
       tab: TRANSPORT,
       visibleWhen: { field: 'UsesTransport', equals: true },
-      hint: 'The route serving the child’s address. The bus is taken from the current allocation for that route.',
+      hint: 'The route for the child’s address. The bus is whichever bus runs that route today.',
     },
     {
       name: 'ExitGateId',
