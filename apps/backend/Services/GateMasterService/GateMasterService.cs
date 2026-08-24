@@ -106,6 +106,11 @@ public class GateMasterService : IGateMasterService
         if (exists)
             return new ServiceResponseDto<GateMasterListModel> { Success = false, Message = "A gate with this code already exists." };
 
+        // Sort order decides the order gates appear in, so two gates sharing one
+        // leaves that order down to whatever the database happens to return.
+        if (await SortOrderTakenAsync(model.SortOrder, null))
+            return new ServiceResponseDto<GateMasterListModel> { Success = false, Message = $"Sort order {model.SortOrder} is already used by another gate." };
+
         var currentUserId = _jwtTokenUtility.GetUserId();
         var gate = new GateMaster
         {
@@ -155,6 +160,12 @@ public class GateMasterService : IGateMasterService
             gate.GateType = model.GateType;
         }
 
+        if (model.SortOrder.HasValue && model.SortOrder.Value != gate.SortOrder)
+        {
+            if (await SortOrderTakenAsync(model.SortOrder.Value, id))
+                return new ServiceResponseDto<bool> { Success = false, Message = $"Sort order {model.SortOrder.Value} is already used by another gate." };
+        }
+
         if (model.GateName != null) gate.GateName = model.GateName.Trim();
         if (model.SortOrder.HasValue) gate.SortOrder = model.SortOrder.Value;
         if (model.IsActive.HasValue) gate.IsActive = model.IsActive.Value;
@@ -163,6 +174,22 @@ public class GateMasterService : IGateMasterService
 
         await _context.SaveChangesAsync();
         return new ServiceResponseDto<bool> { Data = true, Message = "Gate updated successfully." };
+    }
+
+    /// <summary>
+    /// Is this sort order already on another gate?
+    ///
+    /// <paramref name="exceptId"/> is the row being edited, which must not count
+    /// against itself — saving a gate without touching its sort order has to keep
+    /// working. Soft-deleted rows are ignored: they are invisible everywhere else,
+    /// so letting one reserve a number would block a value for no visible reason.
+    /// </summary>
+    private async Task<bool> SortOrderTakenAsync(int sortOrder, int? exceptId)
+    {
+        return await _context.GateMasters.AnyAsync(g =>
+            g.SortOrder == sortOrder &&
+            !g.IsDeleted &&
+            (exceptId == null || g.Id != exceptId));
     }
 
     public async Task<ServiceResponseDto<bool>> DeleteAsync(int id)

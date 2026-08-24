@@ -98,12 +98,20 @@ public class PlatformsMasterService : IPlatformsMasterService
         if (side != null && side != "Left" && side != "Right")
             return new ServiceResponseDto<PlatformsMasterListModel> { Success = false, Message = "Side must be 'Left' or 'Right'." };
 
+        // The stored value, not the supplied one: leaving sort order blank falls
+        // back to the platform number, and that fallback can collide just as
+        // easily as a typed value. Checking model.SortOrder here would wave the
+        // fallback straight through.
+        var sortOrder = model.SortOrder > 0 ? model.SortOrder : model.PlatformNumber;
+        if (await SortOrderTakenAsync(sortOrder, null))
+            return new ServiceResponseDto<PlatformsMasterListModel> { Success = false, Message = $"Sort order {sortOrder} is already used by another platform." };
+
         var currentUserId = _jwtTokenUtility.GetUserId();
         var platform = new PlatformsMaster
         {
             PlatformNumber = model.PlatformNumber,
             PlatformName = model.PlatformName,
-            SortOrder = model.SortOrder > 0 ? model.SortOrder : model.PlatformNumber,
+            SortOrder = sortOrder,
             Side = side,
             IsActive = model.IsActive ?? true,
             IsDeleted = false,
@@ -148,6 +156,12 @@ public class PlatformsMasterService : IPlatformsMasterService
             platform.Side = side;
         }
 
+        if (model.SortOrder.HasValue && model.SortOrder.Value != platform.SortOrder)
+        {
+            if (await SortOrderTakenAsync(model.SortOrder.Value, id))
+                return new ServiceResponseDto<bool> { Success = false, Message = $"Sort order {model.SortOrder.Value} is already used by another platform." };
+        }
+
         if (model.PlatformNumber.HasValue) platform.PlatformNumber = model.PlatformNumber.Value;
         if (model.PlatformName != null) platform.PlatformName = model.PlatformName;
         if (model.SortOrder.HasValue) platform.SortOrder = model.SortOrder.Value;
@@ -157,6 +171,22 @@ public class PlatformsMasterService : IPlatformsMasterService
 
         await _context.SaveChangesAsync();
         return new ServiceResponseDto<bool> { Data = true, Message = "Platform updated successfully." };
+    }
+
+    /// <summary>
+    /// Is this sort order already on another platform?
+    ///
+    /// <paramref name="exceptId"/> is the row being edited, which must not count
+    /// against itself — re-saving a platform without touching its sort order has
+    /// to keep working. Soft-deleted rows are ignored, the same way they are
+    /// everywhere else.
+    /// </summary>
+    private async Task<bool> SortOrderTakenAsync(int sortOrder, int? exceptId)
+    {
+        return await _context.PlatformsMasters.AnyAsync(p =>
+            p.SortOrder == sortOrder &&
+            !p.IsDeleted &&
+            (exceptId == null || p.Id != exceptId));
     }
 
     public async Task<ServiceResponseDto<bool>> DeleteAsync(int id)

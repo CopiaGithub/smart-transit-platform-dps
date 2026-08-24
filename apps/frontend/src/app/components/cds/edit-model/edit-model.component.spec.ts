@@ -6,6 +6,7 @@ import { EditModelComponent } from './edit-model.component';
 function build(
   formFields: any[],
   formData: Record<string, unknown> = {},
+  extra: { allData?: any[]; duplicateCheckFields?: string[] } = {},
 ): ComponentFixture<EditModelComponent> {
   TestBed.resetTestingModule();
   TestBed.configureTestingModule({
@@ -17,8 +18,8 @@ function build(
           title: 'Add',
           formFields,
           formData,
-          allData: [],
-          duplicateCheckFields: [],
+          allData: extra.allData ?? [],
+          duplicateCheckFields: extra.duplicateCheckFields ?? [],
         },
       },
       { provide: MatDialogRef, useValue: { close: () => {} } },
@@ -112,6 +113,46 @@ describe('EditModelComponent', () => {
       await component.onSave();
 
       expect(component.saveError()).toBeNull();
+    });
+  });
+
+  describe('duplicate Sort Order', () => {
+    const fields = [
+      { name: 'GateCode', label: 'Gate Code', type: 'text' },
+      { name: 'SortOrder', label: 'Sort Order', type: 'number' },
+    ];
+    const existing = [
+      { id: 1, GateCode: 'G1', SortOrder: 1 },
+      { id: 2, GateCode: 'G2', SortOrder: 2 },
+    ];
+    const opts = { allData: existing, duplicateCheckFields: ['GateCode', 'SortOrder'] };
+
+    it('refuses a sort order another gate already uses', async () => {
+      const fixture = build(fields, { GateCode: 'G3', SortOrder: 2 }, opts);
+      const component = fixture.componentInstance;
+
+      await component.onSave();
+
+      expect(component.form.get('SortOrder')?.hasError('duplicate')).toBe(true);
+    });
+
+    it('lets a record keep its own sort order while editing', async () => {
+      // id 2 editing itself: SortOrder 2 belongs to this very row.
+      const fixture = build(fields, { id: 2, GateCode: 'G2', SortOrder: 2 }, opts);
+      const component = fixture.componentInstance;
+
+      await component.onSave();
+
+      expect(component.form.get('SortOrder')?.hasError('duplicate')).toBe(false);
+    });
+
+    it('accepts a sort order nobody is using', async () => {
+      const fixture = build(fields, { GateCode: 'G3', SortOrder: 7 }, opts);
+      const component = fixture.componentInstance;
+
+      await component.onSave();
+
+      expect(component.form.get('SortOrder')?.hasError('duplicate')).toBe(false);
     });
   });
 });

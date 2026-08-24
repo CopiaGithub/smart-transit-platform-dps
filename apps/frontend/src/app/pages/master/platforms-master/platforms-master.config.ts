@@ -62,7 +62,11 @@ export const PLATFORMS_MASTER_CONFIG: MasterPageConfig = {
     IS_ACTIVE_FIELD,
   ],
 
-  duplicateCheckFields: ['PlatformNumber'],
+  // SortOrder is checked here as well as on the server. This check only sees
+  // the page of rows currently loaded — the list is paginated server-side —
+  // so it catches the everyday case early; the service is what actually
+  // guarantees uniqueness.
+  duplicateCheckFields: ['PlatformNumber', 'SortOrder'],
 
   // Deactivating a platform takes it out of allocation, which shrinks how many
   // buses the yard can hold at once.
