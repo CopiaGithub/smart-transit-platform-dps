@@ -24,6 +24,19 @@ public class ReplaceBusModel
     public string? Reason { get; set; }
 }
 
+/// <summary>
+/// Replace addressed by the failed BUS rather than its boarding event, so a bus
+/// that broke down before it ever reached the gate — and therefore has no event —
+/// can still be handed to a reserve. When the failed bus is already in the yard
+/// this behaves exactly like the event-based replace.
+/// </summary>
+public class ReplaceByBusModel
+{
+    public int FailedBusId { get; set; }
+    public int ReserveBusId { get; set; }
+    public string? Reason { get; set; }
+}
+
 /// <summary>One row of the airport-style board.</summary>
 public class BoardRowModel
 {

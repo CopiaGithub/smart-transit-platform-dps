@@ -79,6 +79,21 @@ public class BusOperationsController : ControllerBase
         return Ok(response);
     }
 
+    /// <summary>Breakdown by bus: works whether or not the bus has reached the gate yet.</summary>
+    [HttpPost("replace-bus")]
+    [Authorize(Roles = RoleNames.AnyGateOperator)]
+    public async Task<IActionResult> PostReplaceByBus([FromBody] ReplaceByBusModel model)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var response = await _service.ReplaceByBusAsync(model);
+        if (!response.Success)
+            return BadRequest(response.Message);
+
+        return Ok(response);
+    }
+
     /// <summary>Undo the most recent assignment. Single step, per the SOP.</summary>
     [HttpPost("undo-last")]
     [Authorize(Roles = RoleNames.AnyGateOperator)]

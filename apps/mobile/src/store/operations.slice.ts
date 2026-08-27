@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSelector, createSlice } from "@reduxjs/toolkit";
 import { STATUS } from "../../constants/domain";
 import {
   operationsApi,
@@ -173,6 +173,21 @@ export const replaceBus = gateAction<{
   return `Bus ${reserveBusNumber} took over the run`;
 });
 
+/**
+ * Replace addressed by the failed bus rather than its event — used when the bus
+ * broke down before entering, so it has no event to name. The backend falls back
+ * to the event path automatically if the bus is already in the yard.
+ */
+export const replaceByBus = gateAction<{
+  failedBusId: number;
+  reserveBusId: number;
+  reserveBusNumber: string;
+  reason?: string;
+}>("replaceByBus", async ({ failedBusId, reserveBusId, reserveBusNumber, reason }) => {
+  await operationsApi.replaceByBus(failedBusId, reserveBusId, reason);
+  return `Bus ${reserveBusNumber} took over the run`;
+});
+
 export const undoLast = gateAction<void>("undo", async () => {
   await operationsApi.undoLast();
   return "Last entry undone";
@@ -308,10 +323,12 @@ export const selectRecordedIn = (s: RootState) => {
   return [...q.Yard, ...q.Waiting].sort((a, z) => z.QueueOrder - a.QueueOrder);
 };
 
-export const selectOpsStats = (s: RootState) => {
-  const q = s.ops.queue;
-  const rows = s.ops.board?.Rows ?? empty;
-  return {
+// Memoised: it builds a fresh object, so an unmemoised version made the board and
+// dashboard re-render on every 5 s poll even when nothing it reads had changed.
+export const selectOpsStats = createSelector(
+  [(s: RootState) => s.ops.queue, (s: RootState) => s.ops.board?.Rows ?? empty],
+  (q, rows) => {
+    return {
     onCampus: q?.OccupiedCount ?? 0,
     platformCount: q?.PlatformCount ?? 0,
     nextPlatform: q?.NextFreePlatformNumber ?? null,
@@ -319,12 +336,15 @@ export const selectOpsStats = (s: RootState) => {
     waiting: q?.Waiting.length ?? 0,
     awaited: q?.AvailableBuses.length ?? 0,
     reserves: q?.AvailableReserves.length ?? 0,
+    // Expected today but not yet through the gate — synthesised onto the board.
+    yetToArrive: rows.filter((r) => r.Status === STATUS.yetToArrive).length,
     arrived: rows.filter((r) => r.Status === STATUS.arrived).length,
     boarding: rows.filter((r) => r.Status === STATUS.boarding).length,
     departed: rows.filter((r) => r.Status === STATUS.departed).length,
     // The fifth state, and the reason the dashboard's numbers used to look
     // wrong: a replaced bus is still one of the day's events, so the server
     // counts it in the session total while no tile accounted for it.
-    replaced: rows.filter((r) => r.Status === STATUS.replaced).length,
-  };
-};
+      replaced: rows.filter((r) => r.Status === STATUS.replaced).length,
+    };
+  },
+);

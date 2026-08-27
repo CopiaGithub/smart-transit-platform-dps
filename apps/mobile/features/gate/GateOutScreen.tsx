@@ -11,9 +11,10 @@ import { fetchQueue, gateOut, selectReadyToLeave } from "../../src/store/operati
 import { useAppDispatch, useAppSelector } from "../../src/store";
 
 /**
- * Exit gate. The bus rolls up already boarding, the guard finds its row and
- * taps the button beside it. Boarding ones sit on top because those are the
- * only ones he may release.
+ * Exit gate. The bus rolls up, the guard finds its row and taps the button
+ * beside it. Any bus holding a platform may be released — boarding is an
+ * optional step now, so an Arrived bus goes straight out; Boarding ones just
+ * sort to the top.
  *
  * The post header lives in GateScreen, which is also what decides this body is
  * the one to show.
@@ -92,9 +93,11 @@ export default function GateOutScreen() {
           </View>
         }
         renderItem={({ item }) => {
-          // Arrived but not boarding: students are still walking to it, so
-          // releasing it would strand them.
-          const ready = item.Status === STATUS.boarding;
+          // Anything holding a platform can leave — Arrived goes out directly now
+          // that boarding is optional. Only a Waiting bus (no platform) can't, and
+          // those never reach this list.
+          const ready =
+            item.Status === STATUS.boarding || item.Status === STATUS.arrived;
           return (
             <View style={[styles.row, !ready && styles.rowWaiting]}>
               <SlotBadge slot={item.PlatformNumber} size="md" tone={ready ? "solid" : "light"} />
