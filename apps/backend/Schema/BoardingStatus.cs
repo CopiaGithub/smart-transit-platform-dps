@@ -8,6 +8,14 @@ namespace transit_display_platform_api.Schema;
 /// </summary>
 public static class BoardingStatus
 {
+    /// <summary>
+    /// Expected to run today but not yet recorded in at the gate. Never persisted —
+    /// the board synthesises these rows from the day's allocations so the panel shows
+    /// the whole lifecycle (before the gate, in the yard, gone), not only what is
+    /// already inside. Kept out of <see cref="All"/>/<see cref="Live"/> for that reason.
+    /// </summary>
+    public const string YetToArrive = "Yet to arrive";
+
     /// <summary>In the yard but holding: every marked platform is occupied.</summary>
     public const string Waiting = "Waiting";
 
@@ -41,8 +49,9 @@ public static class BoardingStatus
         Boarding => 0,
         Arrived => 1,
         Waiting => 2,
-        Replaced => 3,
-        Departed => 4,
+        YetToArrive => 3,
+        Replaced => 4,
+        Departed => 5,
         _ => 9,
     };
 }

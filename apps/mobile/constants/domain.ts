@@ -30,6 +30,8 @@ export const SLOT_COUNT = 21;
  * A bus that has not reached the gate yet has `null` — it is on no board.
  */
 export const STATUS = {
+  /** Expected today but not recorded in yet. Synthesised by the board, never stored. */
+  yetToArrive: "Yet to arrive",
   waiting: "Waiting",
   arrived: "Arrived",
   boarding: "Boarding",
@@ -41,6 +43,7 @@ export type Status = (typeof STATUS)[keyof typeof STATUS];
 export type BusStatus = Status | null;
 
 export const STATUS_COLOR: Record<Status, string> = {
+  "Yet to arrive": "#94A3B8",
   Waiting: "#64748B",
   Arrived: "#2563EB",
   Boarding: "#E6A700",
@@ -53,12 +56,14 @@ export const STATUS_RANK: Record<Status, number> = {
   Boarding: 0,
   Arrived: 1,
   Waiting: 2,
-  Replaced: 3,
-  Departed: 4,
+  "Yet to arrive": 3,
+  Replaced: 4,
+  Departed: 5,
 };
 
 /** What each status means to the person reading it, in their own words. */
 export const STATUS_HINT: Record<Status, string> = {
+  "Yet to arrive": "Expected today — not at the gate yet",
   Waiting: "Inside, holding — every platform is occupied",
   Arrived: "At its platform, students walking to it",
   Boarding: "Students are getting in now",

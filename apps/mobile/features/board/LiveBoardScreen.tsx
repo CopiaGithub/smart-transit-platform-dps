@@ -21,6 +21,21 @@ import { useAppDispatch, useAppSelector } from "../../src/store";
 const MONO = Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" });
 
 /**
+ * Near-black or near-white, whichever reads on a given chip fill. A selected chip
+ * takes its status's own colour, and those range from a light amber to a dark
+ * blue — one fixed text colour vanished on half of them (dark text on the blue
+ * "Arrived" chip was the bug: it disappeared the moment the filter was picked).
+ */
+function readableText(hex: string): string {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.6 ? "#0B1220" : "#FFFFFF";
+}
+
+/**
  * The status chips, in the order the board itself ranks them (§5.9) rather than
  * the order the constant happens to declare — the strip and the rows under it
  * then read the same way down the screen.
@@ -98,13 +113,14 @@ export default function LiveBoardScreen() {
         >
           {[{ DisplayCode: undefined, DisplayName: "ALL BUSES" }, ...displays].map((d) => {
             const on = displayCode === d.DisplayCode;
+            const fill = on ? BOARD.amber : BOARD.rowAlt;
             return (
               <Pressable
                 key={d.DisplayCode ?? "all"}
-                style={[styles.wall, on && styles.wallOn]}
+                style={[styles.wall, { backgroundColor: fill, borderColor: on ? fill : BOARD.grid }]}
                 onPress={() => setDisplayCode(d.DisplayCode)}
               >
-                <Text style={[styles.wallText, on && styles.wallTextOn]}>
+                <Text style={[styles.wallText, { color: on ? readableText(fill) : BOARD.text }]}>
                   {d.DisplayName.toUpperCase()}
                 </Text>
               </Pressable>
@@ -121,23 +137,19 @@ export default function LiveBoardScreen() {
       >
         {[null, ...STATUS_FILTERS].map((s) => {
           const on = status === s;
+          // Selected: lit in the status's own colour (amber for ALL), matching the
+          // STATUS column below. Text colour is chosen for that fill so it never
+          // vanishes — a fixed dark text disappeared on the darker status colours.
+          const fill = on ? (s ? STATUS_COLOR[s] : BOARD.amber) : BOARD.rowAlt;
           return (
             <Pressable
               key={s ?? "all"}
-              // Lit in the status's own colour, which is also the colour of the
-              // STATUS column below it. Two chip strips sit on this screen and
-              // they filter different things; amber for both would have made
-              // them look like one control that had grown too long.
-              style={[
-                styles.wall,
-                on && styles.wallOn,
-                on && !!s && { backgroundColor: STATUS_COLOR[s], borderColor: STATUS_COLOR[s] },
-              ]}
+              style={[styles.wall, { backgroundColor: fill, borderColor: on ? fill : BOARD.grid }]}
               onPress={() => setStatus(s)}
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
             >
-              <Text style={[styles.wallText, on && styles.wallTextOn]}>
+              <Text style={[styles.wallText, { color: on ? readableText(fill) : BOARD.text }]}>
                 {(s ?? "ALL").toUpperCase()} {s ? (counts[s] ?? 0) : rows.length}
               </Text>
             </Pressable>
@@ -204,6 +216,11 @@ function Row({ bus, index }: { bus: BoardRow; index: number }) {
       </Text>
       <View style={styles.colStatus}>
         <Text style={[styles.status, { color }]}>{bus.Status?.toUpperCase()}</Text>
+        {/* Which reserve took the run over — the point of the replace flow, so it
+            reads on the board next to the pulled bus. */}
+        {bus.Status === STATUS.replaced && !!bus.ReplacedByBusNumber && (
+          <Text style={styles.replacedBy}>→ {bus.ReplacedByBusNumber}</Text>
+        )}
       </View>
     </View>
   );
@@ -285,29 +302,29 @@ const styles = StyleSheet.create({
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#22C55E" },
   liveText: { color: "#22C55E", fontSize: 10, fontWeight: "900", letterSpacing: 1 },
 
-  /**
-   * A horizontal ScrollView carries `flexGrow: 1` of its own, so as a direct
-   * child of this column it splits the screen with the bus list and the chips
-   * stretch to fill it. Both belong here: `flexGrow: 0` makes the strip only as
-   * tall as its content, `alignItems` stops a chip growing to the tallest one.
-   */
-  wallStripBar: { flexGrow: 0 },
+  // Horizontal scroll strip with an explicit height. Without a fixed height the
+  // strip and its chips collapsed on the first layout pass — the labels only
+  // appeared after a re-render (e.g. tapping a filter). A set height lays them
+  // out correctly the moment the board opens.
+  // marginVertical separates the two strips from each other and from the header
+  // above and the column head below — without it the fixed-height strips sat flush.
+  wallStripBar: { height: 34, flexGrow: 0, marginVertical: SPACING.xs },
   wallStrip: {
     gap: SPACING.sm,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
     alignItems: "center",
   },
+  // Fixed height + centred content so a chip can never collapse to nothing on the
+  // first render; fill and text colours are set inline per chip (selected takes
+  // the status colour, unselected a solid dark fill) so the label always reads.
   wall: {
+    height: 32,
+    justifyContent: "center",
     paddingHorizontal: SPACING.md,
-    paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: BOARD.grid,
   },
-  wallOn: { backgroundColor: BOARD.amber, borderColor: BOARD.amber },
-  wallText: { color: BOARD.dim, fontSize: 10, fontWeight: "900", letterSpacing: 1, fontFamily: MONO },
-  wallTextOn: { color: BOARD.bg },
+  wallText: { fontSize: 11, fontWeight: "900", letterSpacing: 0.5, fontFamily: MONO },
 
   colHead: {
     flexDirection: "row",
@@ -325,6 +342,13 @@ const styles = StyleSheet.create({
   // textAlign on a View and alignItems on a Text, so each takes the one it can
   // use and the column finally lines up.
   colStatus: { width: 82, textAlign: "right", alignItems: "flex-end" },
+  replacedBy: {
+    fontFamily: MONO,
+    fontSize: 10,
+    fontWeight: "900",
+    color: STATUS_COLOR.Replaced,
+    marginTop: 2,
+  },
 
   row: {
     flexDirection: "row",
@@ -338,7 +362,9 @@ const styles = StyleSheet.create({
   busNo: { color: BOARD.amber, fontSize: 19, fontWeight: "900" },
   route: { color: BOARD.text, fontSize: 13 },
   slot: { color: BOARD.cyan, fontSize: 21, fontWeight: "900", textAlign: "center" },
-  status: { fontSize: 11, fontWeight: "900", letterSpacing: 0.6, fontFamily: MONO },
+  // textAlign right so a two-line status ("YET TO ARRIVE") stays under the STATUS
+  // heading instead of the wrapped lines drifting left.
+  status: { fontSize: 11, fontWeight: "900", letterSpacing: 0.6, fontFamily: MONO, textAlign: "right" },
 
   empty: {
     color: BOARD.dim,

@@ -15,6 +15,12 @@ public interface IBusOperationsService
     /// <summary>Breakdown: a reserve takes over, inheriting route and platform.</summary>
     Task<ServiceResponseDto<BoardRowModel>> ReplaceAsync(int eventId, ReplaceBusModel model);
 
+    /// <summary>
+    /// Breakdown addressed by the failed bus. Handles a bus still waiting to enter
+    /// (no event yet) as well as one already in the yard.
+    /// </summary>
+    Task<ServiceResponseDto<BoardRowModel>> ReplaceByBusAsync(ReplaceByBusModel model);
+
     /// <summary>Single-step undo of the most recent platform assignment.</summary>
     Task<ServiceResponseDto<BoardRowModel>> UndoLastAssignmentAsync();
 

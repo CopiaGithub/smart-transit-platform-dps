@@ -34,10 +34,10 @@ export default function DashboardScreen() {
     }, [dispatch]),
   );
 
-  // Every bus that has been through the gate today, plus those still to come.
-  // The board only holds buses that entered, so the yet-to-arrive count is
-  // what makes the progress bar mean "how much of the afternoon is done".
-  const seenToday = rows.length + stats.awaited;
+  // The board now carries the whole day — buses through the gate and the ones
+  // still "Yet to arrive" — so its own row count is the denominator for "how much
+  // of the afternoon is done" without adding the awaited buses a second time.
+  const seenToday = rows.length;
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content}>
@@ -49,6 +49,12 @@ export default function DashboardScreen() {
       <SessionCard />
 
       <View style={styles.tiles}>
+        <Tile
+          value={stats.yetToArrive}
+          label={STATUS.yetToArrive}
+          color={STATUS_COLOR["Yet to arrive"]}
+          icon="clock"
+        />
         <Tile
           value={stats.arrived}
           label={STATUS.arrived}
@@ -169,16 +175,17 @@ const styles = StyleSheet.create({
   hello: { fontSize: 13, color: COLORS.textMuted },
   title: { fontSize: 24, fontWeight: "900", color: COLORS.text },
 
-  tiles: { flexDirection: "row", gap: SPACING.sm },
+  tiles: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   tile: {
-    flex: 1,
+    // Five statuses now, so the row wraps to a 3 + 2 grid instead of squeezing
+    // everything onto one line. ~31% basis fits three across a 360dp phone with
+    // the gaps; the fourth and fifth fall to a second row, left-aligned and the
+    // same width as the top three (no flexGrow, so row 2 doesn't stretch wide).
+    flexBasis: "31%",
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
-    // Four across a 360dp phone leaves ~76dp a tile; at the old md padding
-    // "Boarding" wrapped onto a second line and took every tile's height with
-    // it, since the row stretches them to match.
     padding: SPACING.sm,
     ...SHADOW.card,
   },

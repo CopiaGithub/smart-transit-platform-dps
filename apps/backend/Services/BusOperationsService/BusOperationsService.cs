@@ -214,12 +214,13 @@ public class BusOperationsService : IBusOperationsService
 
         string message = $"Bus {boardingEvent.Bus?.BusNumber} departed.";
 
-        // The freed platform goes to whoever has been waiting longest.
+        // A departure may have opened the entry end of an arm; the longest waiter
+        // takes the deepest platform it can now reach (often not the one just freed).
         if (freedPlatformId.HasValue)
         {
-            var promoted = await PromoteLongestWaiterAsync(boardingEvent.SessionId, freedPlatformId.Value);
+            var promoted = await PromoteLongestWaiterAsync(boardingEvent.SessionId);
             if (promoted != null)
-                message += $" Bus {promoted.Bus?.BusNumber} moved into the freed platform.";
+                message += $" Bus {promoted.Bus?.BusNumber} moved into platform {promoted.Platform?.PlatformNumber}.";
         }
 
         return new ServiceResponseDto<BoardRowModel>
@@ -230,21 +231,23 @@ public class BusOperationsService : IBusOperationsService
     }
 
     /// <summary>
-    /// Hands the platform a departure just freed to whoever has been waiting
-    /// longest (§5.5) — but only if that platform can still be used.
+    /// Hands the longest-waiting bus (§5.5) the deepest platform it can now
+    /// <em>reach</em>. A departure recomputes reachability rather than simply reusing
+    /// the platform just freed: under the one-way rule the freed platform is often
+    /// still trapped behind buses ahead of it (they leave first), so nobody can drive
+    /// to it — the waiting bus stays waiting, which is correct. Only when a departure
+    /// actually opens the entry end of an arm does a waiter move in.
     ///
-    /// A platform deactivated while a bus stood on it is the case that matters:
-    /// when that bus leaves, reusing its number would send children to a
-    /// standing position the school has taken out of service. Deactivating a
-    /// platform must keep it out of allocation from then on (§7.2), and that
-    /// has to hold for promotion too, not just for a fresh gate-in. The waiting
-    /// bus simply stays waiting, which is correct: no usable platform freed.
+    /// A platform deactivated while a bus stood on it drops out too: <see
+    /// cref="ActivePlatformsAsync"/> excludes it, so <see cref="NextReachablePlatform"/>
+    /// never returns it (§7.2).
     /// </summary>
-    private async Task<BoardingEvents?> PromoteLongestWaiterAsync(int sessionId, int platformId)
+    private async Task<BoardingEvents?> PromoteLongestWaiterAsync(int sessionId)
     {
-        bool usable = await _context.PlatformsMasters
-            .AnyAsync(p => p.Id == platformId && p.IsActive && !p.IsDeleted);
-        if (!usable) return null;
+        var platforms = await ActivePlatformsAsync();
+        var occupied = await OccupiedPlatformIdsAsync(sessionId);
+        var target = NextReachablePlatform(platforms, occupied);
+        if (target == null) return null;
 
         var waiter = await _context.BoardingEvents
             .Include(e => e.Bus)
@@ -256,7 +259,8 @@ public class BusOperationsService : IBusOperationsService
         if (waiter == null) return null;
 
         var now = DateTime.UtcNow;
-        waiter.PlatformId = platformId;
+        waiter.PlatformId = target.Id;
+        waiter.Platform = target; // so the caller can read the platform number back
         waiter.Status = BoardingStatus.Arrived;
         waiter.AssignedAt = now;
         waiter.UpdatedById = _jwtTokenUtility.GetUserId();
@@ -265,8 +269,8 @@ public class BusOperationsService : IBusOperationsService
         await _context.SaveChangesAsync();
 
         await AuditAsync(sessionId, waiter.Id, "AutoAssign", BoardingStatus.Waiting,
-            await PlatformLabelAsync(platformId),
-            $"Bus {waiter.Bus?.BusNumber} auto-assigned to the platform freed on departure.");
+            await PlatformLabelAsync(target.Id),
+            $"Bus {waiter.Bus?.BusNumber} auto-assigned to platform {target.PlatformNumber} as the queue moved up.");
 
         return waiter;
     }
@@ -359,6 +363,123 @@ public class BusOperationsService : IBusOperationsService
         {
             Data = await BuildRowAsync(replacement.Id),
             Message = $"Bus {reserve.BusNumber} took over from {original.Bus?.BusNumber}."
+        };
+    }
+
+    /// <summary>
+    /// Replace addressed by the failed bus. Two cases:
+    ///
+    /// 1. The bus is already in the yard (has a live event) — an ordinary breakdown.
+    ///    Delegates to <see cref="ReplaceAsync"/> so route and platform are inherited.
+    ///
+    /// 2. The bus broke down before it ever reached the gate, so it has no event.
+    ///    There is no platform to inherit; the reserve simply enters on the failed
+    ///    bus's route through the normal gate-in, and a Replaced marker keeps the
+    ///    failed bus on the board and in the report — which is what the operator
+    ///    needs to see when a bus fails out on the road.
+    /// </summary>
+    public async Task<ServiceResponseDto<BoardRowModel>> ReplaceByBusAsync(ReplaceByBusModel model)
+    {
+        var session = await _sessions.CurrentSessionAsync();
+        if (session == null)
+            return Fail("No dispersal session is open.");
+
+        var failed = await _context.BusesMasters
+            .Include(b => b.Route)
+            .FirstOrDefaultAsync(b => b.Id == model.FailedBusId && !b.IsDeleted);
+        if (failed == null)
+            return Fail("The bus being replaced does not exist.");
+
+        // Already in the yard? Then it is a normal breakdown — reuse the event path.
+        var liveEvent = await _context.BoardingEvents
+            .Where(e => e.SessionId == session.Id && e.BusId == failed.Id && !e.IsDeleted
+                     && BoardingStatus.Live.Contains(e.Status))
+            .OrderByDescending(e => e.Id)
+            .FirstOrDefaultAsync();
+        if (liveEvent != null)
+            return await ReplaceAsync(liveEvent.Id,
+                new ReplaceBusModel { ReserveBusId = model.ReserveBusId, Reason = model.Reason });
+
+        // Broke down before entering: no platform to inherit.
+        if (failed.Id == model.ReserveBusId)
+            return Fail("A bus cannot replace itself.");
+
+        var reserve = await _context.BusesMasters
+            .FirstOrDefaultAsync(b => b.Id == model.ReserveBusId && !b.IsDeleted);
+        if (reserve == null)
+            return Fail("The replacement bus does not exist.");
+        if (!reserve.IsActive || BusServiceState.OutOfService.Contains(reserve.ServiceStatus))
+            return Fail($"Bus {reserve.BusNumber} is not available to take over.");
+
+        int? routeId = await _allocations.ResolveRouteForBusAsync(failed.Id, session.SessionDate)
+            ?? failed.RouteId;
+
+        var now = DateTime.UtcNow;
+        var currentUserId = _jwtTokenUtility.GetUserId();
+
+        int nextQueueOrder = 1 + await _context.BoardingEvents
+            .Where(e => e.SessionId == session.Id && !e.IsDeleted)
+            .Select(e => (int?)e.QueueOrder)
+            .MaxAsync() ?? 1;
+
+        // A marker for the bus that never made it in: no platform, straight to
+        // Replaced, pointing at the reserve that took over.
+        var marker = new BoardingEvents
+        {
+            SessionId = session.Id,
+            BusId = failed.Id,
+            RouteId = routeId,
+            PlatformId = null,
+            Status = BoardingStatus.Replaced,
+            ReplacedByBusId = reserve.Id,
+            QueueOrder = nextQueueOrder,
+            EnteredAt = now,
+            DepartedAt = now,
+            Notes = model.Reason,
+            CreatedById = currentUserId,
+            UpdatedById = currentUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+        _context.BoardingEvents.Add(marker);
+        await _context.SaveChangesAsync();
+
+        await AuditAsync(session.Id, marker.Id, "Replace",
+            $"Bus {failed.BusNumber} (never entered)",
+            $"Bus {reserve.BusNumber}",
+            model.Reason ?? $"Bus {failed.BusNumber} replaced by {reserve.BusNumber} before entering.");
+
+        // The reserve enters on the failed bus's route — normal gate-in, so it gets a
+        // reachable platform (or Waiting) and its own audit trail.
+        var entry = await GateInAsync(new GateInModel
+        {
+            BusId = reserve.Id,
+            SessionId = session.Id,
+            RouteId = routeId,
+            Notes = $"Reserve for bus {failed.BusNumber}."
+        });
+        if (!entry.Success || entry.Data == null)
+            return entry; // reserve could not enter; the marker still records the pull
+
+        // Link the reserve's event back to the marker, and record the substitution
+        // against the route so the allocation screens stay truthful for the day.
+        var reserveEvent = await _context.BoardingEvents.FirstAsync(e => e.Id == entry.Data.EventId);
+        reserveEvent.ReplacesEventId = marker.Id;
+        await _context.SaveChangesAsync();
+
+        if (routeId.HasValue)
+            await _allocations.SubstituteAsync(new SubstituteBusModel
+            {
+                RouteId = routeId.Value,
+                ReplacementBusId = reserve.Id,
+                Date = session.SessionDate,
+                Reason = model.Reason ?? "Replaced before entering."
+            });
+
+        return new ServiceResponseDto<BoardRowModel>
+        {
+            Data = entry.Data,
+            Message = $"Bus {reserve.BusNumber} took over from {failed.BusNumber}."
         };
     }
 
@@ -460,6 +581,15 @@ public class BusOperationsService : IBusOperationsService
 
         var take = display?.VisibleRowCount ?? int.MaxValue;
 
+        var boardRows = rows.Select(ToRow).ToList();
+
+        // Buses expected to run today that have not been recorded in at all yet show
+        // as "Yet to arrive", so the board carries the whole lifecycle instead of only
+        // what is already inside. Left off a gate-scoped indoor panel: it is scoped to
+        // its platforms, and a bus with no platform has no place there.
+        if (display?.FilterByGateId is null)
+            boardRows.AddRange(await YetToArriveRowsAsync(session.SessionDate, rows));
+
         var board = new BoardModel
         {
             SessionId = session.Id,
@@ -469,8 +599,7 @@ public class BusOperationsService : IBusOperationsService
             DisplayName = display?.DisplayName,
             FilteredByGateName = display?.FilterByGate?.GateName,
             GeneratedAt = DateTime.UtcNow,
-            Rows = rows
-                .Select(ToRow)
+            Rows = boardRows
                 .OrderBy(r => BoardingStatus.Rank(r.Status))
                 .ThenBy(r => r.PlatformNumber ?? int.MaxValue)
                 .ThenBy(r => r.QueueOrder)
@@ -484,6 +613,53 @@ public class BusOperationsService : IBusOperationsService
             TotalRecords = board.Rows.Count,
             Message = "Board fetched successfully."
         };
+    }
+
+    /// <summary>
+    /// Synthetic "Yet to arrive" rows: buses allocated to a route for the day that
+    /// have no event this session yet and are fit to run (active, in service). These
+    /// never touch the database — they exist only on the board. EventId is the negated
+    /// bus id so each row keys uniquely and can never collide with a real event id.
+    /// </summary>
+    private async Task<List<BoardRowModel>> YetToArriveRowsAsync(
+        DateOnly date, List<BoardingEvents> sessionEvents)
+    {
+        var seenBusIds = sessionEvents.Select(e => e.BusId).ToHashSet();
+
+        var expected = (await _allocations.GetForDateAsync(date)).Data ?? new();
+        var candidateIds = expected
+            .Select(a => a.BusId)
+            .Where(id => !seenBusIds.Contains(id))
+            .ToHashSet();
+        if (candidateIds.Count == 0) return new();
+
+        // A bus under maintenance or retired is not "yet to arrive" — it is not coming.
+        var runnable = (await _context.BusesMasters
+            .Where(b => candidateIds.Contains(b.Id) && !b.IsDeleted && b.IsActive
+                     && !BusServiceState.OutOfService.Contains(b.ServiceStatus))
+            .Select(b => b.Id)
+            .ToListAsync())
+            .ToHashSet();
+
+        return expected
+            .Where(a => runnable.Contains(a.BusId))
+            .DistinctBy(a => a.BusId) // one row per bus even if it serves two routes
+            .Select(a => new BoardRowModel
+            {
+                EventId = -a.BusId,
+                BusId = a.BusId,
+                BusNumber = a.BusNumber,
+                RouteId = a.RouteId,
+                RouteName = a.RouteName,
+                LedDisplayName = a.LedDisplayName ?? a.RouteName,
+                PlatformId = null,
+                PlatformNumber = null,
+                PlatformName = null,
+                Status = BoardingStatus.YetToArrive,
+                QueueOrder = int.MaxValue,
+                EnteredAt = default
+            })
+            .ToList();
     }
 
     // ---------------------------------------------------------------------- queue
@@ -510,7 +686,9 @@ public class BusOperationsService : IBusOperationsService
             .Select(e => e.PlatformId!.Value)
             .ToHashSet();
 
-        var nextFree = platforms.FirstOrDefault(p => !occupied.Contains(p.Id));
+        // Reachable next platform, not merely the first free one: a trapped platform
+        // behind a held one is not offerable under the one-way rule.
+        var nextFree = NextReachablePlatform(platforms, occupied);
 
         var busyBusIds = events
             .Where(e => BoardingStatus.Live.Contains(e.Status))
@@ -614,7 +792,9 @@ public class BusOperationsService : IBusOperationsService
             };
         }).ToList();
 
-        var nextFree = slots.FirstOrDefault(s => !s.IsOccupied);
+        // The next platform a bus can reach, not just the first empty slot: under the
+        // one-way rule an empty slot trapped behind a held one is not offerable.
+        var nextFree = NextReachablePlatform(platforms, occupantByPlatform.Keys.ToHashSet());
 
         var model = new PlatformStatusModel
         {
@@ -752,22 +932,76 @@ public class BusOperationsService : IBusOperationsService
             .ToListAsync();
 
     /// <summary>
-    /// First platform in allocation order that is not currently held. Returns null when
-    /// the yard is full — more buses than marked platforms is a real operating state.
+    /// The next platform an entering bus can actually <em>reach</em>, honouring the
+    /// one-way, no-overtaking rule the compound is built on. The U has two arms
+    /// (grouped here by <see cref="PlatformsMaster.NearestGateId"/>); within an arm a
+    /// held platform blocks every deeper one behind it, because a bus cannot drive
+    /// past a parked one. So a platform that frees while still trapped behind a held
+    /// platform is <em>not</em> offered — the arriving bus stops at the deepest platform
+    /// it can reach, and if none is reachable it waits.
+    ///
+    /// Reachable = free, and on the same arm nothing nearer the entry (higher
+    /// SortOrder) is held. Among the reachable free platforms the bus drives to the
+    /// deepest (lowest SortOrder); across arms the overall lowest SortOrder wins, so
+    /// the compound still fills exit-end first exactly as before — the only change is
+    /// that trapped platforms are skipped.
+    ///
+    /// Returns null when no platform is reachable on any arm — a real operating state,
+    /// not an error: the bus is held as Waiting.
     /// </summary>
-    private async Task<int?> NextFreePlatformIdAsync(int sessionId)
+    private static PlatformsMaster? NextReachablePlatform(
+        IReadOnlyCollection<PlatformsMaster> activePlatforms,
+        ISet<int> occupiedPlatformIds)
     {
-        var platforms = await ActivePlatformsAsync();
+        PlatformsMaster? best = null;
 
-        var occupied = await _context.BoardingEvents
+        foreach (var arm in activePlatforms.GroupBy(p => p.NearestGateId))
+        {
+            // The held platform nearest this arm's entry (highest SortOrder) is the
+            // wall; anything behind it — lower SortOrder — cannot be driven to.
+            int? blockerSort = arm
+                .Where(p => occupiedPlatformIds.Contains(p.Id))
+                .Select(p => (int?)p.SortOrder)
+                .Max();
+
+            var candidate = arm
+                .Where(p => !occupiedPlatformIds.Contains(p.Id)
+                         && (blockerSort == null || p.SortOrder > blockerSort))
+                .OrderBy(p => p.SortOrder).ThenBy(p => p.PlatformNumber)
+                .FirstOrDefault();
+
+            if (candidate == null) continue;
+
+            if (best == null
+                || candidate.SortOrder < best.SortOrder
+                || (candidate.SortOrder == best.SortOrder && candidate.PlatformNumber < best.PlatformNumber))
+                best = candidate;
+        }
+
+        return best;
+    }
+
+    /// <summary>
+    /// Platform ids a live event is holding right now — the input to reachability.
+    /// </summary>
+    private async Task<HashSet<int>> OccupiedPlatformIdsAsync(int sessionId) =>
+        (await _context.BoardingEvents
             .Where(e => e.SessionId == sessionId && !e.IsDeleted
                      && e.PlatformId != null
                      && BoardingStatus.Occupying.Contains(e.Status))
             .Select(e => e.PlatformId!.Value)
-            .ToListAsync();
+            .ToListAsync())
+        .ToHashSet();
 
-        var taken = occupied.ToHashSet();
-        return platforms.FirstOrDefault(p => !taken.Contains(p.Id))?.Id;
+    /// <summary>
+    /// The reachable next platform for a fresh gate-in. Returns null when the yard is
+    /// full <em>or</em> every free platform is trapped behind a held one.
+    /// </summary>
+    private async Task<int?> NextFreePlatformIdAsync(int sessionId)
+    {
+        var platforms = await ActivePlatformsAsync();
+        var occupied = await OccupiedPlatformIdsAsync(sessionId);
+        return NextReachablePlatform(platforms, occupied)?.Id;
     }
 
     /// <summary>True when the write failed because the one-bus-per-platform index fired.</summary>

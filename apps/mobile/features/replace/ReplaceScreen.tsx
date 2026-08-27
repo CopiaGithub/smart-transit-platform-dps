@@ -9,7 +9,10 @@ import { usePolling } from "../../src/hooks/usePolling";
 import {
   fetchQueue,
   replaceBus,
+  replaceByBus,
+  selectAvailableBuses,
   selectAvailableReserves,
+  selectWaiting,
   selectYard,
 } from "../../src/store/operations.slice";
 import { useAppDispatch, useAppSelector } from "../../src/store";
@@ -18,40 +21,105 @@ import { useAppDispatch, useAppSelector } from "../../src/store";
  * Breakdown handling. The reserve inherits the failed bus's route and its
  * platform — deliberately, so students already told 'platform 4' keep walking
  * to platform 4 and nothing has to be re-announced (§5.6).
+ *
+ * A bus can fail anywhere, not just at a platform: on the road before it ever
+ * reaches the gate too. So the "going out" list is every bus that could still
+ * run today — in the yard, waiting inside, or yet to arrive — not only the ones
+ * already parked. A bus with no event is replaced by number; the reserve enters
+ * on its route and a Replaced marker keeps the failed bus on the board.
  */
+type OutItem = {
+  /** Unique across the list — a bus is in exactly one of these states. */
+  busId: number;
+  /** The event to replace, or null when the bus has not entered yet. */
+  eventId: number | null;
+  busNumber: string;
+  routeName: string | null;
+  platformNumber: number | null;
+  /** Shown to the operator: Arrived / Boarding / Waiting / Yet to arrive. */
+  status: string;
+};
+
 export default function ReplaceScreen() {
   const dispatch = useAppDispatch();
   const yard = useAppSelector(selectYard);
+  const waiting = useAppSelector(selectWaiting);
+  const availableBuses = useAppSelector(selectAvailableBuses);
   const reserves = useAppSelector(selectAvailableReserves);
   const submitting = useAppSelector((s) => s.ops.submitting);
   const opsError = useAppSelector((s) => s.ops.error);
   const { flash, show } = useFlash();
 
-  const [outEventId, setOutEventId] = useState<number | null>(null);
+  const [outBusId, setOutBusId] = useState<number | null>(null);
   const [inBusId, setInBusId] = useState<number | null>(null);
   const [reason, setReason] = useState("");
 
   usePolling(useCallback(() => void dispatch(fetchQueue()), [dispatch]));
 
-  const failed = yard.find((b) => b.EventId === outEventId) ?? null;
+  // In the yard first, then waiting inside, then the fleet still to arrive.
+  const outItems: OutItem[] = [
+    ...yard.map((b) => ({
+      busId: b.BusId,
+      eventId: b.EventId,
+      busNumber: b.BusNumber,
+      routeName: b.RouteName,
+      platformNumber: b.PlatformNumber,
+      status: b.Status,
+    })),
+    ...waiting.map((b) => ({
+      busId: b.BusId,
+      eventId: b.EventId,
+      busNumber: b.BusNumber,
+      routeName: b.RouteName,
+      platformNumber: b.PlatformNumber,
+      status: b.Status,
+    })),
+    ...availableBuses.map((b) => ({
+      busId: b.BusId,
+      eventId: null,
+      busNumber: b.BusNumber,
+      routeName: b.RouteName,
+      platformNumber: null,
+      status: "Yet to arrive",
+    })),
+  ];
+
+  const failed = outItems.find((b) => b.busId === outBusId) ?? null;
   const reserve = reserves.find((r) => r.BusId === inBusId) ?? null;
   const ready = !!failed && !!reserve && reason.trim().length > 0 && !submitting;
 
   const swap = async () => {
     if (!failed || !reserve || !ready) return;
-    const result = await dispatch(
-      replaceBus({
-        eventId: failed.EventId,
-        reserveBusId: reserve.BusId,
-        reserveBusNumber: reserve.BusNumber,
-        reason: reason.trim(),
-      }),
-    );
-    if (replaceBus.fulfilled.match(result)) {
-      show(String(result.payload));
-      setOutEventId(null);
+    const done = (message: string) => {
+      show(message);
+      setOutBusId(null);
       setInBusId(null);
       setReason("");
+    };
+    // A bus already inside is replaced by its event so it keeps its platform; a
+    // bus not yet in has no event, so it is replaced by number. Dispatched on
+    // separate branches: the two thunks take different args, so a single dispatch
+    // of their union does not resolve.
+    if (failed.eventId != null) {
+      const result = await dispatch(
+        replaceBus({
+          eventId: failed.eventId,
+          reserveBusId: reserve.BusId,
+          reserveBusNumber: reserve.BusNumber,
+          reason: reason.trim(),
+        }),
+      );
+      if (replaceBus.fulfilled.match(result)) done(String(result.payload));
+    } else {
+      const result = await dispatch(
+        replaceByBus({
+          failedBusId: failed.busId,
+          reserveBusId: reserve.BusId,
+          reserveBusNumber: reserve.BusNumber,
+          reason: reason.trim(),
+        }),
+      );
+      if (replaceByBus.fulfilled.match(result)) done(String(result.payload));
     }
   };
 
@@ -76,31 +144,38 @@ export default function ReplaceScreen() {
       )}
 
       <Text style={styles.cap}>1 · {LABELS.vehicle.toUpperCase()} GOING OUT OF SERVICE</Text>
-      {yard.length === 0 ? (
+      {outItems.length === 0 ? (
         <Text style={styles.empty}>
-          No {LABELS.vehiclePlural.toLowerCase()} on campus to replace
+          No {LABELS.vehiclePlural.toLowerCase()} available to replace
         </Text>
       ) : (
         <View style={styles.list}>
-          {yard.map((b) => (
+          {outItems.map((b) => (
             <Pressable
-              key={b.EventId}
-              style={[styles.row, outEventId === b.EventId && styles.rowOn]}
-              onPress={() => setOutEventId(outEventId === b.EventId ? null : b.EventId)}
+              key={b.busId}
+              style={[styles.row, outBusId === b.busId && styles.rowOn]}
+              onPress={() => setOutBusId(outBusId === b.busId ? null : b.busId)}
             >
-              <SlotBadge slot={b.PlatformNumber} size="sm" />
+              {b.platformNumber != null ? (
+                <SlotBadge slot={b.platformNumber} size="sm" />
+              ) : (
+                // No platform: it is waiting inside, or has not arrived at all.
+                <View style={styles.noSlot}>
+                  <Feather name="clock" size={16} color={COLORS.textMuted} />
+                </View>
+              )}
               <View style={{ flex: 1 }}>
                 <Text style={styles.no}>
-                  {LABELS.vehicle} {b.BusNumber}
+                  {LABELS.vehicle} {b.busNumber}
                 </Text>
                 <Text style={styles.route} numberOfLines={1}>
-                  {b.RouteName ?? "No route allocated"}
+                  {b.routeName ?? "No route allocated"} · {b.status}
                 </Text>
               </View>
               <Feather
-                name={outEventId === b.EventId ? "check-circle" : "circle"}
+                name={outBusId === b.busId ? "check-circle" : "circle"}
                 size={20}
-                color={outEventId === b.EventId ? COLORS.danger : COLORS.border}
+                color={outBusId === b.busId ? COLORS.danger : COLORS.border}
               />
             </Pressable>
           ))}
@@ -124,7 +199,7 @@ export default function ReplaceScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.no}>Reserve {r.BusNumber}</Text>
                 <Text style={styles.route}>
-                  {failed ? `Will run ${failed.RouteName ?? "the same route"}` : "Awaiting selection"}
+                  {failed ? `Will run ${failed.routeName ?? "the same route"}` : "Awaiting selection"}
                 </Text>
               </View>
               <Feather
@@ -208,6 +283,17 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   rowOn: { backgroundColor: COLORS.surfaceAlt },
+  // Stand-in for the platform badge when a bus holds none (waiting or not in yet).
+  noSlot: {
+    width: 34,
+    height: 34,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   no: { fontSize: 15, fontWeight: "800", color: COLORS.text },
   route: { fontSize: 11, color: COLORS.textMuted, marginTop: 1 },
   reserveTag: {

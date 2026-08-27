@@ -170,6 +170,14 @@ export const operationsApi = {
   replace: (eventId: number, reserveBusId: number, reason?: string) =>
     api.post<BoardRow>(`BusOperations/${eventId}/replace`, { reserveBusId, reason }),
 
+  /**
+   * Breakdown addressed by the failed BUS, so a bus that broke down before it
+   * reached the gate — and has no event yet — can still be handed to a reserve.
+   * When the bus is already in the yard this behaves exactly like `replace`.
+   */
+  replaceByBus: (failedBusId: number, reserveBusId: number, reason?: string) =>
+    api.post<BoardRow>("BusOperations/replace-bus", { failedBusId, reserveBusId, reason }),
+
   /** Single step, and only while the bus is still Arrived (§5.7). */
   undoLast: () => api.post<BoardRow>("BusOperations/undo-last"),
 };

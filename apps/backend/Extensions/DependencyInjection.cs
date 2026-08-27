@@ -60,6 +60,9 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
+        // Closes a session automatically once its day has passed (§2.1).
+        services.AddHostedService<SessionAutoCloseService>();
+
         return services;
     }
 }
