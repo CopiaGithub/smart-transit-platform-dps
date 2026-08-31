@@ -79,6 +79,11 @@
   background: rgba(251, 99, 64, 0.13);
 }
 
+.rep-kpi-icon--pending {
+  color: #475569;
+  background: rgba(148, 163, 184, 0.18);
+}
+
 .rep-kpi-body {
   min-width: 0;
 }
@@ -400,6 +405,12 @@
   letter-spacing: 0.03em;
   border-radius: 999px;
   white-space: nowrap;
+}
+
+/* Slate, matching apps/mobile STATUS_COLOR["Yet to arrive"] (#94A3B8). */
+.rep-status--yet-to-arrive {
+  color: #475569;
+  background: rgba(148, 163, 184, 0.18);
 }
 
 .rep-status--waiting {

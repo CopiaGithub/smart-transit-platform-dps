@@ -162,6 +162,8 @@ public class BusStatusModel
     public int AvailableCount { get; set; }
     public int InYardCount { get; set; }
     public int OutOfServiceCount { get; set; }
+    /// <summary>Allocated for today and fit to run, but not yet recorded in at the gate. Zero when no session is open.</summary>
+    public int YetToArriveCount { get; set; }
     public List<BusStatusRowModel> Buses { get; set; } = new();
 }
 

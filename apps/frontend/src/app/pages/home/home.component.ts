@@ -40,6 +40,7 @@ interface BusStatus {
   AvailableCount: number;
   InYardCount: number;
   OutOfServiceCount: number;
+  YetToArriveCount: number;
 }
 
 interface DisplayRow {

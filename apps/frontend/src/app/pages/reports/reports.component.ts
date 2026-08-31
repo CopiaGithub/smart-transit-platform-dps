@@ -34,7 +34,7 @@ interface BoardRow {
   PlatformId: number | null;
   PlatformNumber: number | null;
   PlatformName: string | null;
-  /** Waiting | Arrived | Boarding | Departed | Replaced */
+  /** Yet to arrive | Waiting | Arrived | Boarding | Departed | Replaced */
   Status: string;
   QueueOrder: number;
   EnteredAt: string;
@@ -51,8 +51,9 @@ interface Board {
   Rows: BoardRow[];
 }
 
-/** apps/mobile/constants/domain.ts — the same five, spelled the same way. */
+/** apps/mobile/constants/domain.ts — spelled the same way on both sides. */
 const STATUS = {
+  yetToArrive: 'Yet to arrive',
   waiting: 'Waiting',
   arrived: 'Arrived',
   boarding: 'Boarding',
@@ -60,10 +61,11 @@ const STATUS = {
   replaced: 'Replaced',
 } as const;
 
-type FilterKey = 'all' | 'departed' | 'onCampus' | 'replaced';
+type FilterKey = 'all' | 'yetToArrive' | 'departed' | 'onCampus' | 'replaced';
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'All' },
+  { key: 'yetToArrive', label: 'Yet to arrive' },
   { key: 'departed', label: 'Departed' },
   { key: 'onCampus', label: 'On campus' },
   { key: 'replaced', label: 'Replaced' },
@@ -127,7 +129,15 @@ export class ReportsComponent extends BaseComponent implements OnInit, OnDestroy
 
   // ── Counts ────────────────────────────────────────────────────────────────
 
-  readonly recordedIn = computed(() => this.rows().length);
+  // "Buses in" = buses actually recorded at the gate. Yet-to-arrive rows are
+  // synthesised for buses that have NOT entered, so they must not inflate it.
+  readonly recordedIn = computed(
+    () => this.rows().filter((r) => r.Status !== STATUS.yetToArrive).length,
+  );
+
+  readonly yetToArriveCount = computed(
+    () => this.rows().filter((r) => r.Status === STATUS.yetToArrive).length,
+  );
 
   readonly departedCount = computed(
     () => this.rows().filter((r) => r.Status === STATUS.departed).length,
@@ -157,6 +167,7 @@ export class ReportsComponent extends BaseComponent implements OnInit, OnDestroy
     const rows = this.rows();
     const byFilter: Record<FilterKey, BoardRow[]> = {
       all: rows,
+      yetToArrive: rows.filter((r) => r.Status === STATUS.yetToArrive),
       departed: rows.filter((r) => r.Status === STATUS.departed),
       onCampus: this.onCampus(rows),
       replaced: rows.filter((r) => r.Status === STATUS.replaced),
@@ -262,7 +273,8 @@ export class ReportsComponent extends BaseComponent implements OnInit, OnDestroy
 
   /** Drives the per-status badge colour; see reports.component.css. */
   statusClass(status: string): string {
-    return `rep-status--${status.toLowerCase()}`;
+    // Hyphenate so multi-word statuses ("Yet to arrive") stay one valid class.
+    return `rep-status--${status.toLowerCase().replace(/\s+/g, '-')}`;
   }
 
   private onCampus(rows: BoardRow[]): BoardRow[] {
