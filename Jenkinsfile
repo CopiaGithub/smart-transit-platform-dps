@@ -30,10 +30,10 @@ pipeline {
     environment {
         // Angular 21 needs Node ^20.19 || ^22.12 || ^24 — ensure this version exists on the agent (nvm)
         NODE_VERSION = '22.12.0'
-        REPO_URL     = 'https://github.com/CopiaGithub/transit-display-platform-master.git'
+        REPO_URL     = 'https://github.com/CopiaGithub/smart-transit-platform-dps.git'
         BRANCH       = 'develop'
         // Named Jenkins credential (Secret text or Username/Password with PAT). Replace with your credential ID.
-        GIT_CREDENTIALS_ID = 'github-transit-display'
+        GIT_CREDENTIALS_ID = 'c9cfb0ee-1b54-4239-a00b-4e21c9556dc7'
 
         IIS_SITE_ROOT = 'C:\\inetpub\\Sites\\Transit Display Platform Master'
 
