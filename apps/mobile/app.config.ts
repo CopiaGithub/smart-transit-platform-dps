@@ -18,7 +18,7 @@ const ENV: Record<AppEnv, { apiUrl: string; appName: string; debug: boolean }> =
       // apiClient swaps `localhost` for whatever host Metro is served from, so
       // the one line works on the emulator and on a phone over Wi-Fi:
       //   "http://localhost:5199/api/"
-      apiUrl: "http://localhost:5199/api/",
+      apiUrl: "https://tdpdev.copiacs.com/tdpdevapi/api/",
       // appName: "Transit Display (Dev)",
       appName: "Transit Display",
       debug: true,
