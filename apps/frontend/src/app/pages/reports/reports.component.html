@@ -27,6 +27,16 @@
       </div>
 
       <div class="rep-kpi">
+        <span class="rep-kpi-icon rep-kpi-icon--pending" aria-hidden="true">
+          <mat-icon>schedule</mat-icon>
+        </span>
+        <div class="rep-kpi-body">
+          <p class="rep-kpi-value">{{ yetToArriveCount() }}</p>
+          <p class="rep-kpi-label">Yet to arrive</p>
+        </div>
+      </div>
+
+      <div class="rep-kpi">
         <span class="rep-kpi-icon rep-kpi-icon--out" aria-hidden="true">
           <mat-icon>logout</mat-icon>
         </span>

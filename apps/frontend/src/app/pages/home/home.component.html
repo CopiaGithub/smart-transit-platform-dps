@@ -93,6 +93,16 @@
         <p class="dash-card-note">Waiting for a free platform.</p>
       </div>
 
+      <!-- Yet to arrive -->
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <mat-icon aria-hidden="true" class="dash-card-icon">schedule</mat-icon>
+          <span class="dash-card-label">Yet to arrive</span>
+        </div>
+        <p class="dash-card-value">{{ buses()?.YetToArriveCount ?? 0 }}</p>
+        <p class="dash-card-note">Expected today — not at the gate yet.</p>
+      </div>
+
       <!-- Departed -->
       <div class="dash-card">
         <div class="dash-card-head">

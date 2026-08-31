@@ -828,13 +828,15 @@ public class BusOperationsService : IBusOperationsService
             .ToListAsync();
 
         // Latest event per bus in this session (highest Id wins).
+        var sessionEvents = new List<BoardingEvents>();
         var latestByBus = new Dictionary<int, BoardingEvents>();
         if (session != null)
         {
-            foreach (var e in await RowQuery()
-                         .Where(e => e.SessionId == session.Id)
-                         .OrderByDescending(e => e.Id)
-                         .ToListAsync())
+            sessionEvents = await RowQuery()
+                .Where(e => e.SessionId == session.Id)
+                .OrderByDescending(e => e.Id)
+                .ToListAsync();
+            foreach (var e in sessionEvents)
                 latestByBus.TryAdd(e.BusId, e);
         }
 
@@ -869,6 +871,10 @@ public class BusOperationsService : IBusOperationsService
             InYardCount = rows.Count(r =>
                 r.Availability is BusAvailability.InYard or BusAvailability.Waiting),
             OutOfServiceCount = rows.Count(r => r.Availability == BusAvailability.OutOfService),
+            // Same definition the board synthesises, so the dashboard and the board agree.
+            YetToArriveCount = session == null
+                ? 0
+                : (await YetToArriveRowsAsync(session.SessionDate, sessionEvents)).Count,
             Buses = rows
         };
 
